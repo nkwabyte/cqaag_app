@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cqaag_app/models/user/app_user.dart';
-import 'package:cqaag_app/services/connectivity_service.dart';
+import 'package:cqaag_app/services/connectivity/connectivity_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -33,7 +33,11 @@ class AuthService {
   Stream<AppUser?> get currentUserProfile {
     return authStateChanges.switchMap((user) {
       if (user == null) return Stream.value(null);
-      return _firestore.collection('users').doc(user.uid).snapshots().map((snapshot) => snapshot.exists ? AppUser.fromJson(snapshot.data()!) : null);
+      return _firestore
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .map((snapshot) => snapshot.exists ? AppUser.fromJson(snapshot.data()!) : null);
     });
   }
 
@@ -48,6 +52,9 @@ class AuthService {
     required String firstName,
     required String lastName,
     required String phoneNumber,
+    String? address,
+    String? district,
+    String? region,
     bool isAdmin = false,
   }) async {
     await _connectivityService.ensureConnected();
@@ -60,6 +67,9 @@ class AuthService {
       lastName: lastName,
       email: email,
       phoneNumber: phoneNumber,
+      address: address,
+      district: district,
+      region: region,
       isAdmin: isAdmin,
     );
 

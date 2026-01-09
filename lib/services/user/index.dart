@@ -16,10 +16,4 @@
  * Any manual changes to this file may be overwritten.
  */
 
-export 'preferences_service.dart';
-export 'firebase_options.dart';
-export 'api_service.dart';
-export 'connectivity/index.dart';
-export 'auth/index.dart';
-export 'user/index.dart';
-export 'membership/index.dart';
+export 'user_service.dart';

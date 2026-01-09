@@ -131,7 +131,16 @@ class FirebaseErrorMapper {
     String message = error.toString();
 
     // Remove common prefixes
-    message = message.replaceAll('Exception: ', '').replaceAll('Error: ', '').replaceAll('[firebase_auth/', '').replaceAll('[cloud_firestore/', '').replaceAll(']', '').trim();
+    message = message
+        .replaceAll('Exception: ', '')
+        .replaceAll(
+          'Error: ',
+          '',
+        )
+        .replaceAll('[firebase_auth/', '')
+        .replaceAll('[cloud_firestore/', '')
+        .replaceAll(']', '')
+        .trim();
 
     // If message is still technical, provide generic message
     if (message.isEmpty || message.length > 200) {

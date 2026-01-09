@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cqaag_app/models/user/app_user.dart';
-import 'package:cqaag_app/services/connectivity_service.dart';
+import 'package:cqaag_app/services/connectivity/connectivity_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'user_service.g.dart';

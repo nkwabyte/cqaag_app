@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cqaag_app/models/membership/membership_application.dart';
 import 'package:cqaag_app/models/membership/membership_category.dart';
-import 'package:cqaag_app/services/connectivity_service.dart';
+import 'package:cqaag_app/services/connectivity/connectivity_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'membership_service.g.dart';
@@ -14,7 +14,7 @@ class MembershipService {
   MembershipService(this._connectivityService);
 
   /// Collection reference for membership applications
-  CollectionReference<Map<String, dynamic>> get _applicationsCollection => _firestore.collection('membership_applications');
+  CollectionReference<Map<String, dynamic>> get _applicationsCollection => _firestore.collection('members');
 
   /// Submit a new membership application
   Future<void> submitApplication(MembershipApplication application) async {

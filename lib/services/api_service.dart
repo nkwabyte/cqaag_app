@@ -1,6 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:cqaag_app/services/connectivity_service.dart';
+import 'package:cqaag_app/services/connectivity/connectivity_service.dart';
 
 class ApiService {
   final http.Client _client = http.Client();
