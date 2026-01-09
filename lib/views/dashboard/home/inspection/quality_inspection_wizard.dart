@@ -17,7 +17,7 @@ class _QualityInspectionWizardState extends State<QualityInspectionWizard> {
   final _formKey = GlobalKey<FormBuilderState>();
   int _currentStep = 0;
 
-  final List<String> _stepTitles = ["Location", "Metrics", "Photos"];
+  final List<String> stepTitles = <String>["Location", "Metrics", "Photos"];
 
   void _nextStep() {
     if (_currentStep < 3) {
@@ -47,14 +47,14 @@ class _QualityInspectionWizardState extends State<QualityInspectionWizard> {
       body: FormBuilder(
         key: _formKey,
         child: Column(
-          children: [
+          children: <Widget>[
             _buildProgressBar(colorScheme),
             Expanded(
               child: PageView(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(), // Force button navigation
                 onPageChanged: (index) => setState(() => _currentStep = index),
-                children: const [
+                children: const <Widget>[
                   BasicInfoStep(),
                   FarmLocationStep(),
                   QualityMetricsStep(),
@@ -81,13 +81,24 @@ class _QualityInspectionWizardState extends State<QualityInspectionWizard> {
         ),
         onPressed: () => _currentStep == 0
             ? Navigator.pop(context)
-            : _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut),
+            : _pageController.previousPage(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              ),
       ),
       centerTitle: true,
       title: Column(
-        children: [
-          const CustomText("Quality Inspection", variant: TextVariant.headlineMedium, color: Colors.white),
-          CustomText("Step ${_currentStep + 1} of 4", variant: TextVariant.bodySmall, color: Colors.white70),
+        children: <Widget>[
+          const CustomText(
+            "Quality Inspection",
+            variant: TextVariant.headlineMedium,
+            color: Colors.white,
+          ),
+          CustomText(
+            "Step ${_currentStep + 1} of 4",
+            variant: TextVariant.bodySmall,
+            color: Colors.white70,
+          ),
         ],
       ),
     );
@@ -98,9 +109,9 @@ class _QualityInspectionWizardState extends State<QualityInspectionWizard> {
       color: colorScheme.onSurface,
       padding: EdgeInsets.only(bottom: 20.h),
       child: Column(
-        children: [
+        children: <Widget>[
           Stack(
-            children: [
+            children: <Widget>[
               Container(height: 4.h, width: double.infinity, color: Colors.white10),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
@@ -115,7 +126,7 @@ class _QualityInspectionWizardState extends State<QualityInspectionWizard> {
             padding: EdgeInsets.symmetric(horizontal: 24.w),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+              children: <Widget>[
                 _buildStepLabel("Location", 0),
                 _buildStepLabel("Metrics", 1, 2), // Spans steps
                 _buildStepLabel("Photos", 3),
