@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "1007267464526",
+    "project_id": "cqaag-app-gh",
+    "storage_bucket": "cqaag-app-gh.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1007267464526:android:09e61788a6102ee2010a1f",
+        "android_client_info": {
+          "package_name": "org.cqaaggh.cqaag_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1007267464526-k7m7tv1e5rc4a6qa8l764n6bct3mlirb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvkrzYfCXp3EoGi1uDbjntnkrtLXro0H8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1007267464526-k7m7tv1e5rc4a6qa8l764n6bct3mlirb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1007267464526-52aus9d6lpt2332so6jf1q1odu9g9ja2.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "org.cqaaggh.cqaagApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
