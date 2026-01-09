@@ -19,23 +19,22 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(const Duration(seconds: 4), () {
-      if (mounted) {
-        context.goNamed(BoardingScreen.id);
-      }
+    Timer(const Duration(seconds: 5), () {
+      if (!mounted) return;
+      context.goNamed(BoardingScreen.id);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Accessing theme data
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      // Uses the background color defined in AppTheme
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SizedBox(
+      backgroundColor: AppColors.darkRed,
+      extendBodyBehindAppBar: true,
+      body: Container(
         width: double.infinity,
+        decoration: BoxDecoration(color: Colors.transparent),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
@@ -90,9 +89,8 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Widget _buildDot({required int delay}) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final inactiveColor = colorScheme.onSurface.withValues(alpha: 0.2);
-    final activeColor = colorScheme.secondary;
+    final inactiveColor = AppColors.lightOrange.withValues(alpha: 0.2);
+    final activeColor = AppColors.grayOrange;
 
     return Container(
           width: 8.r,

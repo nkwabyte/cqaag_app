@@ -57,14 +57,14 @@ class TermsAndConditionsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CustomText(
-                    "By using the CQAAG Platform, you agree to be bound by these Terms. If you do not agree, please do not use the service.",
+                    "By using the C.Q.A.A.G Platform, you agree to be bound by these Terms. If you do not agree, please do not use the service.",
                     variant: TextVariant.bodyLarge,
                     color: colorScheme.secondary,
                   ),
                   Gap(24.h),
                   _buildLegalSection(
                     "1. Acceptance of Terms",
-                    "These Terms constitute a binding agreement between you and CQAAG. Continued use of the platform after changes constitutes acceptance of updated Terms.",
+                    "These Terms constitute a binding agreement between you and C.Q.A.A.G. Continued use of the platform after changes constitutes acceptance of updated Terms.",
                   ),
                   _buildLegalSection(
                     "2. Authorized Use",
@@ -76,7 +76,7 @@ class TermsAndConditionsScreen extends StatelessWidget {
                   ),
                   _buildLegalSection(
                     "4. Intellectual Property",
-                    "All content, including text, logos, and report formats, is owned by CQAAG. Reproduction without written permission is prohibited.",
+                    "All content, including text, logos, and report formats, is owned by C.Q.A.A.G. Reproduction without written permission is prohibited.",
                   ),
                   _buildLegalSection(
                     "5. Membership Data",
@@ -84,7 +84,7 @@ class TermsAndConditionsScreen extends StatelessWidget {
                   ),
                   _buildLegalSection(
                     "6. Limitation of Liability",
-                    "CQAAG is not liable for indirect or incidental damages arising from platform use. Our liability is limited to fees paid in the last 12 months.",
+                    "C.Q.A.A.G is not liable for indirect or incidental damages arising from platform use. Our liability is limited to fees paid in the last 12 months.",
                   ),
                   _buildLegalSection(
                     "7. Governing Law",

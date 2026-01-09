@@ -94,6 +94,7 @@ abstract class AppUser with _$AppUser {
     String? phoneNumber,
     @Default(VerificationStatus.pending) VerificationStatus verificationStatus,
     @Default(MembershipStatus.notAMember) MembershipStatus membershipStatus,
+    @Default(false) bool isAdmin,
   }) = _AppUser;
 
   factory AppUser.fromJson(Map<String, dynamic> json) => _$AppUserFromJson(json);

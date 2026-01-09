@@ -18,3 +18,4 @@
 
 export 'user/index.dart';
 export 'boarding/index.dart';
+export 'membership/index.dart';

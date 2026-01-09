@@ -182,7 +182,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Column(
                       children: [
                         const CustomText(
-                          "CQAAG",
+                          "C.Q.A.A.G",
                           variant: TextVariant.headlineMedium,
                           fontWeight: FontWeight.bold,
                         ),

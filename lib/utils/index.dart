@@ -17,3 +17,4 @@
  */
 
 export 'ui_helpers.dart';
+export 'firebase_error_mapper.dart';

@@ -61,11 +61,19 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         if (context.mounted) {
           AppDialogs.hide(context);
 
-          // Show error with custom snackbar
-          CustomSnackbar.error(
-            context,
-            message: e.toString().replaceAll('Exception: ', '').replaceAll('[firebase_auth/user-not-found]', 'No account found with this email'),
-          );
+          // Check if it's a connectivity error
+          if (e is NoInternetException) {
+            CustomSnackbar.info(
+              context,
+              message: e.message,
+            );
+          } else {
+            // Use Firebase error mapper for user-friendly messages
+            CustomSnackbar.error(
+              context,
+              message: FirebaseErrorMapper.getErrorMessage(e),
+            );
+          }
         }
       }
     } else {
@@ -100,7 +108,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   Gap(40.h),
-                  const CustomText("Forgot Password", variant: TextVariant.displaySmall, color: Colors.white),
+                  const CustomText(
+                    "Forgot Password",
+                    variant: TextVariant.displaySmall,
+                    color: Colors.white,
+                  ),
                   Gap(12.h),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 40.w),

@@ -2,6 +2,8 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:cqaag_app/services/index.dart';
 import 'package:cqaag_app/views/index.dart';
+import 'package:cqaag_app/models/user/app_user.dart';
+import 'package:cqaag_app/models/membership/membership_application.dart';
 
 part 'app_router.g.dart';
 
@@ -21,8 +23,9 @@ GoRouter goRouter(Ref ref) {
       final isBoarding = state.uri.path == '/${BoardingScreen.id}';
       final isLogin = state.uri.path == '/${LoginScreen.id}';
       final isRegister = state.uri.path == '/${RegisterScreen.id}';
+      final isForgotPassword = state.uri.path == '/${ForgotPasswordScreen.id}';
 
-      final isPublicRoute = isSplash || isBoarding || isLogin || isRegister;
+      final isPublicRoute = isSplash || isBoarding || isLogin || isRegister || isForgotPassword;
 
       if (isLoading || hasError) return null;
 
@@ -81,6 +84,11 @@ GoRouter goRouter(Ref ref) {
         name: DashboardScreen.id,
         builder: (context, state) => const DashboardScreen(),
       ),
+      GoRoute(
+        path: '/${AdminDashboardScreen.id}',
+        name: AdminDashboardScreen.id,
+        builder: (context, state) => const AdminDashboardScreen(),
+      ),
       // History flow routes
       GoRoute(
         path: '/${DistrictDetailScreen.id}',
@@ -120,6 +128,24 @@ GoRouter goRouter(Ref ref) {
         builder: (context, state) {
           final applicationData = state.extra as Map<String, dynamic>?;
           return MembershipAgreementScreen(applicationData: applicationData ?? {});
+        },
+      ),
+
+      // Admin Details Routes
+      GoRoute(
+        path: '/${AdminUserDetailScreen.id}',
+        name: AdminUserDetailScreen.id,
+        builder: (context, state) {
+          final user = state.extra as AppUser;
+          return AdminUserDetailScreen(user: user);
+        },
+      ),
+      GoRoute(
+        path: '/${AdminMemberDetailScreen.id}',
+        name: AdminMemberDetailScreen.id,
+        builder: (context, state) {
+          final app = state.extra as MembershipApplication;
+          return AdminMemberDetailScreen(application: app);
         },
       ),
     ],

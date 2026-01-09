@@ -99,7 +99,7 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
                             JourneyCard(
                               title: "Export Certification",
                               subtitle: "Ready for international export",
-                              location: "CQAAG National HQ",
+                              location: "C.Q.A.A.G National HQ",
                               person: "Dr. Ama Asante",
                               role: "CEO",
                               dateTime: "2024-12-20, 11:30 AM",

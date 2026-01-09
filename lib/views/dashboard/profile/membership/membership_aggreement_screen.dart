@@ -62,7 +62,7 @@ class _MembershipAgreementScreenState extends State<MembershipAgreementScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CustomText(
-                    "This Agreement is entered into between CQAAG and you upon submission and approval of your membership application.",
+                    "This Agreement is entered into between C.Q.A.A.G and you upon submission and approval of your membership application.",
                     variant: TextVariant.bodyLarge,
                     color: colorScheme.secondary,
                   ),
@@ -70,7 +70,7 @@ class _MembershipAgreementScreenState extends State<MembershipAgreementScreen> {
 
                   _buildLegalSection(
                     "1. Membership Categories",
-                    "CQAAG offers Full, Associate, Corporate, and Honorary memberships. Eligibility, rights, and benefits for each category are subject to approval by the Membership Committee.",
+                    "C.Q.A.A.G offers Full, Associate, Corporate, and Honorary memberships. Eligibility, rights, and benefits for each category are subject to approval by the Membership Committee.",
                   ),
 
                   _buildLegalSection(
@@ -80,7 +80,7 @@ class _MembershipAgreementScreenState extends State<MembershipAgreementScreen> {
 
                   _buildLegalSection(
                     "3. Membership Obligations",
-                    "You agree to uphold high professional standards, comply with the Code of Conduct, pay registration and annual dues promptly, and promote the objectives of CQAAG.",
+                    "You agree to uphold high professional standards, comply with the Code of Conduct, pay registration and annual dues promptly, and promote the objectives of C.Q.A.A.G.",
                   ),
 
                   _buildLegalSection(
@@ -115,7 +115,7 @@ class _MembershipAgreementScreenState extends State<MembershipAgreementScreen> {
                         ),
                         Gap(8.h),
                         const CustomText(
-                          "I hereby apply for membership and confirm that the information provided is true. I agree to abide by the CQAAG Constitution, Code of Conduct, and Membership Agreement.",
+                          "I hereby apply for membership and confirm that the information provided is true. I agree to abide by the C.Q.A.A.G Constitution, Code of Conduct, and Membership Agreement.",
                           variant: TextVariant.bodyMedium,
                         ),
                       ],

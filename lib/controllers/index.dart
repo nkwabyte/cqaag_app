@@ -17,3 +17,5 @@
  */
 
 export 'auth/index.dart';
+export 'membership/index.dart';
+export 'user/user_controller.dart';

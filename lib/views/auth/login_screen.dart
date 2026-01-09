@@ -17,6 +17,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final GlobalKey<FormBuilderState> _formKey = GlobalKey<FormBuilderState>();
+  bool _isAdminLogin = false;
 
   @override
   Widget build(BuildContext context) {
@@ -24,10 +25,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen<AsyncValue<void>>(authControllerProvider, (previous, next) {
       next.whenOrNull(
         error: (error, stackTrace) {
-          CustomSnackbar.error(
-            context,
-            message: error.toString(),
-          );
+          // Check if it's a connectivity error
+          if (error is NoInternetException) {
+            CustomSnackbar.info(
+              context,
+              message: error.message,
+            );
+          } else {
+            // Use Firebase error mapper for user-friendly messages
+            CustomSnackbar.error(
+              context,
+              message: FirebaseErrorMapper.getErrorMessage(error),
+            );
+          }
         },
       );
     });
@@ -54,166 +64,211 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
+                  colors: <Color>[
                     colorScheme.onSurface,
                     colorScheme.onSurface.withValues(alpha: 0.9),
                   ],
                 ),
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Gap(40.h),
-                  SvgPicture.asset(
-                    Assets.svgLogoWhite,
-                    width: 100.w,
-                  ),
-                  Gap(20.h),
-                  const CustomText(
-                    "Welcome Back",
-                    variant: TextVariant.displaySmall,
-                    color: Colors.white,
-                  ),
-                  Gap(8.h),
-                  CustomText(
-                    "Sign in to your CQAAG account",
-                    variant: TextVariant.bodyMedium,
-                    color: colorScheme.secondary,
-                  ),
-                ],
+              child: SafeArea(
+                bottom: false,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Gap(20.h),
+                    SvgPicture.asset(
+                      Assets.svgLogoWhite,
+                      width: 100.w,
+                    ),
+                    Gap(10.h),
+                    const CustomText(
+                      "Welcome Back",
+                      variant: TextVariant.displaySmall,
+                      color: Colors.white,
+                    ),
+                    Gap(8.h),
+                    CustomText(
+                      "Sign in to your C.Q.A.A.G account",
+                      variant: TextVariant.bodyMedium,
+                      color: colorScheme.secondary,
+                    ),
+                    Gap(10.0.h),
+                  ],
+                ),
               ),
             ),
 
             // 2. Form Section
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 30.h),
-              child: FormBuilder(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: <Widget>[
-                    CustomTextField(
-                      label: "Email or Phone Number",
-                      hint: "Enter your email or phone",
-                      prefixIcon: Icons.email_outlined,
-                      name: 'email',
-                    ),
-                    Gap(20.h),
-                    CustomTextField(
-                      name: 'password',
-                      label: "Password",
-                      hint: "Enter your password",
-                      obscureText: true,
-                      prefixIcon: Icons.lock_outline,
-                    ),
-                    Gap(12.h),
-
-                    // Forgot Password Link
-                    GestureDetector(
-                      onTap: () {
-                        context.pushNamed(ForgotPasswordScreen.id);
-                      },
-                      child: CustomText(
-                        "Forgot Password?",
-                        variant: TextVariant.bodyMedium,
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.primary,
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 30.h),
+                child: FormBuilder(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: <Widget>[
+                      CustomTextField(
+                        label: "Email or Phone Number",
+                        hint: "Enter your email or phone",
+                        prefixIcon: Icons.email_outlined,
+                        name: 'email',
+                        keyboardType: TextInputType.emailAddress,
                       ),
-                    ),
+                      Gap(20.h),
+                      CustomTextField(
+                        name: 'password',
+                        label: "Password",
+                        hint: "Enter your password",
+                        obscureText: true,
+                        prefixIcon: Icons.lock_outline,
+                      ),
+                      Gap(12.h),
 
-                    Gap(30.h),
-
-                    // Sign In Button
-                    CustomButton(
-                      text: "Sign In",
-                      isLoading: isLoading,
-                      onPressed: () {
-                        UIHelpers.dismissKeyboard(context);
-                        if (isLoading) return;
-                        if (_formKey.currentState?.saveAndValidate() ?? false) {
-                          final values = _formKey.currentState?.value;
-                          final email = values?['email'] as String?;
-                          final password = values?['password'] as String?;
-
-                          if (email != null && password != null) {
-                            ref.read(authControllerProvider.notifier).signIn(email, password).then((_) {
-                              // Check if sign in was successful
-                              if (context.mounted && !ref.read(authControllerProvider).hasError) {
-                                CustomSnackbar.success(
-                                  context,
-                                  message: "Welcome back!",
-                                  duration: const Duration(seconds: 2),
-                                );
-                                // Use context.go to prevent back navigation
-                                context.go('/${DashboardScreen.id}');
-                              }
-                            });
-                          }
-                        }
-                      },
-                    ),
-
-                    Gap(30.h),
-
-                    // 3. The "OR" Divider
-                    Row(
-                      children: <Widget>[
-                        Expanded(child: Divider(color: colorScheme.secondary.withValues(alpha: 0.3))),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 10.w),
-                          child: CustomText(
-                            "OR",
-                            variant: TextVariant.bodySmall,
-                            color: colorScheme.secondary,
-                          ),
-                        ),
-                        Expanded(
-                          child: Divider(
-                            color: colorScheme.secondary.withValues(alpha: 0.3),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    Gap(30.h),
-
-                    // 4. Biometric Login Button
-                    CustomButton(
-                      text: "Use Biometric Login",
-                      variant: ButtonVariant.outlined,
-                      borderColor: colorScheme.primary,
-                      leadingIcon: Icon(Icons.fingerprint, color: colorScheme.primary),
-                      onPressed: () {
-                        /* Handle Biometric */
-                      },
-                    ),
-
-                    Gap(40.h),
-
-                    // 5. Footer: Create Account
-                    Center(
-                      child: Column(
+                      // Forgot Password Link
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.max,
                         children: <Widget>[
-                          CustomText(
-                            "Don't have an account?",
-                            variant: TextVariant.bodyMedium,
-                            color: colorScheme.secondary,
+                          // Admin Checkbox
+                          Row(
+                            children: [
+                              SizedBox(
+                                height: 24.h,
+                                width: 24.w,
+                                child: Checkbox(
+                                  value: _isAdminLogin,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _isAdminLogin = value ?? false;
+                                    });
+                                  },
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4.r),
+                                  ),
+                                  side: BorderSide(
+                                    color: colorScheme.primary,
+                                    width: 1.5,
+                                  ),
+                                ),
+                              ),
+                              Gap(8.w),
+                              CustomText(
+                                "Log in as Admin",
+                                variant: TextVariant.bodyMedium,
+                                color: colorScheme.onSurface,
+                              ),
+                            ],
                           ),
+
                           GestureDetector(
                             onTap: () {
-                              context.pushNamed(RegisterScreen.id);
+                              context.pushNamed(ForgotPasswordScreen.id);
                             },
                             child: CustomText(
-                              "Create Account",
-                              variant: TextVariant.bodyLarge,
-                              fontWeight: FontWeight.bold,
+                              "Forgot Password?",
+                              variant: TextVariant.bodyMedium,
+                              fontWeight: FontWeight.w600,
                               color: colorScheme.primary,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+
+                      Gap(30.h),
+
+                      // Sign In Button
+                      CustomButton(
+                        text: "Sign In",
+                        isLoading: isLoading,
+                        onPressed: () {
+                          UIHelpers.dismissKeyboard(context);
+                          if (isLoading) return;
+                          if (_formKey.currentState?.saveAndValidate() ?? false) {
+                            final values = _formKey.currentState?.value;
+                            final email = values?['email'] as String?;
+                            final password = values?['password'] as String?;
+
+                            if (email != null && password != null) {
+                              ref.read(authControllerProvider.notifier).signIn(email, password).then((_) {
+                                // Check if sign in was successful
+                                if (context.mounted && !ref.read(authControllerProvider).hasError) {
+                                  CustomSnackbar.success(
+                                    context,
+                                    message: "Welcome back!",
+                                    duration: const Duration(seconds: 2),
+                                  );
+                                  // Use context.go to prevent back navigation
+                                  context.go('/${DashboardScreen.id}');
+                                }
+                              });
+                            }
+                          }
+                        },
+                      ),
+
+                      Gap(30.h),
+
+                      // 3. The "OR" Divider
+                      Row(
+                        children: <Widget>[
+                          Expanded(child: Divider(color: colorScheme.secondary.withValues(alpha: 0.3))),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10.w),
+                            child: CustomText(
+                              "OR",
+                              variant: TextVariant.bodySmall,
+                              color: colorScheme.secondary,
+                            ),
+                          ),
+                          Expanded(
+                            child: Divider(
+                              color: colorScheme.secondary.withValues(alpha: 0.3),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Gap(30.h),
+
+                      // // 4. Biometric Login Button
+                      // CustomButton(
+                      //   text: "Use Biometric Login",
+                      //   variant: ButtonVariant.outlined,
+                      //   borderColor: colorScheme.primary,
+                      //   leadingIcon: Icon(Icons.fingerprint, color: colorScheme.primary),
+                      //   onPressed: () {
+                      //     /* Handle Biometric */
+                      //   },
+                      // ),
+                      Gap(40.h),
+
+                      // 5. Footer: Create Account
+                      Center(
+                        child: Column(
+                          children: <Widget>[
+                            CustomText(
+                              "Don't have an account?",
+                              variant: TextVariant.bodyMedium,
+                              color: colorScheme.secondary,
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                context.pushNamed(RegisterScreen.id);
+                              },
+                              child: CustomText(
+                                "Create Account",
+                                variant: TextVariant.bodyLarge,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

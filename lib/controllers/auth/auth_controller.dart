@@ -1,4 +1,5 @@
 import 'package:cqaag_app/services/index.dart';
+import 'package:cqaag_app/models/user/app_user.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'auth_controller.g.dart';
@@ -21,6 +22,7 @@ class AuthController extends _$AuthController {
     required String firstName,
     required String lastName,
     required String phoneNumber,
+    bool isAdmin = false,
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
@@ -32,6 +34,7 @@ class AuthController extends _$AuthController {
             firstName: firstName,
             lastName: lastName,
             phoneNumber: phoneNumber,
+            isAdmin: isAdmin,
           ),
     );
   }
@@ -45,4 +48,9 @@ class AuthController extends _$AuthController {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() => ref.read(authServiceProvider).signOut());
   }
+}
+
+@riverpod
+Stream<AppUser?> currentUserProfile(Ref ref) {
+  return ref.watch(authServiceProvider).currentUserProfile;
 }

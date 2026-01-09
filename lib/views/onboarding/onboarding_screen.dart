@@ -17,9 +17,9 @@ class _BoardingScreenState extends State<BoardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<BoardingData> _boardingContent = [
+  final List<BoardingData> _boardingContent = <BoardingData>[
     BoardingData(
-      title: "Welcome to CQAAG",
+      title: "Welcome to C.Q.A.A.G",
       description: "Your mobile companion for cashew quality inspection and certification across Ghana.",
       icon: Icons.shield_outlined,
     ),
@@ -64,9 +64,10 @@ class _BoardingScreenState extends State<BoardingScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      extendBodyBehindAppBar: true,
       body: SafeArea(
         child: Column(
-          children: [
+          children: <Widget>[
             // Skip Button at the top
             Align(
               alignment: Alignment.topRight,
@@ -98,7 +99,7 @@ class _BoardingScreenState extends State<BoardingScreen> {
                     padding: EdgeInsets.symmetric(horizontal: 40.w),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
+                      children: <Widget>[
                         // Icon Circle
                         Container(
                           width: 140.r,
@@ -138,13 +139,13 @@ class _BoardingScreenState extends State<BoardingScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 40.h),
               child: Column(
-                children: [
+                children: <Widget>[
                   // Progress Dots
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(
                       _boardingContent.length,
-                      (index) => _buildIndicator(index == _currentPage, colorScheme),
+                      (int index) => _buildIndicator(index == _currentPage, colorScheme),
                     ),
                   ),
                   Gap(40.h),

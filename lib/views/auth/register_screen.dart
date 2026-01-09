@@ -16,6 +16,7 @@ class RegisterScreen extends ConsumerStatefulWidget {
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
+  bool _isRegisteringAsAdmin = false;
 
   @override
   Widget build(BuildContext context) {
@@ -62,9 +63,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                     Gap(20.h),
 
-                    const CustomText("Role", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
-                    Gap(8.h),
-                    _buildRoleDropdown(colorScheme),
+                    _buildAdminCheckbox(colorScheme),
 
                     Gap(20.h),
                     const CustomTextField(
@@ -102,7 +101,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           final confirmPassword = values?['confirm_password'] as String?;
                           final fullName = values?['full_name'] as String?;
                           final phone = values?['phone'] as String?;
-                          // final role = values?['role'] as String?; // Capture role if needed
+
+                          // Get admin status from state since it's outside the form builder
 
                           if (password != confirmPassword) {
                             CustomSnackbar.warning(
@@ -126,6 +126,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 firstName: firstName,
                                 lastName: lastName,
                                 phoneNumber: phone,
+                                isAdmin: _isRegisteringAsAdmin,
                               );
 
                               if (context.mounted) {
@@ -138,10 +139,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               }
                             } catch (e) {
                               if (context.mounted) {
-                                CustomSnackbar.error(
-                                  context,
-                                  message: e.toString(),
-                                );
+                                // Check if it's a connectivity error
+                                if (e is NoInternetException) {
+                                  CustomSnackbar.info(
+                                    context,
+                                    message: e.message,
+                                  );
+                                } else {
+                                  // Use Firebase error mapper for user-friendly messages
+                                  CustomSnackbar.error(
+                                    context,
+                                    message: FirebaseErrorMapper.getErrorMessage(e),
+                                  );
+                                }
                               }
                             }
                           }
@@ -162,29 +172,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   // --- Helper Widgets ---
-  Widget _buildRoleDropdown(ColorScheme colorScheme) {
-    return FormBuilderDropdown<String>(
-      name: 'role',
-      decoration: InputDecoration(
-        prefixIcon: Icon(Icons.work_outline, color: colorScheme.secondary, size: 20.r),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: colorScheme.secondary.withValues(alpha: 0.3)),
+  Widget _buildAdminCheckbox(ColorScheme colorScheme) {
+    return Row(
+      children: [
+        SizedBox(
+          height: 24.h,
+          width: 24.w,
+          child: Checkbox(
+            value: _isRegisteringAsAdmin,
+            onChanged: (value) {
+              setState(() {
+                _isRegisteringAsAdmin = value ?? false;
+              });
+            },
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4.r),
+            ),
+            side: BorderSide(
+              color: colorScheme.primary,
+              width: 1.5,
+            ),
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: colorScheme.secondary),
+        Gap(8.w),
+        CustomText(
+          "Register as Admin",
+          variant: TextVariant.bodyMedium,
+          color: colorScheme.onSurface,
         ),
-        fillColor: Colors.white,
-        filled: true,
-      ),
-      initialValue: null,
-      hint: CustomText("Select your role", color: colorScheme.secondary.withValues(alpha: 0.6)),
-      items: [
-        "Analyst",
-        "Manager",
-        "Supervisor",
-      ].map((val) => DropdownMenuItem(value: val, child: CustomText(val))).toList(),
+      ],
     );
   }
 
@@ -243,7 +259,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
           Gap(8.h),
           CustomText(
-            "Join the CQAAG quality control team",
+            "Join the C.Q.A.A.G quality control team",
             variant: TextVariant.bodyMedium,
             // Using withValues as requested
             color: colorScheme.secondary.withValues(alpha: 0.9),
