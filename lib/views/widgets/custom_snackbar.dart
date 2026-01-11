@@ -2,13 +2,13 @@ import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-enum SnackbarType { success, error, warning, info }
+enum SnackBarType { success, error, warning, info }
 
-class CustomSnackbar {
+class CustomSnackBar {
   static void show(
     BuildContext context, {
     required String message,
-    required SnackbarType type,
+    required SnackBarType type,
     String? title,
     Duration duration = const Duration(seconds: 3),
   }) {
@@ -19,22 +19,22 @@ class CustomSnackbar {
     Color iconColor;
 
     switch (type) {
-      case SnackbarType.success:
+      case SnackBarType.success:
         backgroundColor = Colors.green.shade600;
         icon = Icons.check_circle_outline;
         iconColor = Colors.white;
         break;
-      case SnackbarType.error:
+      case SnackBarType.error:
         backgroundColor = colorScheme.error;
         icon = Icons.error_outline;
         iconColor = Colors.white;
         break;
-      case SnackbarType.warning:
+      case SnackBarType.warning:
         backgroundColor = Colors.orange.shade600;
         icon = Icons.warning_amber_outlined;
         iconColor = Colors.white;
         break;
-      case SnackbarType.info:
+      case SnackBarType.info:
         backgroundColor = colorScheme.primary;
         icon = Icons.info_outline;
         iconColor = Colors.white;
@@ -78,7 +78,7 @@ class CustomSnackbar {
     show(
       context,
       message: message,
-      type: SnackbarType.success,
+      type: SnackBarType.success,
       title: title ?? 'Success',
       duration: duration,
     );
@@ -93,7 +93,7 @@ class CustomSnackbar {
     show(
       context,
       message: message,
-      type: SnackbarType.error,
+      type: SnackBarType.error,
       title: title ?? 'Error',
       duration: duration,
     );
@@ -108,7 +108,7 @@ class CustomSnackbar {
     show(
       context,
       message: message,
-      type: SnackbarType.warning,
+      type: SnackBarType.warning,
       title: title ?? 'Warning',
       duration: duration,
     );
@@ -123,7 +123,7 @@ class CustomSnackbar {
     show(
       context,
       message: message,
-      type: SnackbarType.info,
+      type: SnackBarType.info,
       title: title ?? 'Info',
       duration: duration,
     );

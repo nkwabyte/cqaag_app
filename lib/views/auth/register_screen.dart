@@ -147,7 +147,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                       Gap(30.h),
                       CustomButton(
-                        text: "Continue to Verification",
+                        text: "Continue",
                         onPressed: () async {
                           UIHelpers.dismissKeyboard(context);
                           if (_formKey.currentState?.saveAndValidate() ?? false) {
@@ -167,14 +167,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             // Get admin status from state since it's outside the form builder
 
                             if (password != confirmPassword) {
-                              CustomSnackbar.warning(
+                              CustomSnackBar.warning(
                                 context,
                                 message: "Passwords do not match. Please try again.",
                               );
                               return;
                             }
 
-                            if (email != null && password != null && firstName != null && lastName != null && phone != null) {
+                            if (email != null &&
+                                password != null &&
+                                firstName != null &&
+                                lastName != null &&
+                                phone != null) {
                               try {
                                 final authService = ref.read(authServiceProvider);
                                 await authService.signUpWithEmailAndPassword(
@@ -190,7 +194,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 );
 
                                 if (context.mounted) {
-                                  CustomSnackbar.success(
+                                  CustomSnackBar.success(
                                     context,
                                     message: "Account created successfully!",
                                   );
@@ -201,13 +205,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 if (context.mounted) {
                                   // Check if it's a connectivity error
                                   if (e is NoInternetException) {
-                                    CustomSnackbar.info(
+                                    CustomSnackBar.info(
                                       context,
                                       message: e.message,
                                     );
                                   } else {
                                     // Use Firebase error mapper for user-friendly messages
-                                    CustomSnackbar.error(
+                                    CustomSnackBar.error(
                                       context,
                                       message: FirebaseErrorMapper.getErrorMessage(e),
                                     );

@@ -29,10 +29,10 @@ class _UserManagementTabState extends ConsumerState<UserManagementTab> {
     final colorScheme = theme.colorScheme;
 
     return Column(
-      children: [
+      children: <Widget>[
         // Search Bar
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 0.w, vertical: 10.h),
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
           child: CustomTextField(
             name: 'search_users',
             label: 'Search Users',
@@ -46,67 +46,76 @@ class _UserManagementTabState extends ConsumerState<UserManagementTab> {
 
         // Users List
         Expanded(
-          child: usersAsync.when(
-            data: (users) {
-              if (users.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.person_off_outlined, size: 48.r, color: colorScheme.secondary),
-                      Gap(10.h),
-                      CustomText(
-                        "No users found",
-                        variant: TextVariant.bodyMedium,
-                        color: colorScheme.secondary,
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return ListView.separated(
-                itemCount: users.length,
-                separatorBuilder: (context, index) => Divider(color: colorScheme.surfaceContainerHighest),
-                itemBuilder: (context, index) {
-                  final user = users[index];
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      radius: 24.r,
-                      backgroundImage: NetworkImage(user.profilePicture),
-                      // Fallback if image fails or is essential to handle effectively
-                      onBackgroundImageError: (ctx, err) {},
-                      child: Text(user.firstName[0].toUpperCase()),
-                    ),
-                    title: CustomText(
-                      "${user.firstName} ${user.lastName}",
-                      variant: TextVariant.bodyLarge,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CustomText(
-                          user.email,
-                          variant: TextVariant.bodySmall,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.0.w, vertical: 10.0.h),
+            child: usersAsync.when(
+              data: (List<AppUser> users) {
+                if (users.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Icon(
+                          Icons.person_off_outlined,
+                          size: 48.r,
                           color: colorScheme.secondary,
                         ),
-                        Gap(4.h),
-                        _buildStatusBadge(user.status, colorScheme),
+                        Gap(10.h),
+                        CustomText(
+                          "No users found",
+                          variant: TextVariant.bodyMedium,
+                          color: colorScheme.secondary,
+                        ),
                       ],
                     ),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {
-                      // Navigate to details
-                      context.pushNamed(AdminUserDetailScreen.id, extra: user);
-                    },
                   );
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(child: Text('Error: $err')),
+                }
+
+                return ListView.separated(
+                  itemCount: users.length,
+                  separatorBuilder: (BuildContext context, int index) => Divider(
+                    color: colorScheme.surfaceContainerHighest,
+                  ),
+                  itemBuilder: (BuildContext context, int index) {
+                    final user = users[index];
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: CircleAvatar(
+                        radius: 24.r,
+                        backgroundImage: NetworkImage(user.profilePicture),
+                        // Fallback if image fails or is essential to handle effectively
+                        onBackgroundImageError: (ctx, err) {},
+                        child: Text(user.firstName[0].toUpperCase()),
+                      ),
+                      title: CustomText(
+                        "${user.firstName} ${user.lastName}",
+                        variant: TextVariant.bodyLarge,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          CustomText(
+                            user.email,
+                            variant: TextVariant.bodySmall,
+                            color: colorScheme.secondary,
+                          ),
+                          Gap(4.h),
+                          _buildStatusBadge(user.status, colorScheme),
+                        ],
+                      ),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        // Navigate to details
+                        context.pushNamed(AdminUserDetailScreen.id, extra: user);
+                      },
+                    );
+                  },
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(child: Text('Error: $err')),
+            ),
           ),
         ),
       ],

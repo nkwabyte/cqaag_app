@@ -23,7 +23,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       final email = _formKey.currentState?.value['email'] as String?;
 
       if (email == null || email.isEmpty) {
-        CustomSnackbar.warning(
+        CustomSnackBar.warning(
           context,
           message: "Please enter your email address",
         );
@@ -31,10 +31,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       }
 
       // Show loading dialog
-      AppDialogs.showLoading(
-        context,
-        message: "Sending reset link...",
-      );
+      AppDialogs.showLoading(context);
 
       try {
         // Call auth service to send password reset email
@@ -63,13 +60,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
 
           // Check if it's a connectivity error
           if (e is NoInternetException) {
-            CustomSnackbar.info(
+            CustomSnackBar.info(
               context,
               message: e.message,
             );
           } else {
             // Use Firebase error mapper for user-friendly messages
-            CustomSnackbar.error(
+            CustomSnackBar.error(
               context,
               message: FirebaseErrorMapper.getErrorMessage(e),
             );
@@ -77,7 +74,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         }
       }
     } else {
-      CustomSnackbar.warning(
+      CustomSnackBar.warning(
         context,
         message: "Please fill in all required fields",
       );

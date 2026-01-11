@@ -71,6 +71,7 @@ class AuthService {
       district: district,
       region: region,
       isAdmin: isAdmin,
+      verificationStatus: VerificationStatus.unverified,
     );
 
     await _firestore.collection('users').doc(newUser.id).set(newUser.toJson());

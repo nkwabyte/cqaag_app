@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:cqaag_app/index.dart';
 
@@ -18,9 +19,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // Watch user profile to check admin status
     final userProfileAsync = ref.watch(currentUserProfileProvider);
 
+    // Listen for verification updates to redirect unverified users
+    ref.listen(currentUserProfileProvider, (previous, next) {
+      next.whenData((user) {
+        if (user != null &&
+            (user.verificationStatus != VerificationStatus.verified &&
+                user.verificationStatus != VerificationStatus.pending)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showVerificationDialog(context);
+          });
+        }
+      });
+    });
+
     return userProfileAsync.when(
       data: (user) {
+        // debugPrint("User profile: $user");
         final isAdmin = user?.isAdmin ?? false;
+
+        // Trigger dialog on initial load if needed
+        if (user != null &&
+            (user.verificationStatus != VerificationStatus.verified &&
+                user.verificationStatus != VerificationStatus.pending)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showVerificationDialog(context);
+          });
+        }
 
         // Define navigation items based on role
         final List<CustomNavItem> navItems = [
@@ -31,7 +55,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ];
 
         // Define pages based on role
-        final List<Widget> pages = [
+        final List<Widget> pages = <Widget>[
           const HomeScreen(),
           const HistoryScreen(),
           if (isAdmin) const AdminDashboardScreen(),
@@ -66,6 +90,28 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           child: Text('Error: $error'),
         ),
       ),
+    );
+  }
+
+  void _showVerificationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+      builder: (BuildContext context) {
+        return PopScope(
+          canPop: false,
+          child: StatusDialog(
+            type: DialogType.info,
+            title: "Verification",
+            message: "Please verify your account to continue using the application.",
+            buttonText: "Ok",
+            onConfirm: () {
+              context.goNamed(VerificationUploadScreen.id);
+            },
+          ),
+        );
+      },
     );
   }
 }

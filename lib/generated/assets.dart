@@ -2,6 +2,8 @@
 class Assets {
   Assets._();
 
+  static const String cqaagApp = '.env';
+  static const String imagesCqaagLogo = 'assets/images/cqaag_logo.png';
   static const String svgLogoBlack = 'assets/svg/logo-black.svg';
   static const String svgLogoWhite = 'assets/svg/logo-white.svg';
 }

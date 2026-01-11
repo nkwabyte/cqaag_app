@@ -26,7 +26,7 @@ class _MembershipAgreementScreenState extends State<MembershipAgreementScreen> {
           // 1. Curved Focused Header
           Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
+            padding: EdgeInsets.fromLTRB(20.w, 60.h, 20.w, 40.h),
             decoration: BoxDecoration(
               color: colorScheme.onSurface, // darkRed
               borderRadius: BorderRadius.only(
@@ -35,21 +35,31 @@ class _MembershipAgreementScreenState extends State<MembershipAgreementScreen> {
               ),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Gap(80.h),
+                InkWell(
+                  onTap: () => Navigator.pop(context),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.arrow_back, color: Colors.white, size: 20.r),
+                      Gap(8.w),
+                      const CustomText("Back", color: Colors.white),
+                    ],
+                  ),
+                ),
+                Gap(24.h),
                 const CustomText(
                   "Membership Agreement",
                   variant: TextVariant.displaySmall,
                   color: Colors.white,
-                  textAlign: TextAlign.center,
                 ),
-                Gap(12.h),
+                Gap(8.h),
                 CustomText(
                   "Effective Date: January 05, 2026",
                   variant: TextVariant.bodySmall,
                   color: Colors.white.withValues(alpha: 0.7),
                 ),
-                Gap(40.h),
               ],
             ),
           ),
@@ -127,27 +137,28 @@ class _MembershipAgreementScreenState extends State<MembershipAgreementScreen> {
             ),
           ),
 
-          // 3. Sticky Acceptance Footer
-          Container(
-            padding: EdgeInsets.all(24.r),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -5),
-                ),
-              ],
+          // 3. Sticky Acceptance Footer - Only show when there's application data
+          if (widget.applicationData.isNotEmpty)
+            Container(
+              padding: EdgeInsets.all(24.r),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: CustomButton(
+                text: "Accept and Submit Application",
+                onPressed: () {
+                  // Logic to submit applicationData and declaration
+                  _handleFinalSubmission(context);
+                },
+              ),
             ),
-            child: CustomButton(
-              text: "Accept and Submit Application",
-              onPressed: () {
-                // Logic to submit applicationData and declaration
-                _handleFinalSubmission(context);
-              },
-            ),
-          ),
         ],
       ),
     );

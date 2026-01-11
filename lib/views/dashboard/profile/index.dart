@@ -17,5 +17,7 @@
  */
 
 export 'profile_section_header.dart';
+export 'verification_upload_screen.dart';
 export 'profile_screen.dart';
 export 'membership/index.dart';
+export 'edit_profile_screen.dart';

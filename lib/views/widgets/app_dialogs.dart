@@ -5,7 +5,7 @@ import 'package:gap/gap.dart';
 import 'package:cqaag_app/index.dart';
 
 class AppDialogs {
-  static void showLoading(
+  static void showLoadingDialog(
     BuildContext context, {
     String message = "Please wait...",
   }) {
@@ -14,23 +14,58 @@ class AppDialogs {
       barrierDismissible: false,
       builder: (BuildContext context) => PopScope(
         canPop: false,
-        child: AlertDialog(
+        child: Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
-          content: Padding(
-            padding: EdgeInsets.symmetric(vertical: 20.h),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                CircularProgressIndicator(
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                Gap(20.h),
-                CustomText(message, variant: TextVariant.bodyMedium),
-              ],
+          child: SizedBox(
+            width: 300.0.w,
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 20.h),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  CircularProgressIndicator(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  Gap(20.h),
+                  CustomText(
+                    message,
+                    variant: TextVariant.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  static void showLoading(BuildContext context) {
+    showDialog(
+      barrierDismissible: false,
+      context: context,
+      builder: (BuildContext context) {
+        return Center(
+          child: Container(
+            width: 80.0.w,
+            height: 80.0.w,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(4.0.r),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(22.0).r,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.0,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Theme.of(context).primaryColor,
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -83,26 +118,29 @@ class StatusDialog extends StatelessWidget {
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Gap(10.h),
-          Icon(getIcon(), size: 60.r, color: getColor()),
-          Gap(20.h),
-          CustomText(title, variant: TextVariant.headlineMedium, textAlign: TextAlign.center),
-          Gap(10.h),
-          CustomText(
-            message,
-            variant: TextVariant.bodyMedium,
-            textAlign: TextAlign.center,
-            color: colorScheme.secondary,
-          ),
-          Gap(30.h),
-          CustomButton(
-            text: buttonText,
-            onPressed: onConfirm ?? () => context.pop(),
-          ),
-        ],
+      content: SizedBox(
+        width: 300.w,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Gap(10.h),
+            Icon(getIcon(), size: 60.r, color: getColor()),
+            Gap(20.h),
+            CustomText(title, variant: TextVariant.headlineMedium, textAlign: TextAlign.center),
+            Gap(10.h),
+            CustomText(
+              message,
+              variant: TextVariant.bodyMedium,
+              textAlign: TextAlign.center,
+              color: colorScheme.secondary,
+            ),
+            Gap(30.h),
+            CustomButton(
+              text: buttonText,
+              onPressed: onConfirm ?? () => context.pop(),
+            ),
+          ],
+        ),
       ),
     );
   }

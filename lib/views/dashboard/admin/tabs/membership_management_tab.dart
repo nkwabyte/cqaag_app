@@ -31,12 +31,17 @@ class _MembershipManagementTabState extends ConsumerState<MembershipManagementTa
     final colorScheme = theme.colorScheme;
 
     return Column(
-      children: [
+      mainAxisAlignment: MainAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
         // Search & Filter Bar
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 0.w, vertical: 10.h),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
           child: Row(
-            children: [
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.max,
+            children: <Widget>[
               Expanded(
                 child: CustomTextField(
                   name: 'search_members',
@@ -51,17 +56,21 @@ class _MembershipManagementTabState extends ConsumerState<MembershipManagementTa
                 ),
               ),
               Gap(10.w),
-              Container(
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12.r),
+              InkWell(
+                child: Container(
+                  padding: EdgeInsets.all(16.0.w),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Icon(
+                    Icons.filter_list,
+                    color: colorScheme.primary,
+                  ),
                 ),
-                child: IconButton(
-                  icon: Icon(Icons.filter_list, color: colorScheme.primary),
-                  onPressed: () {
-                    // Open filter modal
-                  },
-                ),
+                onTap: () {
+                  // Open filter modal
+                },
               ),
             ],
           ),
@@ -69,42 +78,45 @@ class _MembershipManagementTabState extends ConsumerState<MembershipManagementTa
 
         // Applications List
         Expanded(
-          child: applicationsAsync.when(
-            data: (applications) {
-              final filteredApps = applications.where((app) {
-                if (_searchQuery.isEmpty) return true;
-                // Add robust search logic here based on fields
-                return true;
-              }).toList();
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            child: applicationsAsync.when(
+              data: (applications) {
+                final filteredApps = applications.where((app) {
+                  if (_searchQuery.isEmpty) return true;
+                  // Add robust search logic here based on fields
+                  return true;
+                }).toList();
 
-              if (filteredApps.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.assignment_late_outlined, size: 48.r, color: colorScheme.secondary),
-                      Gap(10.h),
-                      CustomText(
-                        "No applications found",
-                        variant: TextVariant.bodyMedium,
-                        color: colorScheme.secondary,
-                      ),
-                    ],
-                  ),
+                if (filteredApps.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Icon(Icons.assignment_late_outlined, size: 48.r, color: colorScheme.secondary),
+                        Gap(10.h),
+                        CustomText(
+                          "No applications found",
+                          variant: TextVariant.bodyMedium,
+                          color: colorScheme.secondary,
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  itemCount: filteredApps.length,
+                  separatorBuilder: (BuildContext context, int index) => Gap(12.h),
+                  itemBuilder: (BuildContext context, int index) {
+                    final app = filteredApps[index];
+                    return _buildApplicationCard(app, colorScheme);
+                  },
                 );
-              }
-
-              return ListView.separated(
-                itemCount: filteredApps.length,
-                separatorBuilder: (context, index) => Gap(12.h),
-                itemBuilder: (context, index) {
-                  final app = filteredApps[index];
-                  return _buildApplicationCard(app, colorScheme);
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(child: Text('Error: $err')),
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(child: Text('Error: $err')),
+            ),
           ),
         ),
       ],

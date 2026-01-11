@@ -34,8 +34,7 @@ mixin _$MembershipApplication {
  String get regionDistrict;// Professional Information
 /// Current job title
  String get currentJobTitle;/// Employer/Organization
- String get employerOrganization;// Membership Details
-/// Desired membership category
+ String get employerOrganization;/// Desired membership category
  MembershipCategory get membershipCategory;/// Application status
  ApplicationStatus get status;// Timestamps
 /// When the application was created
@@ -302,7 +301,6 @@ class _MembershipApplication extends MembershipApplication {
 @override final  String currentJobTitle;
 /// Employer/Organization
 @override final  String employerOrganization;
-// Membership Details
 /// Desired membership category
 @override final  MembershipCategory membershipCategory;
 /// Application status

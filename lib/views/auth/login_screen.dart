@@ -17,7 +17,6 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final GlobalKey<FormBuilderState> _formKey = GlobalKey<FormBuilderState>();
-  bool _isAdminLogin = false;
 
   @override
   Widget build(BuildContext context) {
@@ -27,13 +26,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         error: (error, stackTrace) {
           // Check if it's a connectivity error
           if (error is NoInternetException) {
-            CustomSnackbar.info(
+            CustomSnackBar.info(
               context,
               message: error.message,
             );
           } else {
             // Use Firebase error mapper for user-friendly messages
-            CustomSnackbar.error(
+            CustomSnackBar.error(
               context,
               message: FirebaseErrorMapper.getErrorMessage(error),
             );
@@ -126,54 +125,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Gap(12.h),
 
                       // Forgot Password Link
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.max,
-                        children: <Widget>[
-                          // Admin Checkbox
-                          Row(
-                            children: [
-                              SizedBox(
-                                height: 24.h,
-                                width: 24.w,
-                                child: Checkbox(
-                                  value: _isAdminLogin,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _isAdminLogin = value ?? false;
-                                    });
-                                  },
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4.r),
-                                  ),
-                                  side: BorderSide(
-                                    color: colorScheme.primary,
-                                    width: 1.5,
-                                  ),
-                                ),
-                              ),
-                              Gap(8.w),
-                              CustomText(
-                                "Log in as Admin",
-                                variant: TextVariant.bodyMedium,
-                                color: colorScheme.onSurface,
-                              ),
-                            ],
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                          onTap: () {
+                            context.pushNamed(ForgotPasswordScreen.id);
+                          },
+                          child: CustomText(
+                            "Forgot Password?",
+                            variant: TextVariant.bodyMedium,
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.primary,
                           ),
-
-                          GestureDetector(
-                            onTap: () {
-                              context.pushNamed(ForgotPasswordScreen.id);
-                            },
-                            child: CustomText(
-                              "Forgot Password?",
-                              variant: TextVariant.bodyMedium,
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.primary,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
 
                       Gap(30.h),
@@ -194,7 +158,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ref.read(authControllerProvider.notifier).signIn(email, password).then((_) {
                                 // Check if sign in was successful
                                 if (context.mounted && !ref.read(authControllerProvider).hasError) {
-                                  CustomSnackbar.success(
+                                  CustomSnackBar.success(
                                     context,
                                     message: "Welcome back!",
                                     duration: const Duration(seconds: 2),

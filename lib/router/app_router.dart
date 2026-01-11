@@ -1,9 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:cqaag_app/services/index.dart';
-import 'package:cqaag_app/views/index.dart';
-import 'package:cqaag_app/models/user/app_user.dart';
-import 'package:cqaag_app/models/membership/membership_application.dart';
+import 'package:cqaag_app/index.dart';
 
 part 'app_router.g.dart';
 
@@ -43,7 +40,7 @@ GoRouter goRouter(Ref ref) {
 
       return null;
     },
-    routes: [
+    routes: <RouteBase>[
       GoRoute(
         path: '/',
         name: SplashScreen.id,
@@ -102,6 +99,11 @@ GoRouter goRouter(Ref ref) {
       ),
       // Home flow routes
       GoRoute(
+        path: '/${QualityInspectionWizard.id}',
+        name: QualityInspectionWizard.id,
+        builder: (context, state) => const QualityInspectionWizard(),
+      ),
+      GoRoute(
         path: '/${QualityResultScreen.id}',
         name: QualityResultScreen.id,
         builder: (context, state) => const QualityResultScreen(),
@@ -147,6 +149,16 @@ GoRouter goRouter(Ref ref) {
           final app = state.extra as MembershipApplication;
           return AdminMemberDetailScreen(application: app);
         },
+      ),
+      GoRoute(
+        path: '/${VerificationUploadScreen.id}',
+        name: VerificationUploadScreen.id,
+        builder: (context, state) => const VerificationUploadScreen(),
+      ),
+      GoRoute(
+        path: '/${EditProfileScreen.id}',
+        name: EditProfileScreen.id,
+        builder: (context, state) => const EditProfileScreen(),
       ),
     ],
   );

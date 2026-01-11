@@ -4,18 +4,19 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:gap/gap.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:cqaag_app/index.dart';
 
-class MembershipApplicationScreen extends StatefulWidget {
+class MembershipApplicationScreen extends ConsumerStatefulWidget {
   static const String id = 'membership_application_screen';
   const MembershipApplicationScreen({super.key});
 
   @override
-  State<MembershipApplicationScreen> createState() => _MembershipApplicationScreenState();
+  ConsumerState<MembershipApplicationScreen> createState() => _MembershipApplicationScreenState();
 }
 
-class _MembershipApplicationScreenState extends State<MembershipApplicationScreen> {
+class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicationScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
   void _navigateToAgreement() {
@@ -33,12 +34,22 @@ class _MembershipApplicationScreenState extends State<MembershipApplicationScree
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final user = ref.read(currentUserProfileProvider).value;
+
+    final initialValues = {
+      'first_name': user?.firstName ?? '',
+      'last_name': user?.lastName ?? '',
+      'nationality': 'Ghanaian',
+      'phone': user?.phoneNumber ?? '',
+      'job_title': user?.role?.toString().split('.').last.capitalize() ?? '',
+    };
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SingleChildScrollView(
         child: FormBuilder(
           key: _formKey,
+          initialValue: initialValues,
           child: Column(
             children: [
               // 1. Header with Back Button
@@ -49,12 +60,12 @@ class _MembershipApplicationScreenState extends State<MembershipApplicationScree
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Section 1: Category [cite: 134]
+                    // Section 1: Category
                     _buildSectionTitle("1. Membership Category"),
                     _buildCategoryDropdown(colorScheme),
 
                     Gap(30.h),
-                    // Section 2: Personal [cite: 139]
+                    // Section 2: Personal
                     _buildSectionTitle("2. Personal Information"),
                     const CustomTextField(
                       name: 'title',
@@ -95,7 +106,7 @@ class _MembershipApplicationScreenState extends State<MembershipApplicationScree
                     ),
 
                     Gap(30.h),
-                    // Section 3: Professional [cite: 153]
+                    // Section 3: Professional
                     _buildSectionTitle("3. Professional Information"),
                     const CustomTextField(
                       name: 'job_title',
@@ -120,7 +131,7 @@ class _MembershipApplicationScreenState extends State<MembershipApplicationScree
                     ),
 
                     Gap(40.h),
-                    // Action Button to proceed to Agreement [cite: 161]
+                    // Action Button to proceed to Agreement
                     CustomButton(
                       text: "Review & Sign Agreement",
                       onPressed: _navigateToAgreement,
@@ -226,5 +237,11 @@ class _MembershipApplicationScreenState extends State<MembershipApplicationScree
         ),
       ],
     );
+  }
+}
+
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
   }
 }

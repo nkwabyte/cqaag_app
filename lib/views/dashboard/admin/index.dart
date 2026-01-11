@@ -16,7 +16,5 @@
  * Any manual changes to this file may be overwritten.
  */
 
-export 'user_detail_screen.dart';
-export 'member_detail_screen.dart';
 export 'admin_dashboard_screen.dart';
 export 'tabs/index.dart';

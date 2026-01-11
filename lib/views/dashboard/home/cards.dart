@@ -3,18 +3,21 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:cqaag_app/index.dart';
 
-// Summary Card for the Header Section
 class SummaryCard extends StatelessWidget {
   final String label;
   final String count;
 
-  const SummaryCard({super.key, required this.label, required this.count});
+  const SummaryCard({
+    super.key,
+    required this.label,
+    required this.count,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 100.w,
-      height: 120.h,
+      // height: 90.h,
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.1),
@@ -22,11 +25,20 @@ class SummaryCard extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          CustomText(label, variant: TextVariant.bodySmall, color: Colors.white70),
-          CustomText(count, variant: TextVariant.displayMedium, color: Colors.white),
+        children: <Widget>[
+          CustomText(
+            label,
+            variant: TextVariant.bodySmall,
+            color: Colors.white70,
+          ),
+          Gap(10.0.h),
+          CustomText(
+            count,
+            variant: TextVariant.displayMedium,
+            color: Colors.white,
+          ),
         ],
       ),
     );
@@ -67,12 +79,12 @@ class InspectionCard extends StatelessWidget {
         border: Border.all(color: colorScheme.secondary.withValues(alpha: 0.1)),
       ),
       child: Column(
-        children: [
+        children: <Widget>[
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+            children: <Widget>[
               Row(
-                children: [
+                children: <Widget>[
                   _buildStatusBadge(status, statusColor),
                   Gap(10.w),
                   CustomText(batchId, variant: TextVariant.bodySmall, color: colorScheme.secondary),
@@ -83,7 +95,7 @@ class InspectionCard extends StatelessWidget {
           ),
           Gap(12.h),
           Row(
-            children: [
+            children: <Widget>[
               const Icon(Icons.location_on_outlined, size: 18, color: Color(0xFFbe6735)),
               Gap(8.w),
               CustomText(name, variant: TextVariant.headlineMedium, fontWeight: FontWeight.bold),
@@ -98,9 +110,9 @@ class InspectionCard extends StatelessWidget {
           Gap(12.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+            children: <Widget>[
               Row(
-                children: [
+                children: <Widget>[
                   Icon(Icons.calendar_today_outlined, size: 16.r, color: colorScheme.secondary),
                   Gap(8.w),
                   CustomText(time, variant: TextVariant.bodyMedium, fontWeight: FontWeight.w600),
@@ -123,10 +135,19 @@ class InspectionCard extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
-        children: [
-          Icon(text == "Pending" ? Icons.access_time : Icons.check_circle_outline, size: 14.r, color: color),
+        children: <Widget>[
+          Icon(
+            text == "Pending" ? Icons.access_time : Icons.check_circle_outline,
+            size: 14.r,
+            color: color,
+          ),
           Gap(4.w),
-          CustomText(text, variant: TextVariant.bodySmall, color: color, fontWeight: FontWeight.bold),
+          CustomText(
+            text,
+            variant: TextVariant.bodySmall,
+            color: color,
+            fontWeight: FontWeight.bold,
+          ),
         ],
       ),
     );

@@ -34,11 +34,22 @@ class UserService {
 
   /// Get user by ID
   Future<AppUser?> getUserById(String userId) async {
-    await _connectivityService.ensureConnected();
+    await _connectivityService.ensureConnected(); // Restoring this too just in case
     final doc = await _usersCollection.doc(userId).get();
     if (doc.exists && doc.data() != null) {
       return AppUser.fromJson(doc.data()!);
     }
     return null;
+  }
+
+  /// Update generic user data
+  Future<void> updateUserData(String userId, Map<String, dynamic> data) async {
+    try {
+      await _connectivityService.ensureConnected();
+      await _usersCollection.doc(userId).update(data);
+    } catch (e) {
+      // Re-throw to be handled by caller
+      rethrow;
+    }
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
@@ -26,7 +27,12 @@ class CustomTextField extends StatefulWidget {
     this.prefixIcon,
     this.validator,
     this.onChanged,
+    this.inputFormatters,
+    this.initialValue,
   });
+
+  final List<TextInputFormatter>? inputFormatters;
+  final String? initialValue;
 
   @override
   State<CustomTextField> createState() => _CustomTextFieldState();
@@ -63,6 +69,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
           keyboardType: widget.keyboardType,
           onChanged: widget.onChanged,
           validator: widget.validator,
+          inputFormatters: widget.inputFormatters,
+          initialValue: widget.initialValue,
           style: theme.textTheme.bodyLarge?.copyWith(
             fontSize: 16.sp,
             color: colorScheme.onSurface,
@@ -74,9 +82,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
             ),
             filled: true,
             fillColor: Colors.white,
-            prefixIcon: widget.prefixIcon != null
-                ? Icon(widget.prefixIcon, color: colorScheme.secondary, size: 20.r)
-                : null,
+            prefixIcon: widget.prefixIcon != null ? Icon(widget.prefixIcon, color: colorScheme.secondary, size: 20.r) : null,
             suffixIcon: widget.obscureText
                 ? IconButton(
                     icon: Icon(

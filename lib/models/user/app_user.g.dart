@@ -21,12 +21,16 @@ _AppUser _$AppUserFromJson(Map<String, dynamic> json) => _AppUser(
   district: json['district'] as String?,
   region: json['region'] as String?,
   phoneNumber: json['phone_number'] as String?,
+  role: json['role'] as String?,
+  verification: json['verification'] == null
+      ? null
+      : VerificationData.fromJson(json['verification'] as Map<String, dynamic>),
   verificationStatus:
       $enumDecodeNullable(
         _$VerificationStatusEnumMap,
         json['verification_status'],
       ) ??
-      VerificationStatus.pending,
+      VerificationStatus.unverified,
   membershipStatus:
       $enumDecodeNullable(
         _$MembershipStatusEnumMap,
@@ -47,6 +51,8 @@ Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
   'district': instance.district,
   'region': instance.region,
   'phone_number': instance.phoneNumber,
+  'role': instance.role,
+  'verification': instance.verification,
   'verification_status':
       _$VerificationStatusEnumMap[instance.verificationStatus]!,
   'membership_status': _$MembershipStatusEnumMap[instance.membershipStatus]!,
@@ -61,6 +67,7 @@ const _$AppUserStatusEnumMap = {
 };
 
 const _$VerificationStatusEnumMap = {
+  VerificationStatus.unverified: 'unverified',
   VerificationStatus.pending: 'pending',
   VerificationStatus.verified: 'verified',
   VerificationStatus.rejected: 'rejected',

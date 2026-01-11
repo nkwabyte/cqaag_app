@@ -18,4 +18,6 @@
 
 export 'auth/index.dart';
 export 'membership/index.dart';
+export 'inspection/index.dart';
+
 export 'user/user_controller.dart';

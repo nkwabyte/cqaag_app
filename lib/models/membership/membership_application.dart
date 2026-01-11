@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:cqaag_app/models/membership/membership_category.dart';
+import 'package:cqaag_app/index.dart';
 
 part 'membership_application.freezed.dart';
 part 'membership_application.g.dart';
@@ -64,7 +64,6 @@ abstract class MembershipApplication with _$MembershipApplication {
     /// Employer/Organization
     required String employerOrganization,
 
-    // Membership Details
     /// Desired membership category
     required MembershipCategory membershipCategory,
 

@@ -17,8 +17,6 @@ class _QualityInspectionWizardState extends State<QualityInspectionWizard> {
   final _formKey = GlobalKey<FormBuilderState>();
   int _currentStep = 0;
 
-  final List<String> stepTitles = <String>["Location", "Metrics", "Photos"];
-
   void _nextStep() {
     if (_currentStep < 3) {
       _pageController.nextPage(
@@ -53,7 +51,7 @@ class _QualityInspectionWizardState extends State<QualityInspectionWizard> {
               child: PageView(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(), // Force button navigation
-                onPageChanged: (index) => setState(() => _currentStep = index),
+                onPageChanged: (int index) => setState(() => _currentStep = index),
                 children: const <Widget>[
                   BasicInfoStep(),
                   FarmLocationStep(),
