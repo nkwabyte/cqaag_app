@@ -59,7 +59,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                               if (user?.verificationStatus == VerificationStatus.verified) ...[
                                 Gap(8.w),
-                                Icon(Icons.verified, color: Colors.blue, size: 24.r),
+                                Icon(Icons.verified, color: Colors.blue, size: 24.r).shimmer(),
                               ],
                             ],
                           ),
@@ -73,14 +73,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ],
                   ),
                   Gap(18.h),
-                  // Summary Cards Row
-                  const Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: <Widget>[
-                      SummaryCard(label: "Today", count: "3"),
-                      SummaryCard(label: "Pending", count: "2"),
-                      SummaryCard(label: "Done", count: "1"),
-                    ],
+                  // Summary Cards Row - Watch inspections for counts
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final inspectionsAsync = ref.watch(recentInspectionsProvider);
+
+                      return inspectionsAsync.when(
+                        data: (inspections) {
+                          final today = DateTime.now();
+                          final todayInspections = inspections.where((i) {
+                            final createdAt = i.createdAt;
+                            return createdAt != null && createdAt.year == today.year && createdAt.month == today.month && createdAt.day == today.day;
+                          }).length;
+
+                          final pendingCount = inspections.where((i) => i.status == InspectionStatus.pending || i.status == InspectionStatus.inProgress).length;
+
+                          final completedCount = inspections.where((i) => i.status == InspectionStatus.completed).length;
+
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: <Widget>[
+                              SummaryCard(label: "Today", count: "$todayInspections"),
+                              SummaryCard(label: "Pending", count: "$pendingCount"),
+                              SummaryCard(label: "Done", count: "$completedCount"),
+                            ],
+                          );
+                        },
+                        loading: () => const Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            SummaryCard(label: "Today", count: "0"),
+                            SummaryCard(label: "Pending", count: "0"),
+                            SummaryCard(label: "Done", count: "0"),
+                          ],
+                        ),
+                        error: (_, _) => const Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            SummaryCard(label: "Today", count: "0"),
+                            SummaryCard(label: "Pending", count: "0"),
+                            SummaryCard(label: "Done", count: "0"),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -105,7 +141,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               onPressed: () {
                                 context.pushNamed(QualityInspectionWizard.id);
                               },
-                            ),
+                            ).fadeInScale(delay: const Duration(milliseconds: 500)).pulse(delay: const Duration(seconds: 2)),
                           ),
                           Gap(16.w),
                           // Sync/Offline Toggle Button
@@ -124,56 +160,95 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                       Gap(30.h),
 
-                      // 3. Schedule Header
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: <Widget>[
-                          const CustomText("Today's Schedule", variant: TextVariant.displaySmall),
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                            decoration: BoxDecoration(
-                              color: colorScheme.secondary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: CustomText(
-                              "3 Tasks",
-                              variant: TextVariant.bodySmall,
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
+                      // 4. Inspection List - Dynamic from Firebase
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final inspectionsAsync = ref.watch(userPrioritizedInspectionsProvider);
 
-                      Gap(20.h),
+                          final inspections = inspectionsAsync;
 
-                      // 4. Inspection List
-                      const InspectionCard(
-                        status: "Pending",
-                        statusColor: Color(0xFFD6A467), // grayOrange
-                        batchId: "BATCH-GH-001",
-                        name: "Kwame Mensah",
-                        location: "Wenchi District",
-                        time: "09:00 AM",
-                        weight: "2.5",
-                      ),
-                      const InspectionCard(
-                        status: "In Progress",
-                        statusColor: Color(0xFF2E7D32),
-                        batchId: "BATCH-GH-002",
-                        name: "Akosua Frimpong",
-                        location: "Techiman Municipality",
-                        time: "11:30 AM",
-                        weight: "3.2",
-                      ),
-                      const InspectionCard(
-                        status: "Pending",
-                        statusColor: Color(0xFFD6A467),
-                        batchId: "BATCH-GH-003",
-                        name: "Yaw Boateng",
-                        location: "Jaman North District",
-                        time: "02:00 PM",
-                        weight: "1.8",
+                          // 3. Schedule Header (Moved inside consumer for dynamic count)
+                          return Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: <Widget>[
+                                  const CustomText("Recent Activities", variant: TextVariant.displaySmall),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.secondary.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8.r),
+                                    ),
+                                    child: CustomText(
+                                      "${inspections.length} Tasks",
+                                      variant: TextVariant.bodySmall,
+                                      color: colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Gap(20.h),
+                              if (inspections.isEmpty)
+                                Center(
+                                  child: Column(
+                                    children: [
+                                      Gap(40.h),
+                                      Icon(
+                                        Icons.assignment_outlined,
+                                        size: 64.r,
+                                        color: colorScheme.secondary.withValues(alpha: 0.3),
+                                      ),
+                                      Gap(16.h),
+                                      CustomText(
+                                        "No inspections yet",
+                                        variant: TextVariant.headlineMedium,
+                                        color: colorScheme.secondary,
+                                      ),
+                                      Gap(8.h),
+                                      CustomText(
+                                        "Tap 'New Inspection' to get started",
+                                        variant: TextVariant.bodyMedium,
+                                        color: colorScheme.secondary.withValues(alpha: 0.7),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                Column(
+                                  children: inspections.map((inspection) {
+                                    return InspectionCard(
+                                      status: _getStatusText(inspection.status),
+                                      statusColor: _getStatusColor(inspection.status),
+                                      batchId: inspection.batchId ?? 'N/A',
+                                      name: inspection.farmerName ?? 'Unknown',
+                                      location: inspection.location ?? 'Unknown Location',
+                                      time: inspection.createdAt != null
+                                          ? '${inspection.createdAt!.hour.toString().padLeft(2, '0')}:${inspection.createdAt!.minute.toString().padLeft(2, '0')}'
+                                          : 'N/A',
+                                      weight: inspection.quantity.toStringAsFixed(1),
+                                      onTap: () {
+                                        // Resume pending or view completed
+                                        if (inspection.status == InspectionStatus.pending || inspection.status == InspectionStatus.inProgress) {
+                                          context.pushNamed(
+                                            QualityInspectionWizard.id,
+                                            extra: inspection,
+                                          );
+                                        } else {
+                                          // For completed, view details
+                                          context.pushNamed(
+                                            QualityResultScreen.id,
+                                            extra: inspection,
+                                          );
+                                        }
+                                      },
+                                    );
+                                  }).toList(),
+                                ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -184,5 +259,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
     );
+  }
+
+  String _getStatusText(InspectionStatus status) {
+    switch (status) {
+      case InspectionStatus.pending:
+        return 'Pending';
+      case InspectionStatus.inProgress:
+        return 'In Progress';
+      case InspectionStatus.completed:
+        return 'Completed';
+      case InspectionStatus.rejected:
+        return 'Rejected';
+    }
+  }
+
+  Color _getStatusColor(InspectionStatus status) {
+    switch (status) {
+      case InspectionStatus.pending:
+        return const Color(0xFFD6A467); // grayOrange
+      case InspectionStatus.inProgress:
+        return const Color(0xFF2E7D32); // green
+      case InspectionStatus.completed:
+        return const Color(0xFF1976D2); // blue
+      case InspectionStatus.rejected:
+        return const Color(0xFFD32F2F); // red
+    }
   }
 }

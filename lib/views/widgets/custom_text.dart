@@ -11,6 +11,7 @@ enum TextVariant {
   bodyMedium,
   bodySmall,
   labelLarge,
+  headlineSmall,
 }
 
 class CustomText extends StatelessWidget {
@@ -21,6 +22,7 @@ class CustomText extends StatelessWidget {
   final FontWeight? fontWeight;
   final int? maxLines;
   final FontStyle? fontStyle;
+  final TextOverflow? overflow;
 
   const CustomText(
     this.text, {
@@ -31,6 +33,7 @@ class CustomText extends StatelessWidget {
     this.fontWeight,
     this.maxLines,
     this.fontStyle,
+    this.overflow,
   });
 
   @override
@@ -56,6 +59,8 @@ class CustomText extends StatelessWidget {
           return theme.bodySmall;
         case TextVariant.labelLarge:
           return theme.labelLarge;
+        case TextVariant.headlineSmall:
+          return theme.headlineSmall;
       }
     }
 
@@ -63,6 +68,7 @@ class CustomText extends StatelessWidget {
       text,
       textAlign: textAlign,
       maxLines: maxLines,
+      overflow: overflow,
       style: getStyle()?.copyWith(
         // Pulls color from theme if not explicitly provided
         color: color ?? colorScheme.onSurface,

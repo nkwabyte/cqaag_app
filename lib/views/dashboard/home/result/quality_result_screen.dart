@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:gap/gap.dart';
 import 'package:cqaag_app/index.dart';
 
 class QualityResultScreen extends StatefulWidget {
   static const String id = 'quality_result_screen';
 
-  const QualityResultScreen({super.key});
+  final Inspection inspection;
+
+  const QualityResultScreen({super.key, required this.inspection});
 
   @override
   State<QualityResultScreen> createState() => _QualityResultScreenState();
@@ -16,6 +19,7 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final i = widget.inspection;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -49,7 +53,11 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const CustomText("52", variant: TextVariant.displayLarge, color: Colors.white),
+                          CustomText(
+                            i.kor.toStringAsFixed(1),
+                            variant: TextVariant.displayLarge,
+                            color: Colors.white,
+                          ),
                           CustomText("KOR", variant: TextVariant.bodySmall, color: Colors.white70),
                         ],
                       ),
@@ -60,21 +68,29 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 8.h),
                     decoration: BoxDecoration(
-                      color: Colors.green,
+                      color: i.kor >= 48.0 ? Colors.green : Colors.orange,
                       borderRadius: BorderRadius.circular(30.r),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                        Icon(
+                          i.kor >= 48.0 ? Icons.check_circle_outline : Icons.info_outline,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                         Gap(8.w),
-                        const CustomText("EXPORT READY", variant: TextVariant.labelLarge, color: Colors.white),
+                        CustomText(
+                          i.kor >= 48.0 ? "EXPORT READY" : "BELOW STANDARD",
+                          variant: TextVariant.labelLarge,
+                          color: Colors.white,
+                        ),
                       ],
                     ),
                   ),
                   Gap(16.h),
                   CustomText(
-                    "Nut Count: 185 • BATCH-GH-001",
+                    "Nut Count: ${i.nutCount} • ${i.batchId ?? 'No Batch ID'}",
                     variant: TextVariant.bodySmall,
                     color: Colors.white70,
                   ),
@@ -89,22 +105,25 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 _buildSectionHeader("Report Information"),
-                _buildReportInfoCard(colorScheme),
+                _buildReportInfoCard(colorScheme, i),
                 Gap(32.h),
 
                 _buildSectionHeader("Quality Parameters"),
-                _buildParametersGrid(),
+                _buildParametersGrid(i),
                 Gap(32.h),
 
                 _buildSectionHeader("Digital Certificate"),
-                _buildCertificateCard(colorScheme),
+                _buildCertificateCard(colorScheme, i),
                 Gap(32.h),
 
                 // 3. Action Buttons
                 CustomButton(
                   text: "View Batch Traceability",
                   leadingIcon: const Icon(Icons.account_tree_outlined, color: Colors.white),
-                  onPressed: () {},
+                  onPressed: () => context.pushNamed(
+                    TraceabilityScreen.id,
+                    extra: i,
+                  ),
                 ),
                 Gap(16.h),
                 Row(
@@ -162,7 +181,7 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
     );
   }
 
-  Widget _buildReportInfoCard(ColorScheme colorScheme) {
+  Widget _buildReportInfoCard(ColorScheme colorScheme, Inspection i) {
     return Container(
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
@@ -170,21 +189,21 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(color: colorScheme.secondary.withValues(alpha: 0.1)),
       ),
-      child: const Column(
+      child: Column(
         children: [
-          _InfoRow(label: "Report Type", value: "Arrival"),
-          Divider(),
-          _InfoRow(label: "Truck Number", value: "TN 1234 ABC"),
-          Divider(),
-          _InfoRow(label: "Company", value: "Ghana Cashew Co."),
-          Divider(),
-          _InfoRow(label: "Quantity", value: "1000 lbs"),
+          const _InfoRow(label: "Report Type", value: "Arrival"), // Static for now
+          const Divider(),
+          _InfoRow(label: "Truck Number", value: i.truckNumber ?? "N/A"),
+          const Divider(),
+          _InfoRow(label: "Company", value: i.company ?? "N/A"),
+          const Divider(),
+          _InfoRow(label: "Quantity", value: "${i.quantity} MT"),
         ],
       ),
     );
   }
 
-  Widget _buildParametersGrid() {
+  Widget _buildParametersGrid(Inspection i) {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -192,18 +211,48 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
       mainAxisSpacing: 16.r,
       crossAxisSpacing: 16.r,
       childAspectRatio: 1.1,
-      children: const [
-        ParameterCard(label: "Moisture", value: "8.3", unit: "%", status: "Pass"),
-        ParameterCard(label: "Nut Count", value: "185", unit: "g", status: "Pass"),
-        ParameterCard(label: "Void", value: "2.1", unit: "g", status: "Pass"),
-        ParameterCard(label: "Oil", value: "1.5", unit: "g", status: "Pass"),
-        ParameterCard(label: "Damaged", value: "1.2", unit: "g", status: "Pass"),
-        ParameterCard(label: "Foreign Matter", value: "0.3", unit: "g", status: "Pass"),
+      children: [
+        ParameterCard(
+          label: "Moisture",
+          value: i.moistureContent.toString(),
+          unit: "%",
+          status: i.moistureContent <= 10.0 ? "Pass" : "High",
+        ),
+        ParameterCard(
+          label: "Nut Count",
+          value: i.nutCount.toString(),
+          unit: "g",
+          status: "Pass",
+        ),
+        ParameterCard(
+          label: "Void",
+          value: i.voidKernels.toString(),
+          unit: "g",
+          status: "Pass",
+        ),
+        ParameterCard(
+          label: "Oil",
+          value: i.oilyKernels.toString(),
+          unit: "g",
+          status: "Pass",
+        ),
+        ParameterCard(
+          label: "Total Defective",
+          value: i.totalDefective.toString(),
+          unit: "g",
+          status: "Pass",
+        ),
+        ParameterCard(
+          label: "Spotted",
+          value: i.spottedKernels.toString(),
+          unit: "g",
+          status: "Pass",
+        ),
       ],
     );
   }
 
-  Widget _buildCertificateCard(ColorScheme colorScheme) {
+  Widget _buildCertificateCard(ColorScheme colorScheme, Inspection i) {
     return Container(
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
@@ -226,11 +275,21 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CustomText("Emmanuel Adjei", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+                    CustomText(
+                      i.inspectorId.substring(0, i.inspectorId.length > 10 ? 10 : null), // Temp
+                      variant: TextVariant.bodyLarge,
+                      fontWeight: FontWeight.bold,
+                    ),
                     CustomText("Inspector", variant: TextVariant.bodySmall, color: colorScheme.secondary),
                     Gap(8.h),
-                    CustomText("2024-12-18 • 10:15 AM", variant: TextVariant.bodySmall),
-                    CustomText("Wenchi District", variant: TextVariant.bodySmall),
+                    CustomText(
+                      i.completedAt?.toString().split('.')[0] ?? "Unknown Date",
+                      variant: TextVariant.bodySmall,
+                    ),
+                    CustomText(
+                      i.location ?? "Unknown District",
+                      variant: TextVariant.bodySmall,
+                    ),
                   ],
                 ),
               ),
@@ -247,7 +306,14 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 CustomText("Certificate ID:", variant: TextVariant.bodySmall, color: colorScheme.secondary),
-                const CustomText("CERT-BATCH-001", variant: TextVariant.bodySmall, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: CustomText(
+                    i.id.substring(0, 8).toUpperCase(), // Shortened ID
+                    variant: TextVariant.bodySmall,
+                    fontWeight: FontWeight.bold,
+                    textAlign: TextAlign.end,
+                  ),
+                ),
               ],
             ),
           ),

@@ -6,7 +6,9 @@ import 'package:cqaag_app/index.dart';
 class TraceabilityScreen extends StatefulWidget {
   static const String id = 'traceability_screen';
 
-  const TraceabilityScreen({super.key});
+  final Inspection inspection;
+
+  const TraceabilityScreen({super.key, required this.inspection});
 
   @override
   State<TraceabilityScreen> createState() => _TraceabilityScreenState();
@@ -16,6 +18,7 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final i = widget.inspection;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -32,7 +35,7 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
         child: Column(
           children: [
             // 1. Header Summary Card
-            _buildBatchHeader(colorScheme),
+            _buildBatchHeader(colorScheme, i),
 
             Padding(
               padding: EdgeInsets.all(24.r),
@@ -48,6 +51,9 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
                   Gap(30.h),
 
                   // 2. The Timeline
+                  // We map available dates to the journey.
+                  // Farm Collection -> Created At
+                  // Quality Inspection -> Completed At
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -63,46 +69,50 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
                       Gap(20.w),
                       Expanded(
                         child: Column(
-                          children: const [
+                          children: [
                             JourneyCard(
                               title: "Farm Collection",
                               subtitle: "Cashew harvested and registered",
-                              location: "Wenchi District, Bono Region",
-                              person: "Kwame Mensah",
+                              location: i.location ?? "Unknown Location",
+                              person: i.farmerName ?? "Unknown Farmer",
                               role: "Farmer",
-                              dateTime: "2024-12-10, 08:30 AM",
+                              dateTime: i.createdAt.toString().split('.')[0],
                             ),
                             JourneyCard(
                               title: "Quality Inspection",
                               subtitle: "Field inspection completed",
-                              location: "Wenchi Collection Center",
-                              person: "Emmanuel Adjei",
+                              location: i.location ?? "Collection Center",
+                              person: i.inspectorId, // ideally fetch name here too if we want
                               role: "Inspector",
-                              dateTime: "2024-12-18, 10:15 AM",
+                              dateTime: i.completedAt?.toString().split('.')[0] ?? "Pending",
+                              isCompleted: i.status == InspectionStatus.completed,
                             ),
-                            JourneyCard(
+                            // Placeholders for demo purposes or future data
+                            const JourneyCard(
                               title: "District Validation",
                               subtitle: "Regional supervisor approval",
-                              location: "Bono Regional Office",
-                              person: "Akosua Frimpong",
-                              role: "Regional Supervisor",
-                              dateTime: "2024-12-18, 02:45 PM",
+                              location: "Regional Office",
+                              person: "Pending",
+                              role: "Supervisor",
+                              dateTime: "Pending",
+                              isCompleted: false,
                             ),
-                            JourneyCard(
+                            const JourneyCard(
                               title: "Warehouse Storage",
                               subtitle: "Stored in certified facility",
-                              location: "Kumasi Central Warehouse",
-                              person: "Yaw Boateng",
-                              role: "Warehouse Manager",
-                              dateTime: "2024-12-19, 09:00 AM",
+                              location: "Central Warehouse",
+                              person: "Pending",
+                              role: "Manager",
+                              dateTime: "Pending",
+                              isCompleted: false,
                             ),
-                            JourneyCard(
+                            const JourneyCard(
                               title: "Export Certification",
                               subtitle: "Ready for international export",
                               location: "C.Q.A.A.G National HQ",
-                              person: "Dr. Ama Asante",
+                              person: "Pending",
                               role: "CEO",
-                              dateTime: "2024-12-20, 11:30 AM",
+                              dateTime: "Pending",
                               isCompleted: false,
                             ),
                           ],
@@ -112,7 +122,7 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
                   ),
 
                   Gap(30.h),
-                  _buildFinalSummary(colorScheme),
+                  _buildFinalSummary(colorScheme, i),
                   Gap(40.h),
                 ],
               ),
@@ -123,7 +133,7 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
     );
   }
 
-  Widget _buildBatchHeader(ColorScheme colorScheme) {
+  Widget _buildBatchHeader(ColorScheme colorScheme, Inspection i) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 40.h),
@@ -145,15 +155,29 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CustomText("Batch ID", variant: TextVariant.bodySmall, color: Colors.white70),
-                    const CustomText("BATCH-GH-001", variant: TextVariant.displaySmall, color: Colors.white),
-                  ],
+              children: <Widget>[
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      CustomText(
+                        "Batch ID",
+                        variant: TextVariant.bodySmall,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      CustomText(
+                        i.batchId ?? i.id.substring(0, 8).toUpperCase(),
+                        variant: TextVariant.bodySmall,
+                        color: Colors.white,
+                      ),
+                    ],
+                  ),
                 ),
-                _buildStatusBadge("Export Ready", Colors.green),
+                _buildStatusBadge(
+                  i.kor >= 48 ? "Export Ready" : "Below Standard",
+                  i.kor >= 48 ? Colors.green : Colors.orange,
+                ),
               ],
             ),
             Gap(20.h),
@@ -162,9 +186,14 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildStat("Weight", "2.5 MT"),
-                _buildStat("Grade", "Grade A"),
-                _buildStat("Days", "10"),
+                _buildStat("Weight", "${i.quantity} MT"),
+                // Basic grading logic
+                _buildStat("Grade", i.kor >= 48 ? "Grade A" : "Grade B"),
+                // Days since creation
+                _buildStat(
+                  "Days",
+                  "${DateTime.now().difference(i.createdAt ?? DateTime.now()).inDays}",
+                ),
               ],
             ),
           ],
@@ -181,7 +210,12 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
         borderRadius: BorderRadius.circular(8.r),
         border: Border.all(color: color),
       ),
-      child: CustomText(text, variant: TextVariant.bodySmall, color: color, fontWeight: FontWeight.bold),
+      child: CustomText(
+        text,
+        variant: TextVariant.bodySmall,
+        color: color,
+        fontWeight: FontWeight.bold,
+      ),
     );
   }
 
@@ -190,12 +224,17 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
       children: [
         CustomText(label, variant: TextVariant.bodySmall, color: Colors.white70),
         Gap(4.h),
-        CustomText(value, variant: TextVariant.bodyLarge, color: const Color(0xFFbe6735), fontWeight: FontWeight.bold),
+        CustomText(
+          value,
+          variant: TextVariant.bodyLarge,
+          color: const Color(0xFFbe6735),
+          fontWeight: FontWeight.bold,
+        ),
       ],
     );
   }
 
-  Widget _buildFinalSummary(ColorScheme colorScheme) {
+  Widget _buildFinalSummary(ColorScheme colorScheme, Inspection i) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(24.r),
@@ -217,16 +256,19 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _summaryItem("Total Weight", "2.5 MT"),
-              _summaryItem("Quality Grade", "Grade A"),
+              _summaryItem("Total Weight", "${i.quantity} MT"),
+              _summaryItem("Quality Grade", i.kor >= 48 ? "Grade A" : "Grade B"),
             ],
           ),
           Gap(16.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _summaryItem("KOR Score", "185"),
-              _summaryItem("Days in Chain", "10"),
+              _summaryItem("KOR Score", i.kor.toStringAsFixed(1)),
+              _summaryItem(
+                "Days in Chain",
+                "${DateTime.now().difference(i.createdAt ?? DateTime.now()).inDays}",
+              ),
             ],
           ),
           Gap(24.h),

@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:cqaag_app/index.dart';
@@ -6,12 +8,29 @@ part 'app_router.g.dart';
 
 @riverpod
 GoRouter goRouter(Ref ref) {
-  final authState = ref.watch(authStateProvider);
+  // Use a ValueNotifier to hold the auth state.
+  // This allows us to listen to changes without rebuilding the GoRouter invocation itself.
+  final authNotifier = ValueNotifier<AsyncValue<User?>>(const AsyncLoading());
+
+  // Initialize with current state if available (though usually starts loading)
+  if (ref.exists(authStateProvider)) {
+    authNotifier.value = ref.read(authStateProvider);
+  }
+
+  // Listen to the provider and update the notifier
+  ref.listen(authStateProvider, (_, next) {
+    authNotifier.value = next;
+  });
+
+  // Dispose the notifier when the provider is disposed
+  ref.onDispose(authNotifier.dispose);
 
   return GoRouter(
     initialLocation: '/',
     debugLogDiagnostics: true,
+    refreshListenable: authNotifier,
     redirect: (context, state) {
+      final authState = authNotifier.value;
       final isLoading = authState.isLoading;
       final hasError = authState.hasError;
       final isLoggedIn = authState.asData?.value != null;
@@ -28,7 +47,7 @@ GoRouter goRouter(Ref ref) {
 
       if (isLoggedIn) {
         // If logged in and on a public route (Splash, Boarding, Login, Register), redirect to Dashboard
-        if (isPublicRoute) {
+        if (isPublicRoute && !isSplash) {
           return '/${DashboardScreen.id}';
         }
       } else {
@@ -90,12 +109,22 @@ GoRouter goRouter(Ref ref) {
       GoRoute(
         path: '/${DistrictDetailScreen.id}',
         name: DistrictDetailScreen.id,
-        builder: (context, state) => const DistrictDetailScreen(),
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>;
+          final district = extras['district'] as String;
+          final inspections = extras['inspections'] as List<Inspection>;
+          return DistrictDetailScreen(district: district, inspections: inspections);
+        },
       ),
       GoRoute(
         path: '/${TownDetailScreen.id}',
         name: TownDetailScreen.id,
-        builder: (context, state) => const TownDetailScreen(),
+        builder: (context, state) {
+          final extras = state.extra as Map<String, dynamic>;
+          final town = extras['town'] as String;
+          final inspections = extras['inspections'] as List<Inspection>;
+          return TownDetailScreen(town: town, inspections: inspections);
+        },
       ),
       // Home flow routes
       GoRoute(
@@ -106,12 +135,24 @@ GoRouter goRouter(Ref ref) {
       GoRoute(
         path: '/${QualityResultScreen.id}',
         name: QualityResultScreen.id,
-        builder: (context, state) => const QualityResultScreen(),
+        builder: (context, state) {
+          final inspection = state.extra as Inspection;
+          return QualityResultScreen(inspection: inspection);
+        },
       ),
       GoRoute(
         path: '/${TraceabilityScreen.id}',
         name: TraceabilityScreen.id,
-        builder: (context, state) => const TraceabilityScreen(),
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is! Inspection) {
+            return Scaffold(
+              appBar: AppBar(title: const Text("Error")),
+              body: const Center(child: Text("Inspection data not found")),
+            );
+          }
+          return TraceabilityScreen(inspection: extra);
+        },
       ),
       // Profile/Membership routes
       GoRoute(

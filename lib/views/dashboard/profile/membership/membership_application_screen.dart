@@ -41,6 +41,7 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
       'last_name': user?.lastName ?? '',
       'nationality': 'Ghanaian',
       'phone': user?.phoneNumber ?? '',
+      'email': user?.email ?? '',
       'job_title': user?.role?.toString().split('.').last.capitalize() ?? '',
     };
 
@@ -97,12 +98,36 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                       prefixIcon: Icons.flag_outlined,
                     ),
                     Gap(16.h),
+                    _buildGenderDropdown(colorScheme),
+                    Gap(16.h),
                     const CustomTextField(
                       name: 'phone',
                       label: "Primary Phone Number",
                       hint: "e.g. +233 XXX XXX XXX",
                       keyboardType: TextInputType.phone,
                       prefixIcon: Icons.phone_outlined,
+                    ),
+                    Gap(16.h),
+                    const CustomTextField(
+                      name: 'email',
+                      label: "Email Address",
+                      hint: "e.g. john.doe@example.com",
+                      keyboardType: TextInputType.emailAddress,
+                      prefixIcon: Icons.email_outlined,
+                    ),
+                    Gap(16.h),
+                    const CustomTextField(
+                      name: 'address',
+                      label: "Residential Address",
+                      hint: "Enter your residential address",
+                      prefixIcon: Icons.home_outlined,
+                    ),
+                    Gap(16.h),
+                    const CustomTextField(
+                      name: 'region',
+                      label: "Region/District",
+                      hint: "e.g. Greater Accra",
+                      prefixIcon: Icons.location_on_outlined,
                     ),
 
                     Gap(30.h),
@@ -122,12 +147,13 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                       prefixIcon: Icons.business_outlined,
                     ),
                     Gap(16.h),
-                    const CustomTextField(
+                    CustomTextField(
                       name: 'experience',
                       label: "Years of Experience",
                       hint: "Number of years",
                       keyboardType: TextInputType.number,
                       prefixIcon: Icons.timeline_outlined,
+                      validator: FormBuilderValidators.numeric(),
                     ),
 
                     Gap(40.h),
@@ -236,6 +262,30 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
           validator: FormBuilderValidators.required(),
         ),
       ],
+    );
+  }
+
+  Widget _buildGenderDropdown(ColorScheme colorScheme) {
+    return FormBuilderDropdown<String>(
+      name: 'gender',
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
+        labelText: "Gender",
+        prefixIcon: Icon(Icons.person_outline, color: colorScheme.secondary),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: BorderSide(color: colorScheme.secondary.withValues(alpha: 0.3)),
+        ),
+      ),
+      hint: const CustomText("Select gender", variant: TextVariant.bodyMedium),
+      items: [
+        'Male',
+        'Female',
+        'Prefer not to say',
+      ].map((gender) => DropdownMenuItem(value: gender, child: CustomText(gender))).toList(),
+      validator: FormBuilderValidators.required(),
     );
   }
 }

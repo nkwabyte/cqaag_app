@@ -31,7 +31,12 @@ class AnimatedBottomNavBar extends StatelessWidget {
 
     return Container(
       // height: 80.h,
-      padding: EdgeInsets.only(top: 10.h, right: 10.w, left: 10.w),
+      padding: EdgeInsets.only(
+        top: 10.h,
+        right: 10.w,
+        left: 10.w,
+        bottom: 10.0.h,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: <BoxShadow>[

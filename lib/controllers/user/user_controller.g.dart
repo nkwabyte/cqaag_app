@@ -142,3 +142,73 @@ final class FilteredUsersProvider
 }
 
 String _$filteredUsersHash() => r'4fb877ce55826a1afcde3eba414b9cbc3fc70262';
+
+@ProviderFor(inspectorProfile)
+final inspectorProfileProvider = InspectorProfileFamily._();
+
+final class InspectorProfileProvider
+    extends
+        $FunctionalProvider<AsyncValue<AppUser?>, AppUser?, FutureOr<AppUser?>>
+    with $FutureModifier<AppUser?>, $FutureProvider<AppUser?> {
+  InspectorProfileProvider._({
+    required InspectorProfileFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'inspectorProfileProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$inspectorProfileHash();
+
+  @override
+  String toString() {
+    return r'inspectorProfileProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<AppUser?> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<AppUser?> create(Ref ref) {
+    final argument = this.argument as String;
+    return inspectorProfile(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is InspectorProfileProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$inspectorProfileHash() => r'5a279e380324ee804e26e818339b567ef35799e2';
+
+final class InspectorProfileFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<AppUser?>, String> {
+  InspectorProfileFamily._()
+    : super(
+        retry: null,
+        name: r'inspectorProfileProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  InspectorProfileProvider call(String userId) =>
+      InspectorProfileProvider._(argument: userId, from: this);
+
+  @override
+  String toString() => r'inspectorProfileProvider';
+}

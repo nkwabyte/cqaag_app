@@ -97,49 +97,62 @@ Widget buildHistoryHeader(
 }) {
   return Container(
     width: double.infinity,
-    padding: EdgeInsets.fromLTRB(24.w, 60.h, 24.w, 40.h),
+    padding: EdgeInsets.fromLTRB(24.w, 10.h, 24.w, 30.h),
     decoration: BoxDecoration(
       color: colorScheme.onSurface,
-      borderRadius: BorderRadius.only(bottomLeft: Radius.circular(50.r), bottomRight: Radius.circular(50.r)),
+      borderRadius: BorderRadius.only(
+        bottomLeft: Radius.circular(50.r),
+        bottomRight: Radius.circular(50.r),
+      ),
     ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        if (showBack) ...[
-          GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Row(
-              children: [
-                Icon(Icons.chevron_left, color: Colors.white, size: 20.r),
-                Gap(4.w),
-                const CustomText("Back", color: Colors.white),
-              ],
+    child: SafeArea(
+      bottom: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (showBack) ...[
+            GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Row(
+                children: <Widget>[
+                  Icon(Icons.chevron_left, color: Colors.white, size: 20.r),
+                  Gap(4.w),
+                  const CustomText("Back", color: Colors.white),
+                ],
+              ),
             ),
-          ),
-          Gap(20.h),
-        ],
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CustomText(title, variant: TextVariant.displaySmall, color: Colors.white),
-                Gap(8.h),
-                CustomText(sub, color: colorScheme.secondary),
-              ],
-            ),
-            CustomButton(
-              text: "Export",
-              width: 110.w,
-              height: 45.h,
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
-              leadingIcon: const Icon(Icons.file_download_outlined, color: Colors.white),
-              onPressed: () {},
-            ),
+            Gap(20.h),
           ],
-        ),
-      ],
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    CustomText(
+                      title,
+                      variant: TextVariant.bodyLarge,
+                      color: Colors.white,
+                    ),
+                    Gap(8.h),
+                    CustomText(sub, color: colorScheme.secondary),
+                  ],
+                ),
+              ),
+              Gap(8.0.w),
+              CustomButton(
+                text: "Export",
+                width: 110.w,
+                height: 45.h,
+                backgroundColor: Colors.white.withValues(alpha: 0.1),
+                leadingIcon: const Icon(Icons.file_download_outlined, color: Colors.white),
+                onPressed: () {},
+              ),
+            ],
+          ),
+        ],
+      ),
     ),
   );
 }

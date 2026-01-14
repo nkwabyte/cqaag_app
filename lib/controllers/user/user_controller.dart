@@ -42,7 +42,15 @@ Stream<List<AppUser>> filteredUsers(Ref ref) {
       final matchesName = '${user.firstName} ${user.lastName}'.toLowerCase().contains(query);
       final matchesEmail = user.email.toLowerCase().contains(query);
       final matchesPhone = user.phoneNumber?.toLowerCase().contains(query) ?? false;
+
       return matchesName || matchesEmail || matchesPhone;
     }).toList();
   });
+}
+
+// Provider to fetch inspector profile by ID
+@riverpod
+Future<AppUser?> inspectorProfile(Ref ref, String userId) {
+  final userService = ref.watch(userServiceProvider);
+  return userService.getUserById(userId);
 }

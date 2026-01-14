@@ -73,6 +73,10 @@ class CloudinaryService {
     return _uploadFile(file, folder: 'Members');
   }
 
+  Future<String?> uploadInspectionPhoto(File file) async {
+    return _uploadFile(file, folder: 'Inspections');
+  }
+
   Future<String?> _uploadFile(File file, {required String folder}) async {
     try {
       debugPrint("Attempting to upload file: ${file.path} to folder: $folder");

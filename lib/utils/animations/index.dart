@@ -16,8 +16,5 @@
  * Any manual changes to this file may be overwritten.
  */
 
-export 'location/index.dart';
-export 'user/index.dart';
-export 'inspection/index.dart';
-export 'boarding/index.dart';
-export 'membership/index.dart';
+export 'custom_animations.dart';
+export 'animation_configs.dart';
