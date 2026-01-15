@@ -17,3 +17,4 @@
  */
 
 export 'app_user.dart';
+export 'verification_data.dart';

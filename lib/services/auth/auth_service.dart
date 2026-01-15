@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cqaag_app/models/user/app_user.dart';
+import 'package:cqaag_app/services/connectivity/connectivity_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -9,7 +10,8 @@ part 'auth_service.g.dart';
 
 @Riverpod(keepAlive: true)
 AuthService authService(Ref ref) {
-  return AuthService();
+  final connectivityService = ref.watch(connectivityServiceProvider);
+  return AuthService(connectivityService);
 }
 
 @riverpod
@@ -20,6 +22,9 @@ Stream<User?> authState(Ref ref) {
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final ConnectivityService _connectivityService;
+
+  AuthService(this._connectivityService);
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
@@ -28,11 +33,16 @@ class AuthService {
   Stream<AppUser?> get currentUserProfile {
     return authStateChanges.switchMap((user) {
       if (user == null) return Stream.value(null);
-      return _firestore.collection('users').doc(user.uid).snapshots().map((snapshot) => snapshot.exists ? AppUser.fromJson(snapshot.data()!) : null);
+      return _firestore
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .map((snapshot) => snapshot.exists ? AppUser.fromJson(snapshot.data()!) : null);
     });
   }
 
   Future<void> signInWithEmailAndPassword(String email, String password) async {
+    await _connectivityService.ensureConnected();
     await _auth.signInWithEmailAndPassword(email: email, password: password);
   }
 
@@ -42,8 +52,12 @@ class AuthService {
     required String firstName,
     required String lastName,
     required String phoneNumber,
-    String? role, // Optionally used if needed immediately, though not in AppUser yet
+    String? address,
+    String? district,
+    String? region,
+    bool isAdmin = false,
   }) async {
+    await _connectivityService.ensureConnected();
     final credential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
     if (credential.user == null) return;
 
@@ -53,20 +67,28 @@ class AuthService {
       lastName: lastName,
       email: email,
       phoneNumber: phoneNumber,
+      address: address,
+      district: district,
+      region: region,
+      isAdmin: isAdmin,
+      verificationStatus: VerificationStatus.unverified,
     );
 
     await _firestore.collection('users').doc(newUser.id).set(newUser.toJson());
   }
 
   Future<void> updateUser(AppUser user) async {
+    await _connectivityService.ensureConnected();
     await _firestore.collection('users').doc(user.id).update(user.toJson());
   }
 
   Future<void> resetPassword(String email) async {
+    await _connectivityService.ensureConnected();
     await _auth.sendPasswordResetEmail(email: email);
   }
 
   Future<void> deleteUser() async {
+    await _connectivityService.ensureConnected();
     final user = _auth.currentUser;
     if (user == null) return;
 

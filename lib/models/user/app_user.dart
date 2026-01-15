@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:cqaag_app/models/user/verification_data.dart';
 
 part 'app_user.freezed.dart';
 part 'app_user.g.dart';
@@ -29,6 +30,8 @@ enum AppUserStatus {
 }
 
 enum VerificationStatus {
+  @JsonValue('unverified')
+  unverified,
   @JsonValue('pending')
   pending,
   @JsonValue('verified')
@@ -39,6 +42,8 @@ enum VerificationStatus {
 
   String get value {
     switch (this) {
+      case VerificationStatus.unverified:
+        return 'unverified';
       case VerificationStatus.pending:
         return 'pending';
       case VerificationStatus.verified:
@@ -92,8 +97,11 @@ abstract class AppUser with _$AppUser {
     String? district,
     String? region,
     String? phoneNumber,
-    @Default(VerificationStatus.pending) VerificationStatus verificationStatus,
+    String? role,
+    VerificationData? verification,
+    @Default(VerificationStatus.unverified) VerificationStatus verificationStatus,
     @Default(MembershipStatus.notAMember) MembershipStatus membershipStatus,
+    @Default(false) bool isAdmin,
   }) = _AppUser;
 
   factory AppUser.fromJson(Map<String, dynamic> json) => _$AppUserFromJson(json);

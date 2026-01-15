@@ -19,4 +19,10 @@
 export 'preferences_service.dart';
 export 'firebase_options.dart';
 export 'api_service.dart';
+export 'connectivity/index.dart';
 export 'auth/index.dart';
+export 'location/index.dart';
+export 'cloudinary/index.dart';
+export 'user/index.dart';
+export 'inspection/index.dart';
+export 'membership/index.dart';

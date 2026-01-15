@@ -53,11 +53,25 @@ class ProfileTile extends StatelessWidget {
         ),
         child: Icon(icon, color: colorScheme.secondary, size: 22.r),
       ),
-      title: CustomText(title, variant: TextVariant.bodyLarge, fontWeight: FontWeight.w600),
+      title: CustomText(
+        title,
+        variant: TextVariant.bodySmall,
+        fontWeight: FontWeight.w600,
+      ),
       subtitle: subtitle != null
-          ? CustomText(subtitle!, variant: TextVariant.bodySmall, color: colorScheme.secondary)
+          ? CustomText(
+              subtitle!,
+              variant: TextVariant.bodySmall,
+              color: colorScheme.secondary,
+            )
           : null,
-      trailing: trailing ?? Icon(Icons.chevron_right, color: colorScheme.secondary, size: 20.r),
+      trailing:
+          trailing ??
+          Icon(
+            Icons.chevron_right,
+            color: colorScheme.secondary,
+            size: 20.r,
+          ),
     );
   }
 }

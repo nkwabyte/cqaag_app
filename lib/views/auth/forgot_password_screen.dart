@@ -23,7 +23,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       final email = _formKey.currentState?.value['email'] as String?;
 
       if (email == null || email.isEmpty) {
-        CustomSnackbar.warning(
+        CustomSnackBar.warning(
           context,
           message: "Please enter your email address",
         );
@@ -31,10 +31,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       }
 
       // Show loading dialog
-      AppDialogs.showLoading(
-        context,
-        message: "Sending reset link...",
-      );
+      AppDialogs.showLoading(context);
 
       try {
         // Call auth service to send password reset email
@@ -61,15 +58,23 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         if (context.mounted) {
           AppDialogs.hide(context);
 
-          // Show error with custom snackbar
-          CustomSnackbar.error(
-            context,
-            message: e.toString().replaceAll('Exception: ', '').replaceAll('[firebase_auth/user-not-found]', 'No account found with this email'),
-          );
+          // Check if it's a connectivity error
+          if (e is NoInternetException) {
+            CustomSnackBar.info(
+              context,
+              message: e.message,
+            );
+          } else {
+            // Use Firebase error mapper for user-friendly messages
+            CustomSnackBar.error(
+              context,
+              message: FirebaseErrorMapper.getErrorMessage(e),
+            );
+          }
         }
       }
     } else {
-      CustomSnackbar.warning(
+      CustomSnackBar.warning(
         context,
         message: "Please fill in all required fields",
       );
@@ -100,7 +105,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   Gap(40.h),
-                  const CustomText("Forgot Password", variant: TextVariant.displaySmall, color: Colors.white),
+                  const CustomText(
+                    "Forgot Password",
+                    variant: TextVariant.displaySmall,
+                    color: Colors.white,
+                  ),
                   Gap(12.h),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 40.w),

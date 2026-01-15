@@ -8,8 +8,11 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'services/firebase_options.dart';
 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   final savedThemeMode = await AdaptiveTheme.getThemeMode();
   runApp(ProviderScope(child: MyApp(savedThemeMode: savedThemeMode)));
@@ -32,12 +35,15 @@ class MyApp extends ConsumerWidget {
           light: AppTheme.lightTheme,
           dark: AppTheme.darkTheme,
           initial: savedThemeMode ?? AdaptiveThemeMode.light,
-          builder: (theme, darkTheme) => MaterialApp.router(
-            title: 'CQAAG App',
-            theme: theme,
-            darkTheme: darkTheme,
-            routerConfig: router,
-          ),
+          builder: (ThemeData theme, ThemeData darkTheme) {
+            return MaterialApp.router(
+              title: 'C.Q.A.A.G App',
+              theme: theme,
+              debugShowCheckedModeBanner: false,
+              darkTheme: darkTheme,
+              routerConfig: router,
+            );
+          },
         );
       },
     );

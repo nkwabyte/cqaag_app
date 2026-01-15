@@ -4,18 +4,19 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:gap/gap.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:cqaag_app/index.dart';
 
-class MembershipApplicationScreen extends StatefulWidget {
+class MembershipApplicationScreen extends ConsumerStatefulWidget {
   static const String id = 'membership_application_screen';
   const MembershipApplicationScreen({super.key});
 
   @override
-  State<MembershipApplicationScreen> createState() => _MembershipApplicationScreenState();
+  ConsumerState<MembershipApplicationScreen> createState() => _MembershipApplicationScreenState();
 }
 
-class _MembershipApplicationScreenState extends State<MembershipApplicationScreen> {
+class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicationScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
   void _navigateToAgreement() {
@@ -33,12 +34,23 @@ class _MembershipApplicationScreenState extends State<MembershipApplicationScree
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final user = ref.read(currentUserProfileProvider).value;
+
+    final initialValues = {
+      'first_name': user?.firstName ?? '',
+      'last_name': user?.lastName ?? '',
+      'nationality': 'Ghanaian',
+      'phone': user?.phoneNumber ?? '',
+      'email': user?.email ?? '',
+      'job_title': user?.role?.toString().split('.').last.capitalize() ?? '',
+    };
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SingleChildScrollView(
         child: FormBuilder(
           key: _formKey,
+          initialValue: initialValues,
           child: Column(
             children: [
               // 1. Header with Back Button
@@ -49,12 +61,12 @@ class _MembershipApplicationScreenState extends State<MembershipApplicationScree
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Section 1: Category [cite: 134]
+                    // Section 1: Category
                     _buildSectionTitle("1. Membership Category"),
                     _buildCategoryDropdown(colorScheme),
 
                     Gap(30.h),
-                    // Section 2: Personal [cite: 139]
+                    // Section 2: Personal
                     _buildSectionTitle("2. Personal Information"),
                     const CustomTextField(
                       name: 'title',
@@ -86,6 +98,8 @@ class _MembershipApplicationScreenState extends State<MembershipApplicationScree
                       prefixIcon: Icons.flag_outlined,
                     ),
                     Gap(16.h),
+                    _buildGenderDropdown(colorScheme),
+                    Gap(16.h),
                     const CustomTextField(
                       name: 'phone',
                       label: "Primary Phone Number",
@@ -93,9 +107,31 @@ class _MembershipApplicationScreenState extends State<MembershipApplicationScree
                       keyboardType: TextInputType.phone,
                       prefixIcon: Icons.phone_outlined,
                     ),
+                    Gap(16.h),
+                    const CustomTextField(
+                      name: 'email',
+                      label: "Email Address",
+                      hint: "e.g. john.doe@example.com",
+                      keyboardType: TextInputType.emailAddress,
+                      prefixIcon: Icons.email_outlined,
+                    ),
+                    Gap(16.h),
+                    const CustomTextField(
+                      name: 'address',
+                      label: "Residential Address",
+                      hint: "Enter your residential address",
+                      prefixIcon: Icons.home_outlined,
+                    ),
+                    Gap(16.h),
+                    const CustomTextField(
+                      name: 'region',
+                      label: "Region/District",
+                      hint: "e.g. Greater Accra",
+                      prefixIcon: Icons.location_on_outlined,
+                    ),
 
                     Gap(30.h),
-                    // Section 3: Professional [cite: 153]
+                    // Section 3: Professional
                     _buildSectionTitle("3. Professional Information"),
                     const CustomTextField(
                       name: 'job_title',
@@ -111,16 +147,17 @@ class _MembershipApplicationScreenState extends State<MembershipApplicationScree
                       prefixIcon: Icons.business_outlined,
                     ),
                     Gap(16.h),
-                    const CustomTextField(
+                    CustomTextField(
                       name: 'experience',
                       label: "Years of Experience",
                       hint: "Number of years",
                       keyboardType: TextInputType.number,
                       prefixIcon: Icons.timeline_outlined,
+                      validator: FormBuilderValidators.numeric(),
                     ),
 
                     Gap(40.h),
-                    // Action Button to proceed to Agreement [cite: 161]
+                    // Action Button to proceed to Agreement
                     CustomButton(
                       text: "Review & Sign Agreement",
                       onPressed: _navigateToAgreement,
@@ -226,5 +263,35 @@ class _MembershipApplicationScreenState extends State<MembershipApplicationScree
         ),
       ],
     );
+  }
+
+  Widget _buildGenderDropdown(ColorScheme colorScheme) {
+    return FormBuilderDropdown<String>(
+      name: 'gender',
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
+        labelText: "Gender",
+        prefixIcon: Icon(Icons.person_outline, color: colorScheme.secondary),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: BorderSide(color: colorScheme.secondary.withValues(alpha: 0.3)),
+        ),
+      ),
+      hint: const CustomText("Select gender", variant: TextVariant.bodyMedium),
+      items: [
+        'Male',
+        'Female',
+        'Prefer not to say',
+      ].map((gender) => DropdownMenuItem(value: gender, child: CustomText(gender))).toList(),
+      validator: FormBuilderValidators.required(),
+    );
+  }
+}
+
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
   }
 }

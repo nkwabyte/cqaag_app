@@ -16,7 +16,6 @@
  * Any manual changes to this file may be overwritten.
  */
 
-export 'main.dart';
 export 'generated/index.dart';
 export 'core/index.dart';
 export 'utils/index.dart';

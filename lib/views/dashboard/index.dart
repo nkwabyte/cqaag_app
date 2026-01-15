@@ -18,5 +18,6 @@
 
 export 'dashboard_screen.dart';
 export 'home/index.dart';
+export 'admin/index.dart';
 export 'profile/index.dart';
 export 'history/index.dart';
