@@ -26,7 +26,7 @@ class AppDrawer extends ConsumerWidget {
 
     return Drawer(
       child: Column(
-        children: [
+        children: <Widget>[
           // Header
           Container(
             decoration: BoxDecoration(
@@ -114,6 +114,16 @@ class AppDrawer extends ConsumerWidget {
                       _buildDrawerItem(
                         context: context,
                         colorScheme: colorScheme,
+                        icon: Icons.event_outlined,
+                        title: 'Events',
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.pushNamed(GuestEventsScreen.id);
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context: context,
+                        colorScheme: colorScheme,
                         icon: Icons.verified_outlined,
                         title: 'Quality Standards',
                         onTap: () {
@@ -184,17 +194,6 @@ class AppDrawer extends ConsumerWidget {
                             context.goNamed(LoginScreen.id);
                           },
                         ),
-                        _buildDrawerItem(
-                          context: context,
-                          colorScheme: colorScheme,
-                          icon: Icons.person_add,
-                          title: 'Sign Up',
-                          onTap: () {
-                            Navigator.pop(context);
-                            ref.read(guestModeProvider.notifier).disableGuestMode();
-                            context.goNamed(RegisterScreen.id);
-                          },
-                        ),
                       ],
                     ],
                   ),
@@ -204,10 +203,14 @@ class AppDrawer extends ConsumerWidget {
           ),
 
           // Footer
-          if (isAuthenticated)
-            _buildAuthFooter(context, colorScheme, user, ref)
-          else
-            Container(
+          if (isAuthenticated) _buildAuthFooter(context, colorScheme, user, ref),
+
+          SafeArea(
+            top: false,
+            left: false,
+            right: false,
+            bottom: true,
+            child: Container(
               padding: EdgeInsets.all(20.r),
               child: CustomText(
                 'C.Q.A.A.G © 2025',
@@ -216,6 +219,7 @@ class AppDrawer extends ConsumerWidget {
                 textAlign: TextAlign.center,
               ),
             ),
+          ),
         ],
       ),
     );
@@ -263,28 +267,35 @@ class AppDrawer extends ConsumerWidget {
   }
 
   Widget _buildGuestHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(
-          Icons.person_outline,
-          size: 60.r,
-          color: Colors.white,
-        ),
-        Gap(12.h),
-        const CustomText(
-          'Guest User',
-          variant: TextVariant.headlineMedium,
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-        ),
-        Gap(4.h),
-        CustomText(
-          'Exploring C.Q.A.A.G',
-          variant: TextVariant.bodySmall,
-          color: Colors.white.withValues(alpha: 0.8),
-        ),
-      ],
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          CircleAvatar(
+            radius: 40.r,
+            child: Icon(
+              Icons.person_outline,
+              size: 44.0.r,
+            ),
+          ),
+          Gap(12.h),
+          const CustomText(
+            'Guest User',
+            variant: TextVariant.headlineMedium,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+          Gap(4.h),
+          CustomText(
+            'Exploring C.Q.A.A.G',
+            variant: TextVariant.bodySmall,
+            color: Colors.white.withValues(alpha: 0.8),
+          ),
+        ],
+      ),
     );
   }
 
@@ -298,53 +309,48 @@ class AppDrawer extends ConsumerWidget {
           ),
         ),
       ),
-      child: SafeArea(
-        top: false,
-        right: false,
-        left: false,
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 18.r,
-              backgroundColor: colorScheme.secondary.withValues(alpha: 0.2),
-              backgroundImage: user.profilePicture.isNotEmpty ? CachedNetworkImageProvider(user.profilePicture) : null,
-              child: user.profilePicture.isEmpty ? Icon(Icons.person, size: 24.r, color: Colors.white) : null,
+      child: Row(
+        children: <Widget>[
+          CircleAvatar(
+            radius: 18.r,
+            backgroundColor: colorScheme.secondary.withValues(alpha: 0.2),
+            backgroundImage: user.profilePicture.isNotEmpty ? CachedNetworkImageProvider(user.profilePicture) : null,
+            child: user.profilePicture.isEmpty ? Icon(Icons.person, size: 24.r, color: Colors.white) : null,
+          ),
+          Gap(12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomText(
+                  "${user.firstName} ${user.lastName}",
+                  variant: TextVariant.bodySmall,
+                  fontWeight: FontWeight.bold,
+                ),
+                Gap(2.h),
+                Row(
+                  children: [
+                    CustomText(
+                      user.role ?? "User",
+                      variant: TextVariant.bodySmall,
+                      color: colorScheme.secondary,
+                    ),
+                    CustomText(
+                      " • ",
+                      variant: TextVariant.bodySmall,
+                      color: colorScheme.secondary,
+                    ),
+                    CustomText(
+                      user.id.substring(0, 8).toUpperCase(),
+                      variant: TextVariant.bodySmall,
+                      color: colorScheme.secondary,
+                    ),
+                  ],
+                ),
+              ],
             ),
-            Gap(12.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CustomText(
-                    "${user.firstName} ${user.lastName}",
-                    variant: TextVariant.bodySmall,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  Gap(2.h),
-                  Row(
-                    children: [
-                      CustomText(
-                        user.role ?? "User",
-                        variant: TextVariant.bodySmall,
-                        color: colorScheme.secondary,
-                      ),
-                      CustomText(
-                        " • ",
-                        variant: TextVariant.bodySmall,
-                        color: colorScheme.secondary,
-                      ),
-                      CustomText(
-                        user.id.substring(0, 8).toUpperCase(),
-                        variant: TextVariant.bodySmall,
-                        color: colorScheme.secondary,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

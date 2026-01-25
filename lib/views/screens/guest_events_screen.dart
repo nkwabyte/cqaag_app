@@ -14,59 +14,72 @@ class GuestEventsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final events = Event.getMockEvents();
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          // Hero Section
-          _buildHeroSection(context),
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: AppColors.darkRed,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            // Hero Section
+            _buildHeroSection(context),
 
-          Gap(40.h),
+            Gap(20.h),
 
-          // Events Grid
-          _buildEventsGrid(context, events),
+            // Events Grid
+            _buildEventsGrid(context, events),
 
-          Gap(40.h),
+            Gap(20.h),
 
-          // Newsletter Section
-          _buildNewsletterSection(context),
+            // Newsletter Section
+            _buildNewsletterSection(context),
 
-          Gap(20.h),
-        ],
+            Gap(20.h),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildHeroSection(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 48.h),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.darkBrown,
-            AppColors.darkRed,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return SafeArea(
+      bottom: false,
+      right: false,
+      left: false,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 38.h),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.darkRed,
+              AppColors.darkBrown,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
         ),
-      ),
-      child: Column(
-        children: <Widget>[
-          const CustomText(
-            'Updates & Events',
-            variant: TextVariant.displaySmall,
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            textAlign: TextAlign.center,
-          ),
-          Gap(12.h),
-          const CustomText(
-            'Latest updates, announcements, and industry insights from C.Q.A.A.G',
-            variant: TextVariant.bodyMedium,
-            color: Colors.white,
-            textAlign: TextAlign.center,
-          ),
-        ],
+        child: Column(
+          children: <Widget>[
+            const CustomText(
+              'Updates & Events',
+              variant: TextVariant.displaySmall,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              textAlign: TextAlign.center,
+            ),
+            Gap(12.h),
+            const CustomText(
+              'Latest updates, announcements, and industry insights from C.Q.A.A.G',
+              variant: TextVariant.bodyMedium,
+              color: Colors.white,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -165,12 +178,12 @@ class GuestEventsScreen extends StatelessWidget {
                       event.description,
                       variant: TextVariant.bodySmall,
                       color: colorScheme.secondary,
-                      maxLines: 3,
+                      maxLines: 12,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
 
-                  Gap(12.h),
+                  Gap(8.h),
 
                   // Date and Read More Button
                   Row(
@@ -184,6 +197,7 @@ class GuestEventsScreen extends StatelessWidget {
                       CustomButton(
                         text: 'Read More',
                         backgroundColor: AppColors.darkBrown,
+                        fullWidth: false,
                         onPressed: () {
                           context.pushNamed(
                             GuestEventDetailsScreen.id,
@@ -203,56 +217,61 @@ class GuestEventsScreen extends StatelessWidget {
   }
 
   Widget _buildNewsletterSection(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 40.h),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.darkBrown,
-            AppColors.darkRed,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Column(
-        children: <Widget>[
-          const CustomText(
-            'Stay Updated',
-            variant: TextVariant.displaySmall,
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            textAlign: TextAlign.center,
-          ),
-          Gap(12.h),
-          const CustomText(
-            'Subscribe to our newsletter for the latest news and updates from C.Q.A.A.G',
-            variant: TextVariant.bodyMedium,
-            color: Colors.white,
-            textAlign: TextAlign.center,
-          ),
-          Gap(24.h),
-          // Mobile-optimized Column layout
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              CustomTextField(
-                name: 'email',
-                label: '',
-                hint: 'Enter your email',
-                keyboardType: TextInputType.emailAddress,
-              ),
-              Gap(12.h),
-              CustomButton(
-                text: 'Subscribe',
-                backgroundColor: AppColors.grayOrange,
-                onPressed: () {
-                  // TODO: Implement newsletter subscription
-                },
-              ),
+    return SafeArea(
+      top: false,
+      right: false,
+      left: false,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 40.h),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.darkBrown,
+              AppColors.darkRed,
             ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
+        ),
+        child: Column(
+          children: <Widget>[
+            const CustomText(
+              'Stay Updated',
+              variant: TextVariant.displaySmall,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              textAlign: TextAlign.center,
+            ),
+            Gap(12.h),
+            const CustomText(
+              'Subscribe to our newsletter for the latest news and updates from C.Q.A.A.G',
+              variant: TextVariant.bodyMedium,
+              color: Colors.white,
+              textAlign: TextAlign.center,
+            ),
+            Gap(24.h),
+            // Mobile-optimized Column layout
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                CustomTextField(
+                  name: 'email',
+                  label: '',
+                  hint: 'Enter your email',
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                Gap(12.h),
+                CustomButton(
+                  text: 'Subscribe',
+                  backgroundColor: AppColors.grayOrange,
+                  onPressed: () {
+                    // TODO: Implement newsletter subscription
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

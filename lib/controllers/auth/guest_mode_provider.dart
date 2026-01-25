@@ -4,7 +4,7 @@ import 'package:cqaag_app/models/auth_mode.dart';
 part 'guest_mode_provider.g.dart';
 
 /// Provider to manage guest mode state
-@riverpod
+@Riverpod(keepAlive: true)
 class GuestMode extends _$GuestMode {
   @override
   AuthMode build() {

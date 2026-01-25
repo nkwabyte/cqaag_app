@@ -21,6 +21,7 @@ class GuestEventDetailsScreen extends StatelessWidget {
     final dateFormat = DateFormat('MMMM d, yyyy');
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: AppColors.darkRed,
@@ -35,70 +36,72 @@ class GuestEventDetailsScreen extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // Hero Image
-            _buildHeroImage(),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              // Hero Image
+              _buildHeroImage(),
 
-            Padding(
-              padding: EdgeInsets.all(24.r),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  // Category and Date
-                  Row(
-                    children: <Widget>[
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-                        decoration: BoxDecoration(
-                          color: AppColors.lightOrange,
-                          borderRadius: BorderRadius.circular(4.r),
+              Padding(
+                padding: EdgeInsets.all(24.r),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    // Category and Date
+                    Row(
+                      children: <Widget>[
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                          decoration: BoxDecoration(
+                            color: AppColors.lightOrange,
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                          child: CustomText(
+                            event.category.label,
+                            variant: TextVariant.bodySmall,
+                            color: AppColors.darkBrown,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        child: CustomText(
-                          event.category.label,
+                        Gap(12.w),
+                        CustomText(
+                          dateFormat.format(event.date),
                           variant: TextVariant.bodySmall,
-                          color: AppColors.darkBrown,
-                          fontWeight: FontWeight.bold,
+                          color: colorScheme.secondary,
                         ),
-                      ),
-                      Gap(12.w),
+                      ],
+                    ),
+
+                    Gap(16.h),
+
+                    // Event Title
+                    CustomText(
+                      event.title,
+                      variant: TextVariant.displaySmall,
+                      fontWeight: FontWeight.bold,
+                    ),
+
+                    if (event.author != null) ...[
+                      Gap(8.h),
                       CustomText(
-                        dateFormat.format(event.date),
-                        variant: TextVariant.bodySmall,
+                        'By ${event.author}',
+                        variant: TextVariant.bodyMedium,
                         color: colorScheme.secondary,
+                        fontStyle: FontStyle.italic,
                       ),
                     ],
-                  ),
 
-                  Gap(16.h),
+                    Gap(24.h),
 
-                  // Event Title
-                  CustomText(
-                    event.title,
-                    variant: TextVariant.displaySmall,
-                    fontWeight: FontWeight.bold,
-                  ),
-
-                  if (event.author != null) ...[
-                    Gap(8.h),
-                    CustomText(
-                      'By ${event.author}',
-                      variant: TextVariant.bodyMedium,
-                      color: colorScheme.secondary,
-                      fontStyle: FontStyle.italic,
-                    ),
+                    // Event Content
+                    _buildEventContent(context),
                   ],
-
-                  Gap(24.h),
-
-                  // Event Content
-                  _buildEventContent(context),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -81,7 +81,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       next.whenData((user) {
         if (user != null) {
           // Check for verification status
-          if (user.verificationStatus != VerificationStatus.verified && user.verificationStatus != VerificationStatus.pending) {
+          if (user.verificationStatus != VerificationStatus.verified &&
+              user.verificationStatus != VerificationStatus.pending) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _showVerificationDialog(context);
             });
@@ -100,6 +101,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     });
 
     final colorScheme = Theme.of(context).colorScheme;
+    final user = ref.watch(currentUserProfileProvider).value;
+    final isAuthenticated = user != null;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -116,26 +119,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ],
         ),
         actions: [
-          InkWell(
-            onTap: () {
-              setState(() {
-                _selectedIndex = 3;
-              });
-            },
-            child: Container(
-              padding: EdgeInsets.all(8.r),
-              decoration: BoxDecoration(
-                color: AppColors.lightOrange,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Icon(
-                Icons.notifications,
-                color: Colors.black,
-                size: 24.r,
+          if (isAuthenticated)
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedIndex = 3;
+                });
+              },
+              child: Container(
+                padding: EdgeInsets.all(8.r),
+                decoration: BoxDecoration(
+                  color: AppColors.lightOrange,
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Icon(
+                  Icons.notifications,
+                  color: Colors.black,
+                  size: 24.r,
+                ),
               ),
             ),
-          ),
-          Gap(10.w),
+          if (isAuthenticated) Gap(10.w),
         ],
         iconTheme: const IconThemeData(color: Colors.white),
       ),

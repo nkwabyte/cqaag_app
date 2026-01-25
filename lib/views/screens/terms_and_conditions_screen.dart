@@ -6,7 +6,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:cqaag_app/index.dart';
 
-class TermsAndConditionsScreen extends ConsumerWidget {
+class TermsAndConditionsScreen extends HookConsumerWidget {
   static const String id = 'terms_conditions_screen';
 
   const TermsAndConditionsScreen({super.key});

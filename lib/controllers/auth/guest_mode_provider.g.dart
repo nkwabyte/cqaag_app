@@ -22,7 +22,7 @@ final class GuestModeProvider extends $NotifierProvider<GuestMode, AuthMode> {
         argument: null,
         retry: null,
         name: r'guestModeProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -43,7 +43,7 @@ final class GuestModeProvider extends $NotifierProvider<GuestMode, AuthMode> {
   }
 }
 
-String _$guestModeHash() => r'5869aaab1c20597faf4381625e436139dd85371f';
+String _$guestModeHash() => r'48c864bf2b86f16712214715436ee7e04f94d0b1';
 
 /// Provider to manage guest mode state
 
