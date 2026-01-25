@@ -17,3 +17,4 @@
  */
 
 export 'auth_controller.dart';
+export 'guest_mode_provider.dart';

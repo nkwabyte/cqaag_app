@@ -13,14 +13,14 @@ part of 'user_controller.dart';
 final userControllerProvider = UserControllerProvider._();
 
 final class UserControllerProvider
-    extends $AsyncNotifierProvider<UserController, void> {
+    extends $StreamNotifierProvider<UserController, UserState> {
   UserControllerProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'userControllerProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -33,19 +33,19 @@ final class UserControllerProvider
   UserController create() => UserController();
 }
 
-String _$userControllerHash() => r'7dbc9aa2ddb16eabbb009a78995314d5be8865cc';
+String _$userControllerHash() => r'e0f3b18c7f03fb1e347ca71cdbaa61a99c467d00';
 
-abstract class _$UserController extends $AsyncNotifier<void> {
-  FutureOr<void> build();
+abstract class _$UserController extends $StreamNotifier<UserState> {
+  Stream<UserState> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<void>, void>;
+    final ref = this.ref as $Ref<AsyncValue<UserState>, UserState>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<AsyncValue<void>, void>,
-              AsyncValue<void>,
+              AnyNotifier<AsyncValue<UserState>, UserState>,
+              AsyncValue<UserState>,
               Object?,
               Object?
             >;
@@ -108,13 +108,8 @@ abstract class _$UserFilter extends $Notifier<String> {
 final filteredUsersProvider = FilteredUsersProvider._();
 
 final class FilteredUsersProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<List<AppUser>>,
-          List<AppUser>,
-          Stream<List<AppUser>>
-        >
-    with $FutureModifier<List<AppUser>>, $StreamProvider<List<AppUser>> {
+    extends $FunctionalProvider<List<AppUser>, List<AppUser>, List<AppUser>>
+    with $Provider<List<AppUser>> {
   FilteredUsersProvider._()
     : super(
         from: null,
@@ -131,17 +126,24 @@ final class FilteredUsersProvider
 
   @$internal
   @override
-  $StreamProviderElement<List<AppUser>> $createElement(
-    $ProviderPointer pointer,
-  ) => $StreamProviderElement(pointer);
+  $ProviderElement<List<AppUser>> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
-  Stream<List<AppUser>> create(Ref ref) {
+  List<AppUser> create(Ref ref) {
     return filteredUsers(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(List<AppUser> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<List<AppUser>>(value),
+    );
   }
 }
 
-String _$filteredUsersHash() => r'4fb877ce55826a1afcde3eba414b9cbc3fc70262';
+String _$filteredUsersHash() => r'4af030b5eec8d7033eb2a49518de0eb62590692e';
 
 @ProviderFor(inspectorProfile)
 final inspectorProfileProvider = InspectorProfileFamily._();

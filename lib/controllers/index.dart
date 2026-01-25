@@ -16,7 +16,6 @@
  * Any manual changes to this file may be overwritten.
  */
 
-export 'home/index.dart';
 export 'auth/index.dart';
 export 'user/index.dart';
 export 'inspection/index.dart';

@@ -23,8 +23,8 @@ class _UserManagementTabState extends ConsumerState<UserManagementTab> {
 
   @override
   Widget build(BuildContext context) {
-    // Watch filtered users
-    final usersAsync = ref.watch(filteredUsersProvider);
+    // Watch user controller for loading/error states
+    final userStateAsync = ref.watch(userControllerProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -48,8 +48,9 @@ class _UserManagementTabState extends ConsumerState<UserManagementTab> {
         Expanded(
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 12.0.w, vertical: 10.0.h),
-            child: usersAsync.when(
-              data: (List<AppUser> users) {
+            child: userStateAsync.when(
+              data: (_) {
+                final users = ref.watch(filteredUsersProvider);
                 if (users.isEmpty) {
                   return Center(
                     child: Column(

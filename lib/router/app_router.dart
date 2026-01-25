@@ -35,15 +35,41 @@ GoRouter goRouter(Ref ref) {
       final hasError = authState.hasError;
       final isLoggedIn = authState.asData?.value != null;
 
+      // Check guest mode
+      final guestMode = ref.read(guestModeProvider);
+      final isGuest = guestMode == AuthMode.guest;
+
       final isSplash = state.uri.path == '/';
       final isBoarding = state.uri.path == '/${BoardingScreen.id}';
       final isLogin = state.uri.path == '/${LoginScreen.id}';
       final isRegister = state.uri.path == '/${RegisterScreen.id}';
       final isForgotPassword = state.uri.path == '/${ForgotPasswordScreen.id}';
+      // Guest-accessible routes (public screens)
+      final guestAccessibleRoutes = [
+        '/${AboutScreen.id}',
+        '/${ContactUsScreen.id}',
+        '/${QualityStandardsScreen.id}',
+        '/${CodeOfEthicsScreen.id}',
+        '/${ConstitutionScreen.id}',
+        '/${TermsAndConditionsScreen.id}',
+        '/${GuestEventsScreen.id}',
+        '/${GuestEventDetailsScreen.id}',
+      ];
+      final isGuestAccessible = guestAccessibleRoutes.contains(state.uri.path);
 
       final isPublicRoute = isSplash || isBoarding || isLogin || isRegister || isForgotPassword;
 
       if (isLoading || hasError) return null;
+
+      // Guest mode logic
+      if (isGuest) {
+        // Allow guest to access dashboard and guest-accessible routes
+        if (state.uri.path == '/${DashboardScreen.id}' || isGuestAccessible || isPublicRoute) {
+          return null;
+        }
+        // Redirect guests trying to access protected routes to dashboard
+        return '/${DashboardScreen.id}';
+      }
 
       if (isLoggedIn) {
         // If logged in and on a public route (Splash, Boarding, Login, Register), redirect to Dashboard
@@ -51,8 +77,8 @@ GoRouter goRouter(Ref ref) {
           return '/${DashboardScreen.id}';
         }
       } else {
-        // If not logged in and on a protected route, redirect to Login
-        if (!isPublicRoute) {
+        // If not logged in and not guest, and on a protected route, redirect to Login
+        if (!isPublicRoute && !isGuestAccessible) {
           return '/${LoginScreen.id}';
         }
       }
@@ -99,6 +125,21 @@ GoRouter goRouter(Ref ref) {
         path: '/${DashboardScreen.id}',
         name: DashboardScreen.id,
         builder: (context, state) => const DashboardScreen(),
+      ),
+      GoRoute(
+        path: '/${AboutScreen.id}',
+        name: AboutScreen.id,
+        builder: (context, state) => const AboutScreen(),
+      ),
+      GoRoute(
+        path: '/${ContactUsScreen.id}',
+        name: ContactUsScreen.id,
+        builder: (context, state) => const ContactUsScreen(),
+      ),
+      GoRoute(
+        path: '/${QualityStandardsScreen.id}',
+        name: QualityStandardsScreen.id,
+        builder: (context, state) => const QualityStandardsScreen(),
       ),
       GoRoute(
         path: '/${AdminDashboardScreen.id}',
@@ -200,6 +241,20 @@ GoRouter goRouter(Ref ref) {
         path: '/${EditProfileScreen.id}',
         name: EditProfileScreen.id,
         builder: (context, state) => const EditProfileScreen(),
+      ),
+      // Guest Events Routes
+      GoRoute(
+        path: '/${GuestEventsScreen.id}',
+        name: GuestEventsScreen.id,
+        builder: (context, state) => const GuestEventsScreen(),
+      ),
+      GoRoute(
+        path: '/${GuestEventDetailsScreen.id}',
+        name: GuestEventDetailsScreen.id,
+        builder: (context, state) {
+          final event = state.extra as Event;
+          return GuestEventDetailsScreen(event: event);
+        },
       ),
     ],
   );

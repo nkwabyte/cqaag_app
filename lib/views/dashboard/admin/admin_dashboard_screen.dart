@@ -17,11 +17,6 @@ class AdminDashboardScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: AppColors.darkRed,
           elevation: 0,
-          title: CustomText(
-            "Admin Dashboard",
-            variant: TextVariant.displaySmall,
-            color: AppColors.white,
-          ),
           bottom: TabBar(
             labelColor: AppColors.white,
             unselectedLabelColor: colorScheme.secondary,

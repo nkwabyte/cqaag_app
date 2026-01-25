@@ -66,12 +66,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
             // Slogan using the CustomText widget
             CustomText(
-              "Guardians of Ghana's\nCashew Quality",
-              variant: TextVariant.bodyLarge,
-              color: colorScheme.secondary.withValues(alpha: 0.9),
-              textAlign: TextAlign.center,
-              fontStyle: FontStyle.italic,
-            ).animate().fade(delay: 600.ms, duration: 800.ms).moveY(begin: 20, end: 0, delay: 600.ms, curve: Curves.easeOut),
+                  "Guardians of Ghana's\nCashew Quality",
+                  variant: TextVariant.bodyLarge,
+                  color: colorScheme.secondary.withValues(alpha: 0.9),
+                  textAlign: TextAlign.center,
+                  fontStyle: FontStyle.italic,
+                )
+                .animate()
+                .fade(delay: 600.ms, duration: 800.ms)
+                .moveY(
+                  begin: 20,
+                  end: 0,
+                  delay: 600.ms,
+                  curve: Curves.easeOut,
+                ),
 
             const Spacer(flex: 2),
 

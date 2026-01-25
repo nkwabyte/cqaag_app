@@ -1,146 +1,128 @@
+import 'package:cqaag_app/controllers/membership/membership_state.dart';
 import 'package:cqaag_app/models/membership/membership_application.dart';
 import 'package:cqaag_app/models/membership/membership_category.dart';
+import 'package:cqaag_app/services/auth/auth_service.dart';
 import 'package:cqaag_app/services/membership/membership_service.dart';
+import 'package:cqaag_app/services/user/user_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rxdart/rxdart.dart';
 
 part 'membership_controller.g.dart';
 
 /// Controller for managing membership application state
-@riverpod
+@Riverpod(keepAlive: true)
 class MembershipController extends _$MembershipController {
   @override
-  FutureOr<MembershipApplication?> build() async {
-    // Return null initially, will be loaded when needed
-    return null;
+  Stream<MembershipState> build() {
+    final authUser = ref.watch(authServiceProvider).currentUser;
+
+    if (authUser == null) {
+      return Stream.value(const MembershipState());
+    }
+
+    final membershipService = ref.watch(membershipServiceProvider);
+
+    // Stream for current user's application
+    final myApplicationStream = membershipService.streamUserApplication(authUser.uid);
+
+    // Determine if user is admin to decide whether to fetch all applications
+    // We need to fetch the user's role/admin status first
+    // Simplification: We will just listen to the userService to get the current AppUser profile which has isAdmin
+    final appUserStream = ref.watch(userServiceProvider).streamUser(authUser.uid);
+
+    return appUserStream.switchMap((appUser) {
+      if (appUser == null) {
+        return Stream.value(const MembershipState());
+      }
+
+      Stream<List<MembershipApplication>> allApplicationsStream;
+
+      if (appUser.isAdmin) {
+        allApplicationsStream = membershipService.streamAllApplications();
+      } else {
+        allApplicationsStream = Stream.value([]);
+      }
+
+      return Rx.combineLatest2<MembershipApplication?, List<MembershipApplication>, MembershipState>(
+        myApplicationStream,
+        allApplicationsStream,
+        (myApplication, allApplications) {
+          return MembershipState(
+            myApplication: myApplication,
+            allApplications: allApplications,
+          );
+        },
+      );
+    });
   }
 
   /// Submit a membership application
   Future<void> submitApplication(MembershipApplication application) async {
-    state = const AsyncValue.loading();
-
     try {
       final membershipService = ref.read(membershipServiceProvider);
       await membershipService.submitApplication(application);
-
-      // Reload the application
-      state = AsyncValue.data(
-        application.copyWith(
-          status: ApplicationStatus.submitted,
-          submittedAt: DateTime.now(),
-        ),
-      );
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      // State updates automatically via stream
+    } catch (e) {
       rethrow;
     }
   }
 
   /// Save application as draft
   Future<void> saveDraft(MembershipApplication application) async {
-    state = const AsyncValue.loading();
-
     try {
       final membershipService = ref.read(membershipServiceProvider);
       await membershipService.saveDraft(application);
-
-      state = AsyncValue.data(
-        application.copyWith(
-          status: ApplicationStatus.draft,
-          updatedAt: DateTime.now(),
-        ),
-      );
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+    } catch (e) {
       rethrow;
     }
   }
 
   /// Update an existing application
   Future<void> updateApplication(MembershipApplication application) async {
-    state = const AsyncValue.loading();
-
     try {
       final membershipService = ref.read(membershipServiceProvider);
       await membershipService.updateApplication(application);
-
-      state = AsyncValue.data(
-        application.copyWith(
-          updatedAt: DateTime.now(),
-        ),
-      );
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+    } catch (e) {
       rethrow;
     }
   }
 
   /// Delete a draft application
   Future<void> deleteDraft(String applicationId) async {
-    state = const AsyncValue.loading();
-
     try {
       final membershipService = ref.read(membershipServiceProvider);
       await membershipService.deleteApplication(applicationId);
-
-      state = const AsyncValue.data(null);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+    } catch (e) {
       rethrow;
     }
   }
 
-  /// Load application by user ID
-  Future<void> loadApplicationByUserId(String userId) async {
-    state = const AsyncValue.loading();
-
+  /// Review Application (Admin)
+  Future<void> reviewApplication({
+    required String applicationId,
+    required ApplicationStatus status,
+    String? notes,
+  }) async {
     try {
+      final authUser = ref.read(authServiceProvider).currentUser;
+      if (authUser == null) throw Exception('Not authenticated');
+
       final membershipService = ref.read(membershipServiceProvider);
-      final application = await membershipService.getApplicationByUserId(userId);
-
-      state = AsyncValue.data(application);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
-    }
-  }
-
-  /// Load application by ID
-  Future<void> loadApplicationById(String applicationId) async {
-    state = const AsyncValue.loading();
-
-    try {
-      final membershipService = ref.read(membershipServiceProvider);
-      final application = await membershipService.getApplicationById(applicationId);
-
-      state = AsyncValue.data(application);
-    } catch (e, stack) {
-      state = AsyncValue.error(e, stack);
+      await membershipService.updateApplicationStatus(
+        applicationId: applicationId,
+        status: status,
+        reviewNotes: notes,
+        reviewerId: authUser.uid,
+      );
+    } catch (e) {
+      rethrow;
     }
   }
 }
 
-/// Provider to stream user's membership application
-@riverpod
-Stream<MembershipApplication?> userMembershipApplication(
-  Ref ref,
-  String userId,
-) {
-  final membershipService = ref.watch(membershipServiceProvider);
-  return membershipService.streamUserApplication(userId);
-}
-
-/// Provider to stream a specific application by ID
-@riverpod
-Stream<MembershipApplication?> membershipApplicationById(
-  Ref ref,
-  String applicationId,
-) {
-  final membershipService = ref.watch(membershipServiceProvider);
-  return membershipService.streamApplicationById(applicationId);
-}
-
-/// Provider to stream all applications (for admin use)
-@riverpod
+/// Provider for all membership applications (Admin)
+@Riverpod(keepAlive: true)
 Stream<List<MembershipApplication>> allMembershipApplications(Ref ref) {
-  final membershipService = ref.watch(membershipServiceProvider);
-  return membershipService.streamAllApplications();
+  return ref.watch(membershipControllerProvider.select((value) => Stream.value(value.asData?.value.allApplications ?? [])));
 }

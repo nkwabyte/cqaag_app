@@ -16,4 +16,5 @@
  * Any manual changes to this file may be overwritten.
  */
 
+export 'membership_state.dart';
 export 'membership_controller.dart';

@@ -18,6 +18,8 @@
 
 export 'splash/index.dart';
 export 'auth/index.dart';
+export 'components/index.dart';
+export 'screens/index.dart';
 export 'dashboard/index.dart';
 export 'widgets/index.dart';
 export 'onboarding/index.dart';

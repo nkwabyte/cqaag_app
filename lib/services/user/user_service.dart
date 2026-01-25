@@ -52,4 +52,20 @@ class UserService {
       rethrow;
     }
   }
+
+  /// Stream user by ID
+  Stream<AppUser?> streamUser(String userId) {
+    return _usersCollection.doc(userId).snapshots().map((snapshot) {
+      if (snapshot.exists && snapshot.data() != null) {
+        return AppUser.fromJson(snapshot.data()!);
+      }
+      return null;
+    });
+  }
+
+  /// Update user profile
+  Future<void> updateUser(AppUser user) async {
+    await _connectivityService.ensureConnected();
+    await _usersCollection.doc(user.id).set(user.toJson(), SetOptions(merge: true));
+  }
 }

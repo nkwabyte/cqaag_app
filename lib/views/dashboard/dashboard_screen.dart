@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:cqaag_app/index.dart';
@@ -18,7 +20,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   // Define navigation items based on role
   late List<CustomNavItem> navItems;
 
-  // Define pages based on role
+  // Define screens based on role
   late List<Widget> pages;
 
   @override
@@ -30,30 +32,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       _isAdmin = userAsync.value!.isAdmin;
     }
     _initializeLayout();
-
-    // Invalidate providers to force refresh on dashboard load
-    // This ensures data is fresh when user lands on dashboard from splash or login
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(recentInspectionsProvider);
-      ref.invalidate(userPrioritizedInspectionsProvider);
-      ref.invalidate(userUncompletedInspectionsProvider);
-    });
   }
 
   void _initializeLayout() {
-    navItems = [
-      CustomNavItem(icon: Icons.home_filled, label: "Home"),
-      CustomNavItem(icon: Icons.assignment_outlined, label: "History"),
-      if (_isAdmin) CustomNavItem(icon: Icons.admin_panel_settings_outlined, label: "Admin"),
-      CustomNavItem(icon: Icons.person_outline, label: "Profile"),
-    ];
+    final user = ref.read(currentUserProfileProvider).value;
+    final guestMode = ref.read(guestModeProvider);
 
-    pages = <Widget>[
-      const HomeScreen(),
-      const HistoryScreen(),
-      if (_isAdmin) const AdminDashboardScreen(),
-      const ProfileScreen(),
-    ];
+    // Check if user is null (guest) or explicitly in guest mode
+    if (user == null || guestMode == AuthMode.guest) {
+      navItems = [];
+      pages = <Widget>[
+        const GuestHomeScreen(),
+      ];
+    } else {
+      navItems = [
+        CustomNavItem(icon: Icons.home_filled, label: "Home"),
+        CustomNavItem(icon: Icons.assignment_outlined, label: "History"),
+        if (_isAdmin) CustomNavItem(icon: Icons.admin_panel_settings_outlined, label: "Admin"),
+        CustomNavItem(icon: Icons.person_outline, label: "Profile"),
+      ];
+
+      pages = <Widget>[
+        const HomeScreen(),
+        const HistoryScreen(),
+        if (_isAdmin) const AdminDashboardScreen(),
+        const ProfileScreen(),
+      ];
+    }
   }
 
   void _updateAdminStatus(bool isAdmin) {
@@ -77,13 +82,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         if (user != null) {
           // Check for verification status
           if (user.verificationStatus != VerificationStatus.verified && user.verificationStatus != VerificationStatus.pending) {
-            // Only show dialog if not already showing?
-            // The original code just added post frame callback.
-            // We should probably check if it's the first time or specific transition.
-            // For now keeping original logic but wrapped safely.
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              // Verify context is still valid and maybe check if dialog is open?
-              // Simplified as per original request to just move checks.
               _showVerificationDialog(context);
             });
           }
@@ -94,26 +93,96 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       });
     });
 
-    // NOTE: Users might flicker if they are admin.
-    // To solve this, we can check the provider verification in initState if it was already alive.
-    // See note below.
+    // Listen for guest mode changes
+    ref.listen(guestModeProvider, (previous, next) {
+      _initializeLayout();
+      setState(() {});
+    });
+
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: AppColors.darkRed,
+        title: Row(
+          children: <Widget>[
+            CustomText(
+              UIHelpers.getGreeting(),
+              variant: TextVariant.bodyLarge,
+              color: colorScheme.secondary,
+            ),
+          ],
+        ),
+        actions: [
+          InkWell(
+            onTap: () {
+              setState(() {
+                _selectedIndex = 3;
+              });
+            },
+            child: Container(
+              padding: EdgeInsets.all(8.r),
+              decoration: BoxDecoration(
+                color: AppColors.lightOrange,
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Icon(
+                Icons.notifications,
+                color: Colors.black,
+                size: 24.r,
+              ),
+            ),
+          ),
+          Gap(10.w),
+        ],
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      drawer: AppDrawer(
+        onDashboardTap: () {
+          Navigator.pop(context);
+          if (ref.read(guestModeProvider) == AuthMode.guest) {
+            ref.read(guestModeProvider.notifier).disableGuestMode();
+            // Maybe setAuthenticated? Depends on logic. disable sets to unauth.
+            // But user provider still present. Dashboard checks user != null.
+            // So disableGuestMode is fine (clears guest flag).
+          }
+          setState(() {
+            _selectedIndex = 0; // Navigate to Home tab
+          });
+        },
+        onHomeTap: () {
+          Navigator.pop(context);
+          ref.read(guestModeProvider.notifier).enableGuestMode();
+          // No need to set index, Guest layout has 1 page.
+        },
+        onSettingsTap: () {
+          Navigator.pop(context);
+          // If in guest mode, maybe switch back to auth mode to show profile?
+          if (ref.read(guestModeProvider) == AuthMode.guest) {
+            ref.read(guestModeProvider.notifier).disableGuestMode();
+          }
+          setState(() {
+            _selectedIndex = 3; // Navigate to Profile tab
+          });
+        },
+      ),
       body: IndexedStack(
         index: _selectedIndex,
         children: pages,
       ),
-      bottomNavigationBar: AnimatedBottomNavBar(
-        currentIndex: _selectedIndex,
-        items: navItems,
-        onTap: (int index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-      ),
+      bottomNavigationBar: navItems.isNotEmpty
+          ? AnimatedBottomNavBar(
+              currentIndex: _selectedIndex,
+              items: navItems,
+              onTap: (int index) {
+                setState(() {
+                  _selectedIndex = index;
+                });
+              },
+            )
+          : null,
     );
   }
 

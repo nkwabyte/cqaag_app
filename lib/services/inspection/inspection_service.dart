@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cqaag_app/index.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:logger/logger.dart';
 
 part 'inspection_service.g.dart';
 
 class InspectionService {
+  final Logger _logger = Logger();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final ConnectivityService _connectivityService;
 
@@ -101,6 +103,11 @@ class InspectionService {
   /// Stream all completed inspections (for history screen - all users)
   Stream<List<Inspection>> streamAllCompletedInspections() {
     return _inspectionsCollection.where('status', isEqualTo: 'completed').orderBy('completed_at', descending: true).snapshots().map((snapshot) {
+      _logger.i("Raw stream event received. Document count: ${snapshot.docs.length}");
+      for (final doc in snapshot.docs) {
+        // _logger.d("Doc ID: ${doc.id}, Data: ${doc.data()}");
+        _logger.d("Doc ID: ${doc.id}");
+      }
       return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
     });
   }
@@ -123,6 +130,19 @@ class InspectionService {
         .where('inspector_id', isEqualTo: inspectorId)
         .where('status', whereIn: ['pending', 'in_progress'])
         .orderBy('created_at', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
+        });
+  }
+
+  /// Stream user's completed inspections (for home screen recent activity if no pending)
+  Stream<List<Inspection>> streamUserCompletedInspections(String inspectorId, {int limit = 10}) {
+    return _inspectionsCollection
+        .where('inspector_id', isEqualTo: inspectorId)
+        .where('status', isEqualTo: 'completed')
+        .orderBy('completed_at', descending: true)
+        .limit(limit)
         .snapshots()
         .map((snapshot) {
           return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();

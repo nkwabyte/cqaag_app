@@ -228,6 +228,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: colorScheme.primary,
                               ),
                             ),
+
+                            Gap(24.h),
+
+                            // Guest Mode Button
+                            CustomButton(
+                              text: "Continue as Guest",
+                              variant: ButtonVariant.outlined,
+                              borderColor: colorScheme.secondary,
+                              onPressed: () {
+                                // Enable guest mode
+                                ref.read(guestModeProvider.notifier).enableGuestMode();
+                                // Navigate to guest dashboard
+                                context.go('/${GuestHomeScreen.id}');
+                              },
+                            ),
                           ],
                         ),
                       ),

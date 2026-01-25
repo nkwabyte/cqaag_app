@@ -18,6 +18,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final user = ref.watch(currentUserProfileProvider).value;
+    final InspectionState? inspectionState = ref.watch(inspectionControllerProvider).value;
+
+    final allInspections = inspectionState?.allInspections;
+    final today = DateTime.now();
+    final todayInspections = allInspections?.where((i) {
+      final createdAt = i.createdAt;
+      return createdAt != null && createdAt.year == today.year && createdAt.month == today.month && createdAt.day == today.day;
+    }).length;
+
+    final pendingCount = inspectionState?.uncompleted.length;
+    final completedCount = inspectionState?.completed.length;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -45,11 +56,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          CustomText(
-                            UIHelpers.getGreeting(),
-                            variant: TextVariant.bodyLarge,
-                            color: colorScheme.secondary,
-                          ),
                           Row(
                             children: <Widget>[
                               CustomText(
@@ -74,49 +80,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   Gap(18.h),
                   // Summary Cards Row - Watch inspections for counts
-                  Consumer(
-                    builder: (context, ref, child) {
-                      final inspectionsAsync = ref.watch(recentInspectionsProvider);
-
-                      return inspectionsAsync.when(
-                        data: (inspections) {
-                          final today = DateTime.now();
-                          final todayInspections = inspections.where((i) {
-                            final createdAt = i.createdAt;
-                            return createdAt != null && createdAt.year == today.year && createdAt.month == today.month && createdAt.day == today.day;
-                          }).length;
-
-                          final pendingCount = inspections.where((i) => i.status == InspectionStatus.pending || i.status == InspectionStatus.inProgress).length;
-
-                          final completedCount = inspections.where((i) => i.status == InspectionStatus.completed).length;
-
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: <Widget>[
-                              SummaryCard(label: "Today", count: "$todayInspections"),
-                              SummaryCard(label: "Pending", count: "$pendingCount"),
-                              SummaryCard(label: "Done", count: "$completedCount"),
-                            ],
-                          );
-                        },
-                        loading: () => const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: <Widget>[
-                            SummaryCard(label: "Today", count: "0"),
-                            SummaryCard(label: "Pending", count: "0"),
-                            SummaryCard(label: "Done", count: "0"),
-                          ],
-                        ),
-                        error: (_, _) => const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: <Widget>[
-                            SummaryCard(label: "Today", count: "0"),
-                            SummaryCard(label: "Pending", count: "0"),
-                            SummaryCard(label: "Done", count: "0"),
-                          ],
-                        ),
-                      );
-                    },
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      SummaryCard(label: "Today", count: "$todayInspections"),
+                      SummaryCard(label: "Pending", count: "$pendingCount"),
+                      SummaryCard(label: "Done", count: "$completedCount"),
+                    ],
                   ),
                 ],
               ),
@@ -143,112 +113,92 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               },
                             ).fadeInScale(delay: const Duration(milliseconds: 500)).pulse(delay: const Duration(seconds: 2)),
                           ),
-                          Gap(16.w),
-                          // Sync/Offline Toggle Button
-                          Container(
-                            height: 56.h,
-                            width: 56.h,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12.r),
-                              border: Border.all(color: colorScheme.onSurface.withValues(alpha: 0.1)),
-                            ),
-                            child: Icon(Icons.sync_disabled, color: colorScheme.onSurface),
-                          ),
                         ],
                       ),
 
                       Gap(30.h),
 
                       // 4. Inspection List - Dynamic from Firebase
-                      Consumer(
-                        builder: (context, ref, child) {
-                          final inspectionsAsync = ref.watch(userPrioritizedInspectionsProvider);
-
-                          final inspections = inspectionsAsync;
-
-                          // 3. Schedule Header (Moved inside consumer for dynamic count)
-                          return Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: <Widget>[
-                                  const CustomText("Recent Activities", variant: TextVariant.displaySmall),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.secondary.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8.r),
-                                    ),
-                                    child: CustomText(
-                                      "${inspections.length} Tasks",
-                                      variant: TextVariant.bodySmall,
-                                      color: colorScheme.primary,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                      Column(
+                        children: <Widget>[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: <Widget>[
+                              const CustomText("Recent Activities", variant: TextVariant.displaySmall),
+                              if (inspectionState?.recent.isNotEmpty ?? false)
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.secondary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  child: CustomText(
+                                    "${inspectionState?.recent.length} Recent",
+                                    variant: TextVariant.bodySmall,
+                                    color: colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                            ],
+                          ),
+                          Gap(20.h),
+                          if (inspectionState?.recent.isEmpty ?? false)
+                            Center(
+                              child: Column(
+                                children: [
+                                  Gap(40.h),
+                                  Icon(
+                                    Icons.assignment_outlined,
+                                    size: 64.r,
+                                    color: colorScheme.secondary.withValues(alpha: 0.3),
+                                  ),
+                                  Gap(16.h),
+                                  CustomText(
+                                    "No inspections yet",
+                                    variant: TextVariant.headlineMedium,
+                                    color: colorScheme.secondary,
+                                  ),
+                                  Gap(8.h),
+                                  CustomText(
+                                    "Tap 'New Inspection' to get started",
+                                    variant: TextVariant.bodyMedium,
+                                    color: colorScheme.secondary.withValues(alpha: 0.7),
                                   ),
                                 ],
                               ),
-                              Gap(20.h),
-                              if (inspections.isEmpty)
-                                Center(
-                                  child: Column(
-                                    children: [
-                                      Gap(40.h),
-                                      Icon(
-                                        Icons.assignment_outlined,
-                                        size: 64.r,
-                                        color: colorScheme.secondary.withValues(alpha: 0.3),
-                                      ),
-                                      Gap(16.h),
-                                      CustomText(
-                                        "No inspections yet",
-                                        variant: TextVariant.headlineMedium,
-                                        color: colorScheme.secondary,
-                                      ),
-                                      Gap(8.h),
-                                      CustomText(
-                                        "Tap 'New Inspection' to get started",
-                                        variant: TextVariant.bodyMedium,
-                                        color: colorScheme.secondary.withValues(alpha: 0.7),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              else
-                                Column(
-                                  children: inspections.map((inspection) {
-                                    return InspectionCard(
-                                      status: _getStatusText(inspection.status),
-                                      statusColor: _getStatusColor(inspection.status),
-                                      batchId: inspection.batchId ?? 'N/A',
-                                      name: inspection.farmerName ?? 'Unknown',
-                                      location: inspection.location ?? 'Unknown Location',
-                                      time: inspection.createdAt != null
-                                          ? '${inspection.createdAt!.hour.toString().padLeft(2, '0')}:${inspection.createdAt!.minute.toString().padLeft(2, '0')}'
-                                          : 'N/A',
-                                      weight: inspection.quantity.toStringAsFixed(1),
-                                      onTap: () {
-                                        // Resume pending or view completed
-                                        if (inspection.status == InspectionStatus.pending || inspection.status == InspectionStatus.inProgress) {
-                                          context.pushNamed(
-                                            QualityInspectionWizard.id,
-                                            extra: inspection,
-                                          );
-                                        } else {
-                                          // For completed, view details
-                                          context.pushNamed(
-                                            QualityResultScreen.id,
-                                            extra: inspection,
-                                          );
-                                        }
-                                      },
-                                    );
-                                  }).toList(),
-                                ),
-                            ],
-                          );
-                        },
+                            ),
+                          if (inspectionState?.recent.isNotEmpty ?? false)
+                            Column(
+                              children: inspectionState!.recent.map((inspection) {
+                                return InspectionCard(
+                                  status: _getStatusText(inspection.status),
+                                  statusColor: _getStatusColor(inspection.status),
+                                  batchId: inspection.batchId ?? 'N/A',
+                                  name: inspection.farmerName ?? 'Unknown',
+                                  location: inspection.location ?? 'Unknown Location',
+                                  time: inspection.createdAt != null
+                                      ? '${inspection.createdAt?.hour.toString().padLeft(2, '0')}:${inspection.createdAt?.minute.toString().padLeft(2, '0')}'
+                                      : 'N/A',
+                                  weight: inspection.quantity.toStringAsFixed(1),
+                                  onTap: () {
+                                    // Resume pending or view completed
+                                    if (inspection.status == InspectionStatus.pending || inspection.status == InspectionStatus.inProgress) {
+                                      context.pushNamed(
+                                        QualityInspectionWizard.id,
+                                        extra: inspection,
+                                      );
+                                    } else {
+                                      // For completed, view details
+                                      context.pushNamed(
+                                        QualityResultScreen.id,
+                                        extra: inspection,
+                                      );
+                                    }
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                        ],
                       ),
                     ],
                   ),

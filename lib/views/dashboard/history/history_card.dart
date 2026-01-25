@@ -65,20 +65,20 @@ class HistoryCard extends StatelessWidget {
                 ],
               ),
               Gap(12.h),
-              RichText(
-                text: TextSpan(
-                  style: TextStyle(fontFamily: 'Poppins', color: colorScheme.onSurface, fontSize: 16.sp),
-                  children: [
-                    const TextSpan(
-                      text: "Total: ",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    TextSpan(
-                      text: "$totalMT MT",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  const CustomText(
+                    "Total: ",
+                    variant: TextVariant.bodyLarge,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  CustomText(
+                    "$totalMT MT",
+                    variant: TextVariant.bodyLarge,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ],
               ),
             ],
           ),
