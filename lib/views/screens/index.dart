@@ -16,12 +16,17 @@
  * Any manual changes to this file may be overwritten.
  */
 
+export 'partners_screen.dart';
 export 'guest_home_screen.dart';
 export 'quality_standards_screen.dart';
 export 'constitution_screen.dart';
 export 'code_of_ethics_screen.dart';
 export 'about_screen.dart';
-export 'contact_us_screen.dart';
-export 'terms_and_conditions_screen.dart';
-export 'guest_events_screen.dart';
 export 'guest_event_details_screen.dart';
+export 'services_screen.dart';
+export 'contact_us_screen.dart';
+export 'guest_events_screen.dart';
+export 'membership_info_screen.dart';
+export 'terms_and_conditions_screen.dart';
+export 'chapters_screen.dart';
+export 'analysis_report_screen.dart';

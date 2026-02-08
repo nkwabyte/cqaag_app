@@ -29,10 +29,12 @@ class CustomTextField extends StatefulWidget {
     this.onChanged,
     this.inputFormatters,
     this.initialValue,
+    this.maxLines = 1,
   });
 
   final List<TextInputFormatter>? inputFormatters;
   final String? initialValue;
+  final int maxLines;
 
   @override
   State<CustomTextField> createState() => _CustomTextFieldState();
@@ -67,6 +69,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           controller: widget.controller,
           obscureText: _isObscured,
           keyboardType: widget.keyboardType,
+          maxLines: widget.maxLines,
           onChanged: widget.onChanged,
           validator: widget.validator,
           inputFormatters: widget.inputFormatters,

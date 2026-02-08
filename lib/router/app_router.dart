@@ -53,7 +53,12 @@ GoRouter goRouter(Ref ref) {
         '/${ConstitutionScreen.id}',
         '/${TermsAndConditionsScreen.id}',
         '/${GuestEventsScreen.id}',
+        '/${GuestEventsScreen.id}',
         '/${GuestEventDetailsScreen.id}',
+        '/${ServicesScreen.id}',
+        '/${ChaptersScreen.id}',
+        '/${MembershipInfoScreen.id}',
+        '/${PartnersScreen.id}',
       ];
       final isGuestAccessible = guestAccessibleRoutes.contains(state.uri.path);
 
@@ -142,9 +147,22 @@ GoRouter goRouter(Ref ref) {
         builder: (context, state) => const QualityStandardsScreen(),
       ),
       GoRoute(
+        path: '/${ServicesScreen.id}',
+        name: ServicesScreen.id,
+        builder: (context, state) => const ServicesScreen(),
+      ),
+      GoRoute(
         path: '/${AdminDashboardScreen.id}',
         name: AdminDashboardScreen.id,
         builder: (context, state) => const AdminDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/${AnalysisReportScreen.id}',
+        name: AnalysisReportScreen.id,
+        builder: (context, state) {
+          final reportData = state.extra as Map<String, dynamic>?;
+          return AnalysisReportScreen(reportData: reportData);
+        },
       ),
       // History flow routes
       GoRoute(

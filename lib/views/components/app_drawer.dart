@@ -114,6 +114,16 @@ class AppDrawer extends ConsumerWidget {
                       _buildDrawerItem(
                         context: context,
                         colorScheme: colorScheme,
+                        icon: Icons.work_outline,
+                        title: 'Our Services',
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.pushNamed(ServicesScreen.id);
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context: context,
+                        colorScheme: colorScheme,
                         icon: Icons.event_outlined,
                         title: 'Events',
                         onTap: () {

@@ -74,6 +74,11 @@ dependencies:
   geolocator: ^14.0.2
   logger: ^2.6.2
   flutter_markdown: ^0.7.7+1
+  url_launcher: ^6.3.2
+  pdf: ^3.10.8
+  printing: ^5.11.1
+  share_plus: ^7.2.2
+  path_provider: ^2.1.2
 
 dev_dependencies:
   flutter_test:

@@ -5,6 +5,8 @@ class Assets {
   static const String cqaagApp = '.env';
   static const String imagesCashewBg = 'assets/images/cashew-bg.jpg';
   static const String imagesCqaagLogo = 'assets/images/cqaag_logo.png';
+  static const String imagesGsaLogo = 'assets/images/gsa_logo.png';
+  static const String imagesTcdaLogo = 'assets/images/tcda_logo.jpg';
   static const String svgLogoBlack = 'assets/svg/logo-black.svg';
   static const String svgLogoWhite = 'assets/svg/logo-white.svg';
 }
