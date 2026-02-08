@@ -226,51 +226,36 @@ class GuestHomeScreen extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 24.w),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: _buildInfoCard(
-                  context,
-                  icon: Icons.shield_outlined,
-                  title: 'Our Vision',
-                  content:
-                      'To be the leading authority in cashew quality assurance in West Africa, setting the gold standard for excellence, innovation, and integrity in agricultural quality inspection.',
-                ),
-              ),
-              Gap(12.w),
-              Expanded(
-                child: _buildInfoCard(
-                  context,
-                  icon: Icons.emoji_events_outlined,
-                  title: 'Our Mission',
-                  content:
-                      'To safeguard Ghana\'s cashew industry through rigorous quality standards, professional certification, and continuous innovation, ensuring every nut meets international excellence benchmarks.',
-                ),
-              ),
-            ],
+          _buildInfoCard(
+            context,
+            icon: Icons.shield_outlined,
+            title: 'Our Vision',
+            content:
+                'To be the leading authority in cashew quality assurance in West Africa, setting the gold standard for excellence, innovation, and integrity in agricultural quality inspection.',
           ),
-          Gap(12.h),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: _buildInfoCard(
-                  context,
-                  icon: Icons.favorite_outline,
-                  title: 'Core Values',
-                  content: '• Integrity\n• Excellence\n• Sustainability\n• Professionalism\n• Collaboration\n• Community Empowerment',
-                ),
-              ),
-              Gap(12.w),
-              Expanded(
-                child: _buildInfoCard(
-                  context,
-                  icon: Icons.track_changes,
-                  title: 'Impact Goals',
-                  content: '1. Train & license 500 controllers by 2028\n2. Achieve 100% standardised protocols by 2027\n3. Promote local value addition',
-                ),
-              ),
-            ],
+          Gap(16.h),
+          _buildInfoCard(
+            context,
+            icon: Icons.emoji_events_outlined,
+            title: 'Our Mission',
+            content:
+                'To safeguard Ghana\'s cashew industry through rigorous quality standards, professional certification, and continuous innovation, ensuring every nut meets international excellence benchmarks.',
+          ),
+          Gap(16.h),
+          _buildInfoCard(
+            context,
+            icon: Icons.favorite_outline,
+            title: 'Core Values',
+            content: '• Integrity\n• Excellence\n• Sustainability\n• Professionalism\n• Collaboration\n• Community Empowerment',
+          ),
+          Gap(16.h),
+          _buildInfoCard(
+            context,
+            icon: Icons.track_changes,
+            title: 'Impact Goals',
+            content: '1. Train & license 500 controllers by 2028\n2. Achieve 100% standardised protocols by 2027\n3. Promote local value addition',
           ),
         ],
       ),

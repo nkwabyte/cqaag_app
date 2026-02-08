@@ -3,6 +3,9 @@ class Assets {
   Assets._();
 
   static const String cqaagApp = '.env';
+  static const String docsWelfareDocument = 'assets/docs/welfare_document.pdf';
+  static const String imagesAboutImageOne = 'assets/images/about_image_one.jpg';
+  static const String imagesAboutImageTwo = 'assets/images/about_image_two.jpg';
   static const String imagesCashewBg = 'assets/images/cashew-bg.jpg';
   static const String imagesCqaagLogo = 'assets/images/cqaag_logo.png';
   static const String imagesGsaLogo = 'assets/images/gsa_logo.png';

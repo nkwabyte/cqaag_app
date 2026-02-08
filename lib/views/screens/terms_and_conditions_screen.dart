@@ -18,6 +18,12 @@ class TermsAndConditionsScreen extends HookConsumerWidget {
     final user = ref.watch(currentUserProfileProvider).value;
     final isAuthenticated = user != null;
 
+    // Check if coming from register screen
+    final state = GoRouterState.of(context);
+    final extra = state.extra as Map<String, dynamic>?;
+    final fromRegister = extra?['fromRegister'] as bool? ?? false;
+    final showBackButton = !fromRegister;
+
     final isLoading = useState(false);
 
     Future<void> handleAcceptance() async {
@@ -65,7 +71,7 @@ class TermsAndConditionsScreen extends HookConsumerWidget {
                   Gap(40.h),
                   Row(
                     children: [
-                      if (isAuthenticated)
+                      if (showBackButton)
                         InkWell(
                           onTap: () => Navigator.pop(context),
                           child: Row(
@@ -77,7 +83,7 @@ class TermsAndConditionsScreen extends HookConsumerWidget {
                             ],
                           ),
                         ),
-                      Gap(24.h),
+                      if (showBackButton) Gap(24.h), // Only add gap if button is shown
                     ],
                   ),
                   Gap(12.h),
@@ -191,7 +197,7 @@ class TermsAndConditionsScreen extends HookConsumerWidget {
         CustomText(
           content,
           variant: TextVariant.bodyMedium,
-          textAlign: TextAlign.justify,
+          textAlign: TextAlign.left,
         ),
         Gap(24.h),
       ],

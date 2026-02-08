@@ -3,14 +3,16 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cqaag_app/index.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cqaag_app/controllers/auth/auth_controller.dart';
 
-class AboutScreen extends StatelessWidget {
+class AboutScreen extends ConsumerWidget {
   static const String id = 'about_screen';
 
   const AboutScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -187,7 +189,7 @@ class AboutScreen extends StatelessWidget {
                       'title': 'Community Empowerment',
                       'desc': 'Our Members prioritize equitable benefits, supporting rural farmers, women, and youth through fair practices and knowledge sharing',
                     },
-                  ], crossAxisCount: 2), // Maybe 2 cols looks better
+                  ]),
 
                   Gap(48.h),
 
@@ -238,7 +240,7 @@ class AboutScreen extends StatelessWidget {
                   // Explore CQAAG Navigation
                   _buildSectionHeader('Explore C.Q.A.A.G'),
                   Gap(24.h),
-                  _buildNavigationGrid(context),
+                  _buildNavigationGrid(context, ref),
 
                   Gap(40.h),
                 ],
@@ -250,12 +252,37 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNavigationGrid(BuildContext context) {
+  Widget _buildNavigationGrid(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(currentUserProfileProvider);
+    final isLoggedIn = userAsync.value != null;
+
     final navItems = [
-      {'title': 'Membership', 'icon': Icons.card_membership, 'route': MembershipInfoScreen.id}, // Assuming route structure
-      {'title': 'Chapters', 'icon': Icons.map, 'route': ChaptersScreen.id},
-      {'title': 'Partners', 'icon': Icons.handshake, 'route': PartnersScreen.id},
-      {'title': 'Quality Standards', 'icon': Icons.verified, 'route': QualityStandardsScreen.id},
+      {
+        'title': 'Membership',
+        'icon': Icons.card_membership,
+        'onTap': () {
+          if (isLoggedIn) {
+            context.pushNamed(MembershipApplicationScreen.id);
+          } else {
+            context.pushNamed(RegisterScreen.id);
+          }
+        },
+      },
+      {
+        'title': 'Chapters',
+        'icon': Icons.map,
+        'onTap': () => context.pushNamed(ChaptersScreen.id),
+      },
+      {
+        'title': 'Partners',
+        'icon': Icons.handshake,
+        'onTap': () => context.pushNamed(PartnersScreen.id),
+      },
+      {
+        'title': 'Quality Standards',
+        'icon': Icons.verified,
+        'onTap': () => context.pushNamed(QualityStandardsScreen.id),
+      },
     ];
 
     return Wrap(
@@ -263,11 +290,7 @@ class AboutScreen extends StatelessWidget {
       runSpacing: 16.h,
       children: navItems.map((item) {
         return GestureDetector(
-          onTap: () {
-            // Handle specialized relative routing if needed, or absolute
-            final route = item['route'] as String;
-            context.pushNamed(route);
-          },
+          onTap: item['onTap'] as VoidCallback,
           child: Container(
             width: (1.sw - 64.w) / 2,
             padding: EdgeInsets.all(16.r),
@@ -324,7 +347,7 @@ class AboutScreen extends StatelessWidget {
         CustomText(
           content,
           variant: TextVariant.bodyMedium,
-          textAlign: TextAlign.justify,
+          textAlign: TextAlign.left,
         ),
         if (bullets != null) ...[
           Gap(12.h),
@@ -336,7 +359,7 @@ class AboutScreen extends StatelessWidget {
                 children: [
                   CustomText('• ', variant: TextVariant.bodyMedium, fontWeight: FontWeight.bold),
                   Expanded(
-                    child: CustomText(bullet, variant: TextVariant.bodyMedium, textAlign: TextAlign.justify),
+                    child: CustomText(bullet, variant: TextVariant.bodyMedium, textAlign: TextAlign.left),
                   ),
                 ],
               ),
@@ -348,10 +371,10 @@ class AboutScreen extends StatelessWidget {
           CustomText(
             footer,
             variant: TextVariant.bodyMedium,
-            textAlign: TextAlign.justify,
+            textAlign: TextAlign.left,
           ),
         ],
-        if (imageKey != null) ...[
+        if (imageKey != null && (imageKey == 'non-profit' || imageKey == 'headquarters')) ...[
           Gap(24.h),
           Container(
             height: 200.h,
@@ -359,8 +382,10 @@ class AboutScreen extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(16.r),
-              image: const DecorationImage(
-                image: NetworkImage('https://via.placeholder.com/600x400'), // Replace with asset later
+              image: DecorationImage(
+                image: AssetImage(
+                  imageKey == 'non-profit' ? Assets.imagesAboutImageOne : Assets.imagesAboutImageTwo,
+                ),
                 fit: BoxFit.cover,
               ),
             ),

@@ -103,11 +103,11 @@ class InspectionService {
   /// Stream all completed inspections (for history screen - all users)
   Stream<List<Inspection>> streamAllCompletedInspections() {
     return _inspectionsCollection.where('status', isEqualTo: 'completed').orderBy('completed_at', descending: true).snapshots().map((snapshot) {
-      _logger.i("Raw stream event received. Document count: ${snapshot.docs.length}");
-      for (final doc in snapshot.docs) {
-        // _logger.d("Doc ID: ${doc.id}, Data: ${doc.data()}");
-        _logger.d("Doc ID: ${doc.id}");
-      }
+      // _logger.i("Raw stream event received. Document count: ${snapshot.docs.length}");
+      // for (final doc in snapshot.docs) {
+      //   // _logger.d("Doc ID: ${doc.id}, Data: ${doc.data()}");
+      //   _logger.d("Doc ID: ${doc.id}");
+      // }
       return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
     });
   }

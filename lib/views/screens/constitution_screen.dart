@@ -37,7 +37,7 @@ class _ConstitutionScreenState extends State<ConstitutionScreen> {
                   CustomText(
                     "WE, the Cashew Quality Analysts’ Association, Ghana, recognizing the cashew industry as a vital pillar of our nation's economy... do hereby establish this Association to promote professional development, ethical practices, and sustainability.",
                     variant: TextVariant.bodyMedium,
-                    textAlign: TextAlign.justify,
+                    textAlign: TextAlign.left,
                     color: colorScheme.secondary,
                   ), //
                   Gap(24.h),
@@ -207,7 +207,7 @@ class _ConstitutionScreenState extends State<ConstitutionScreen> {
         CustomText(
           content,
           variant: TextVariant.bodyMedium,
-          textAlign: TextAlign.justify,
+          textAlign: TextAlign.left,
         ),
         Gap(20.h),
       ],

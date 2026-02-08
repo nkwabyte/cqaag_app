@@ -147,6 +147,16 @@ GoRouter goRouter(Ref ref) {
         builder: (context, state) => const QualityStandardsScreen(),
       ),
       GoRoute(
+        path: '/${ChaptersScreen.id}',
+        name: ChaptersScreen.id,
+        builder: (context, state) => const ChaptersScreen(),
+      ),
+      GoRoute(
+        path: '/${PartnersScreen.id}',
+        name: PartnersScreen.id,
+        builder: (context, state) => const PartnersScreen(),
+      ),
+      GoRoute(
         path: '/${ServicesScreen.id}',
         name: ServicesScreen.id,
         builder: (context, state) => const ServicesScreen(),

@@ -52,7 +52,7 @@ class AppDrawer extends ConsumerWidget {
                 Padding(
                   padding: EdgeInsets.symmetric(vertical: 4.h),
                   child: Column(
-                    children: [
+                    children: <Widget>[
                       if (isAuthenticated) ...[
                         _buildDrawerItem(
                           context: context,
@@ -86,7 +86,7 @@ class AppDrawer extends ConsumerWidget {
                           title: 'Home',
                           onTap: () {
                             Navigator.pop(context);
-                            context.goNamed(DashboardScreen.id); // Or DashboardScreen if unified
+                            context.goNamed(DashboardScreen.id);
                           },
                         ),
                       ],
@@ -99,6 +99,16 @@ class AppDrawer extends ConsumerWidget {
                         onTap: () {
                           Navigator.pop(context);
                           context.pushNamed(AboutScreen.id);
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context: context,
+                        colorScheme: colorScheme,
+                        icon: Icons.handshake_outlined,
+                        title: 'Partners',
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.pushNamed(PartnersScreen.id);
                         },
                       ),
                       _buildDrawerItem(

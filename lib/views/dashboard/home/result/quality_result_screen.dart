@@ -454,7 +454,7 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
         if (context.mounted && filePath != null) {
           CustomSnackBar.success(
             context,
-            message: 'Report saved to $filePath',
+            message: 'Report saved',
             duration: const Duration(seconds: 4),
           );
 

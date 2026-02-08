@@ -34,7 +34,21 @@ class PdfService {
             children: [
               _buildHeader(logoSvg, data),
               pw.SizedBox(height: 10),
-              _buildInfoBlock(data),
+              pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Expanded(child: _buildInfoBlock(data)),
+                  pw.SizedBox(width: 15),
+                  pw.Container(
+                    width: 100,
+                    height: 100,
+                    child: pw.BarcodeWidget(
+                      barcode: pw.Barcode.qrCode(),
+                      data: 'inspection:${data['inspectionId'] ?? data['id']}',
+                    ),
+                  ),
+                ],
+              ),
               pw.SizedBox(height: 15),
               _buildAnalysisTable(data),
               pw.SizedBox(height: 15),
@@ -67,7 +81,7 @@ class PdfService {
             crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
               pw.Text(
-                "CASHEW QUALITY ANALYSTS' ASSOCIATION, GHANA (CQAAG)",
+                "CASHEW QUALITY ANALYSTS' ASSOCIATION, GHANA (C.Q.A.A.G)",
                 style: pw.TextStyle(
                   fontSize: 16,
                   fontWeight: pw.FontWeight.bold,
@@ -88,16 +102,6 @@ class PdfService {
                   ),
                 ),
               ),
-              pw.Spacer(),
-              // QR Code
-              pw.Container(
-                width: 60,
-                height: 60,
-                child: pw.BarcodeWidget(
-                  barcode: pw.Barcode.qrCode(),
-                  data: 'inspection:${data['inspectionId'] ?? data['id']}',
-                ),
-              ),
             ],
           ),
         ),
@@ -113,7 +117,7 @@ class PdfService {
       ),
       child: pw.Column(
         children: [
-          _buildInfoRow('QC CODE: CERTIFICATE NO.', data['batchId'] ?? ''),
+          _buildInfoRow('QC CODE: CERTIFICATE NO.', (data['id'] ?? '').toString().toUpperCase()),
           _buildInfoRow('SUPPLIER /COMPANY NAME:', data['company'] ?? ''),
           _buildInfoRow('BUYER /COMPANY NAME:', ''), // Placeholder
           _buildInfoRow('ORIGIN (COUNTRY):', 'GHANA'),

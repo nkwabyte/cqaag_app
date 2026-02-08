@@ -153,7 +153,7 @@ class _CodeOfEthicsScreenState extends State<CodeOfEthicsScreen> {
         CustomText(
           content,
           variant: TextVariant.bodyMedium,
-          textAlign: TextAlign.justify,
+          textAlign: TextAlign.left,
         ),
         Gap(24.h),
       ],
