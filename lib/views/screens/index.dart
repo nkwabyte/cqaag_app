@@ -29,4 +29,3 @@ export 'guest_events_screen.dart';
 export 'membership_info_screen.dart';
 export 'terms_and_conditions_screen.dart';
 export 'chapters_screen.dart';
-export 'analysis_report_screen.dart';

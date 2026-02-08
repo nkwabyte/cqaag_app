@@ -11,7 +11,7 @@ class AdminDashboardScreen extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
@@ -25,13 +25,15 @@ class AdminDashboardScreen extends StatelessWidget {
             tabs: const <Widget>[
               Tab(text: "Users"),
               Tab(text: "Members"),
+              Tab(text: "Reports"),
             ],
           ),
         ),
-        body: const TabBarView(
-          children: <Widget>[
+        body: TabBarView(
+          children: [
             UserManagementTab(),
             MembershipManagementTab(),
+            ReportsManagementTab(),
           ],
         ),
       ),

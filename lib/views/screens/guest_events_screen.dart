@@ -4,11 +4,25 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cqaag_app/index.dart';
 import 'package:intl/intl.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-class GuestEventsScreen extends StatelessWidget {
+class GuestEventsScreen extends ConsumerStatefulWidget {
   static const String id = 'guest_events_screen';
 
   const GuestEventsScreen({super.key});
+
+  @override
+  ConsumerState<GuestEventsScreen> createState() => _GuestEventsScreenState();
+}
+
+class _GuestEventsScreenState extends ConsumerState<GuestEventsScreen> {
+  final TextEditingController _emailController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -259,14 +273,50 @@ class GuestEventsScreen extends StatelessWidget {
                   label: '',
                   hint: 'Enter your email',
                   keyboardType: TextInputType.emailAddress,
+                  controller: _emailController,
                 ),
                 Gap(12.h),
-                CustomButton(
-                  text: 'Subscribe',
-                  backgroundColor: AppColors.grayOrange,
-                  onPressed: () {
-                    CustomSnackBar.info(context, message: "Coming soon!");
-                    // TODO: Implement newsletter subscription
+                Consumer(
+                  builder: (context, ref, child) {
+                    final subscriptionState = ref.watch(subscriptionControllerProvider);
+
+                    // Listen for state changes
+                    ref.listen<SubscriptionState>(
+                      subscriptionControllerProvider,
+                      (previous, next) {
+                        if (next.isSuccess) {
+                          CustomSnackBar.success(
+                            context,
+                            message: 'Successfully subscribed to our newsletter!',
+                          );
+                          _emailController.clear();
+                          // Reset state after showing success
+                          Future.delayed(const Duration(milliseconds: 500), () {
+                            ref.read(subscriptionControllerProvider.notifier).reset();
+                          });
+                        } else if (next.errorMessage != null) {
+                          CustomSnackBar.error(
+                            context,
+                            message: next.errorMessage!,
+                          );
+                          // Reset state after showing error
+                          Future.delayed(const Duration(milliseconds: 500), () {
+                            ref.read(subscriptionControllerProvider.notifier).reset();
+                          });
+                        }
+                      },
+                    );
+
+                    return CustomButton(
+                      text: subscriptionState.isLoading ? 'Subscribing...' : 'Subscribe',
+                      backgroundColor: AppColors.grayOrange,
+                      isLoading: subscriptionState.isLoading,
+                      onPressed: () {
+                        if (!subscriptionState.isLoading) {
+                          ref.read(subscriptionControllerProvider.notifier).subscribe(_emailController.text);
+                        }
+                      },
+                    );
                   },
                 ),
               ],

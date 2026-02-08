@@ -84,8 +84,13 @@ class _MembershipManagementTabState extends ConsumerState<MembershipManagementTa
               data: (applications) {
                 final filteredApps = applications.where((app) {
                   if (_searchQuery.isEmpty) return true;
-                  // Add robust search logic here based on fields
-                  return true;
+
+                  final query = _searchQuery.toLowerCase();
+                  final fullName = '${app.firstName} ${app.lastName}'.toLowerCase();
+                  final category = app.membershipCategory.displayName.toLowerCase();
+                  final status = app.status.displayName.toLowerCase();
+
+                  return fullName.contains(query) || category.contains(query) || status.contains(query);
                 }).toList();
 
                 if (filteredApps.isEmpty) {

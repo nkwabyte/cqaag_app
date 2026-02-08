@@ -20,3 +20,4 @@ export 'auth/index.dart';
 export 'user/index.dart';
 export 'inspection/index.dart';
 export 'membership/index.dart';
+export 'subscription/index.dart';

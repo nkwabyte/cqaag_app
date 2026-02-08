@@ -20,6 +20,21 @@ class TownDetailScreen extends StatefulWidget {
 }
 
 class _TownDetailScreenState extends State<TownDetailScreen> {
+  String _searchQuery = '';
+
+  List<Inspection> get _filteredInspections {
+    if (_searchQuery.isEmpty) return widget.inspections;
+
+    final query = _searchQuery.toLowerCase();
+    return widget.inspections.where((inspection) {
+      final batchId = inspection.batchId?.toLowerCase() ?? '';
+      final farmerName = inspection.farmerName?.toLowerCase() ?? '';
+      final inspectorId = inspection.inspectorId.toLowerCase();
+
+      return batchId.contains(query) || farmerName.contains(query) || inspectorId.contains(query);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -40,17 +55,22 @@ class _TownDetailScreenState extends State<TownDetailScreen> {
             padding: EdgeInsets.fromLTRB(24.w, 0.h, 24.w, 0),
             child: Column(
               children: <Widget>[
-                const CustomTextField(
+                CustomTextField(
                   name: 'search',
                   label: '',
                   hint: 'Search by analyst, batch, or farm',
                   prefixIcon: Icons.search,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value ?? '';
+                    });
+                  },
                 ),
               ],
             ),
           ),
           Expanded(
-            child: widget.inspections.isEmpty
+            child: _filteredInspections.isEmpty
                 ? Center(
                     child: CustomText(
                       "No inspections found",
@@ -60,9 +80,9 @@ class _TownDetailScreenState extends State<TownDetailScreen> {
                   )
                 : ListView.builder(
                     padding: EdgeInsets.all(24.r),
-                    itemCount: widget.inspections.length,
+                    itemCount: _filteredInspections.length,
                     itemBuilder: (context, index) {
-                      final inspection = widget.inspections[index];
+                      final inspection = _filteredInspections[index];
                       // Format date: "Yesterday • 02:45 PM" (simplified for now)
                       // You might want to use a DateFormat utility here
                       final dateStr = inspection.completedAt != null
@@ -80,19 +100,14 @@ class _TownDetailScreenState extends State<TownDetailScreen> {
                             final inspectorAsync = ref.watch(inspectorProfileProvider(params));
 
                             final inspectorName = inspectorAsync.when(
-                              data: (user) =>
-                                  user != null ? "${user.firstName} ${user.lastName}" : inspection.inspectorId,
+                              data: (user) => user != null ? "${user.firstName} ${user.lastName}" : inspection.inspectorId,
                               loading: () => "Loading...",
                               error: (error, stack) => inspection.inspectorId,
                             );
 
                             return InspectionCard(
-                              status: inspection.status == InspectionStatus.completed
-                                  ? "Completed"
-                                  : inspection.status.name,
-                              statusColor: inspection.status == InspectionStatus.completed
-                                  ? Colors.green
-                                  : Colors.orange,
+                              status: inspection.status == InspectionStatus.completed ? "Completed" : inspection.status.name,
+                              statusColor: inspection.status == InspectionStatus.completed ? Colors.green : Colors.orange,
                               batchId: inspection.batchId ?? "N/A",
                               name: inspectorName,
                               location: inspection.location ?? "Unknown",

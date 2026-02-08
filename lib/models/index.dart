@@ -21,5 +21,6 @@ export 'location/index.dart';
 export 'user/index.dart';
 export 'inspection/index.dart';
 export 'boarding/index.dart';
-export 'membership/index.dart';
 export 'event/index.dart';
+export 'membership/index.dart';
+export 'subscription/index.dart';

@@ -156,14 +156,7 @@ GoRouter goRouter(Ref ref) {
         name: AdminDashboardScreen.id,
         builder: (context, state) => const AdminDashboardScreen(),
       ),
-      GoRoute(
-        path: '/${AnalysisReportScreen.id}',
-        name: AnalysisReportScreen.id,
-        builder: (context, state) {
-          final reportData = state.extra as Map<String, dynamic>?;
-          return AnalysisReportScreen(reportData: reportData);
-        },
-      ),
+
       // History flow routes
       GoRoute(
         path: '/${DistrictDetailScreen.id}',

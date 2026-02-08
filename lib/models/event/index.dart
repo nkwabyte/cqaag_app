@@ -16,5 +16,5 @@
  * Any manual changes to this file may be overwritten.
  */
 
-export 'event.dart';
 export 'event_category.dart';
+export 'event.dart';
