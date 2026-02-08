@@ -4,7 +4,6 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cqaag_app/index.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cqaag_app/controllers/auth/auth_controller.dart';
 
 class AboutScreen extends ConsumerWidget {
   static const String id = 'about_screen';
@@ -116,11 +115,31 @@ class AboutScreen extends ConsumerWidget {
                   ),
                   Gap(24.h),
                   _buildGridList([
-                    {'icon': Icons.gps_fixed, 'title': 'Vision 1', 'desc': 'Establish Ghana as a Global Benchmark for Cashew Quality'},
-                    {'icon': Icons.groups, 'title': 'Vision 2', 'desc': 'Foster Sustainable and Resilient Cashew Ecosystems'},
-                    {'icon': Icons.lightbulb, 'title': 'Vision 3', 'desc': 'Help Advance Professional Excellence Among Cashew Controllers'},
-                    {'icon': Icons.business, 'title': 'Vision 4', 'desc': 'Promote Value Addition and Economic Empowerment'},
-                    {'icon': Icons.account_tree, 'title': 'Vision 5', 'desc': 'Build Collaborative Networks for Advocacy and'},
+                    {
+                      'icon': Icons.gps_fixed,
+                      'title': 'Vision 1',
+                      'desc': 'Establish Ghana as a Global Benchmark for Cashew Quality',
+                    },
+                    {
+                      'icon': Icons.groups,
+                      'title': 'Vision 2',
+                      'desc': 'Foster Sustainable and Resilient Cashew Ecosystems',
+                    },
+                    {
+                      'icon': Icons.lightbulb,
+                      'title': 'Vision 3',
+                      'desc': 'Help Advance Professional Excellence Among Cashew Controllers',
+                    },
+                    {
+                      'icon': Icons.business,
+                      'title': 'Vision 4',
+                      'desc': 'Promote Value Addition and Economic Empowerment',
+                    },
+                    {
+                      'icon': Icons.account_tree,
+                      'title': 'Vision 5',
+                      'desc': 'Build Collaborative Networks for Advocacy and',
+                    },
                   ]),
 
                   Gap(48.h),
@@ -145,9 +164,20 @@ class AboutScreen extends ConsumerWidget {
                       'desc':
                           'To build professional capacity through education, examinations, and contribute to the licensing of all cashew quality controllers practicing in Ghana.',
                     },
-                    {'icon': Icons.lightbulb, 'desc': 'To advocate for sustainable and equitable practices across the cashew value chain.'},
-                    {'icon': Icons.business, 'desc': 'To facilitate collaborations and policy advocacy that enhance both the quality and quantity of Ghana\'s cashew production.'},
-                    {'icon': Icons.business_center, 'desc': 'To promote research, particularly in quality data collection, and drive innovation in cashew quality analysis.'},
+                    {
+                      'icon': Icons.lightbulb,
+                      'desc': 'To advocate for sustainable and equitable practices across the cashew value chain.',
+                    },
+                    {
+                      'icon': Icons.business,
+                      'desc':
+                          'To facilitate collaborations and policy advocacy that enhance both the quality and quantity of Ghana\'s cashew production.',
+                    },
+                    {
+                      'icon': Icons.business_center,
+                      'desc':
+                          'To promote research, particularly in quality data collection, and drive innovation in cashew quality analysis.',
+                    },
                   ], showTitle: false),
 
                   Gap(48.h),
@@ -168,26 +198,34 @@ class AboutScreen extends ConsumerWidget {
                       'desc':
                           'Unbiased and accurate analysis.\n\nWe uphold unwavering honesty, transparency, and ethical conduct in all cashew control activities and we ensure accurate inspections free from bias or corruption.',
                     },
-                    {'icon': Icons.gps_fixed, 'title': 'Excellence', 'desc': 'We strive for the highest standards of professionalism and precision in cashew'},
+                    {
+                      'icon': Icons.gps_fixed,
+                      'title': 'Excellence',
+                      'desc': 'We strive for the highest standards of professionalism and precision in cashew',
+                    },
                     {
                       'icon': Icons.lightbulb,
                       'title': 'Sustainability',
-                      'desc': 'We promote environmentally responsible and resilient practices that protect the ecosystems and the long-term viability of cashew farming.',
+                      'desc':
+                          'We promote environmentally responsible and resilient practices that protect the ecosystems and the long-term viability of cashew farming.',
                     },
                     {
                       'icon': Icons.work,
                       'title': 'Professionalism',
-                      'desc': 'CQAAG foster competence, respect, and ongoing development among cashew controllers through education and ethical standards.',
+                      'desc':
+                          'CQAAG foster competence, respect, and ongoing development among cashew controllers through education and ethical standards.',
                     },
                     {
                       'icon': Icons.account_tree,
                       'title': 'Collaboration',
-                      'desc': 'We value partnerships and unity among stakeholders to advance shared goals in the cashew value chain.',
+                      'desc':
+                          'We value partnerships and unity among stakeholders to advance shared goals in the cashew value chain.',
                     },
                     {
                       'icon': Icons.business,
                       'title': 'Community Empowerment',
-                      'desc': 'Our Members prioritize equitable benefits, supporting rural farmers, women, and youth through fair practices and knowledge sharing',
+                      'desc':
+                          'Our Members prioritize equitable benefits, supporting rural farmers, women, and youth through fair practices and knowledge sharing',
                     },
                   ]),
 
@@ -211,20 +249,29 @@ class AboutScreen extends ConsumerWidget {
                       },
                       {
                         'title': 'Objective 4',
-                        'desc': 'address and implement a moisture control project at all declared export and processing warehouses starting from the year 2026',
+                        'desc':
+                            'address and implement a moisture control project at all declared export and processing warehouses starting from the year 2026',
                       },
                       {
                         'title': 'Objective 5',
                         'desc':
                             'Train and License 500 Cashew Controllers by 2028 prioritizing women and youth in cashew quality control techniques, sustainable handling, and ethical practices in collaboration with the TCDA',
                       },
-                      {'title': 'Objective 6', 'desc': 'Organize annual conferences, forums, workshops, and a digital resource platform for the stakeholders'},
+                      {
+                        'title': 'Objective 6',
+                        'desc':
+                            'Organize annual conferences, forums, workshops, and a digital resource platform for the stakeholders',
+                      },
                       {
                         'title': 'Objective 7',
                         'desc':
                             'Promote ethical practices through a Code of Ethics, compliance, sanctions, research on sustainable quality control and run awareness campaigns on good agricultural practices (GAP).',
                       },
-                      {'title': 'Objective 8', 'desc': 'Help Increase Local Value Addition and Certifications for stakeholders with Certification Bodies'},
+                      {
+                        'title': 'Objective 8',
+                        'desc':
+                            'Help Increase Local Value Addition and Certifications for stakeholders with Certification Bodies',
+                      },
                       {
                         'title': 'Objective 9',
                         'desc':
@@ -406,7 +453,13 @@ class AboutScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildGridList(List<Map<String, dynamic>> items, {bool showTitle = true, bool showIcon = true, int crossAxisCount = 1, bool isCardColor = false}) {
+  Widget _buildGridList(
+    List<Map<String, dynamic>> items, {
+    bool showTitle = true,
+    bool showIcon = true,
+    int crossAxisCount = 1,
+    bool isCardColor = false,
+  }) {
     return Wrap(
       spacing: 16.w,
       runSpacing: 16.h,
