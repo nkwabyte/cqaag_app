@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:cqaag_app/index.dart';
+import 'package:printing/printing.dart';
 
 class ChaptersScreen extends StatelessWidget {
   static const String id = 'chapters_screen';
@@ -193,7 +195,13 @@ class ChaptersScreen extends StatelessWidget {
                   Center(
                     child: CustomButton(
                       text: 'Download Full Welfare Guide',
-                      onPressed: () {}, // TODO: Implement download
+                      onPressed: () async {
+                        final pdfData = await rootBundle.load('assets/docs/welfare_document.pdf');
+                        await Printing.sharePdf(
+                          bytes: pdfData.buffer.asUint8List(),
+                          filename: 'welfare_document.pdf',
+                        );
+                      },
                       backgroundColor: AppColors.darkBrown,
                       textColor: Colors.white,
                       width: 280.w,

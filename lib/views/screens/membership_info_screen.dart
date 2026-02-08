@@ -521,8 +521,8 @@ class MembershipInfoScreen extends StatelessWidget {
           border: Border.all(color: Colors.grey.shade300),
         ),
         child: DataTable(
-          headingRowColor: MaterialStateProperty.all(const Color(0xFF2E7D32)), // Green header
-          dataRowColor: MaterialStateProperty.resolveWith<Color>((Set<MaterialState> states) {
+          headingRowColor: WidgetStateProperty.all(const Color(0xFF2E7D32)), // Green header
+          dataRowColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
             // Alternating colors logic if needed, or simple greyish
             return Colors.grey.shade100;
           }),

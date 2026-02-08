@@ -265,6 +265,7 @@ class GuestEventsScreen extends StatelessWidget {
                   text: 'Subscribe',
                   backgroundColor: AppColors.grayOrange,
                   onPressed: () {
+                    CustomSnackBar.info(context, message: "Coming soon!");
                     // TODO: Implement newsletter subscription
                   },
                 ),

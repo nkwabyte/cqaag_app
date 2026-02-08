@@ -481,7 +481,7 @@ class QualityStandardsScreen extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8.r),
           child: DataTable(
-            headingRowColor: MaterialStateProperty.all(AppColors.tableHeaderBrown), // Dark Brown
+            headingRowColor: WidgetStateProperty.all(AppColors.tableHeaderBrown), // Dark Brown
             columnSpacing: 16.w,
             dataRowMinHeight: 32.h,
             dataRowMaxHeight: 32.h,
@@ -501,7 +501,7 @@ class QualityStandardsScreen extends StatelessWidget {
             ],
             rows: rows.map((row) {
               return DataRow(
-                color: MaterialStateProperty.resolveWith((states) => AppColors.lightOrange.withValues(alpha: 0.05)), // Very light bg
+                color: WidgetStateProperty.resolveWith((states) => AppColors.lightOrange.withValues(alpha: 0.05)), // Very light bg
                 cells: [
                   ...row.sublist(0, 11).map((cell) => DataCell(Text(cell, style: cellStyle))),
                   DataCell(
