@@ -89,26 +89,31 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         throw Exception('User not authenticated');
       }
 
+      final hasInternet = await ref.read(connectivityServiceProvider).hasInternetAccess();
       final cloudinary = ref.read(cloudinaryServiceProvider);
       List<String> uploadedImageUrls = [];
 
-      // Helper function to upload
-      Future<String> uploadPhoto(File file, String label) async {
-        final url = await cloudinary.uploadInspectionPhoto(file);
-        if (url == null) {
-          throw Exception("Failed to upload $label photo.");
+      // Helper function to handle online/offline image gathering
+      Future<String> processPhoto(File file, String label) async {
+        if (hasInternet) {
+          final url = await cloudinary.uploadInspectionPhoto(file);
+          if (url == null) {
+            throw Exception("Failed to upload $label photo.");
+          }
+          return url;
+        } else {
+          return file.path; // Store the local file path to sync later
         }
-        return url;
       }
 
-      // Upload Raw Nuts
-      uploadedImageUrls.add(await uploadPhoto(photos['raw_nuts']!, "Raw Nuts"));
+      // Process Raw Nuts
+      uploadedImageUrls.add(await processPhoto(photos['raw_nuts']!, "Raw Nuts"));
 
-      // Upload Packaging
-      uploadedImageUrls.add(await uploadPhoto(photos['packaging']!, "Packaging"));
+      // Process Packaging
+      uploadedImageUrls.add(await processPhoto(photos['packaging']!, "Packaging"));
 
-      // Upload Storage
-      uploadedImageUrls.add(await uploadPhoto(photos['storage']!, "Storage"));
+      // Process Storage
+      uploadedImageUrls.add(await processPhoto(photos['storage']!, "Storage"));
 
       // Safe Parsing Helpers
       double parseDouble(dynamic value) {
@@ -137,11 +142,15 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         batchId: formData['batch_id'] as String?,
         farmerName: formData['farmer_name'] as String?,
         location: formData['location'] as String?,
+        exactLocation: formData['exact_location'] as String?,
         capturedLocation: formData['captured_location'] as CapturedLocation?,
         town: formData['town'] as String?,
         chapter: formData['chapter'] as String?,
         truckNumber: formData['truck_number'] as String?,
         company: formData['company'] as String?,
+        buyerName: formData['buyer_name'] as String?,
+        waybillNumber: formData['waybill_number'] as String?,
+        analysisType: formData['analysis_type'] as String?,
 
         quantity: parseDouble(formData['quantity']),
         quantityBags: parseInt(formData['quantity_bags']),
@@ -151,19 +160,21 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         kor: parseDouble(formData['kor']),
 
         goodKernels: parseDouble(formData['good_kernels']),
+        fullyDamagedKernels: parseDouble(formData['fully_damaged_kernels']),
         spottedKernels: parseDouble(formData['spotted_kernels']),
         immatureKernels: parseDouble(formData['immature_kernels']),
         oilyKernels: parseDouble(formData['oily_kernels']),
         voidKernels: parseDouble(formData['void_kernels']),
-        totalDefective: parseDouble(formData['total_defective']),
-        totalSpotted: parseDouble(formData['total_spotted']),
+        emptyShells: parseDouble(formData['empty_shells']),
+        totalDefective: parseDouble(formData['fully_damaged_kernels']) + parseDouble(formData['void_kernels']) + parseDouble(formData['oily_kernels']),
+        totalSpotted: parseDouble(formData['spotted_kernels']) + parseDouble(formData['immature_kernels']),
 
         imageUrls: uploadedImageUrls,
         notes: formData['notes'] as String?,
-        status: InspectionStatus.completed,
+        status: hasInternet ? InspectionStatus.completed : InspectionStatus.pendingSync,
         createdAt: widget.existingInspection?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
-        completedAt: DateTime.now(),
+        completedAt: hasInternet ? DateTime.now() : null, // Only completed if synced
       );
 
       // Check if widget is still mounted before using it

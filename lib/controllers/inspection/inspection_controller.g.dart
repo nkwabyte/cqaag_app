@@ -34,7 +34,7 @@ final class InspectionControllerProvider
 }
 
 String _$inspectionControllerHash() =>
-    r'b7f311cac783605018888ee7c55c1074ba6d8e22';
+    r'df84ee647c747f39f9f19b08ff441c0bbf061721';
 
 abstract class _$InspectionController extends $StreamNotifier<InspectionState> {
   Stream<InspectionState> build();

@@ -119,13 +119,14 @@ class PdfService {
         children: [
           _buildInfoRow('QC CODE: CERTIFICATE NO.', (data['id'] ?? '').toString().toUpperCase()),
           _buildInfoRow('SUPPLIER /COMPANY NAME:', data['company'] ?? ''),
-          _buildInfoRow('BUYER /COMPANY NAME:', ''), // Placeholder
+          _buildInfoRow('BUYER /COMPANY NAME:', data['buyerName'] ?? ''),
           _buildInfoRow('ORIGIN (COUNTRY):', 'GHANA'),
           _buildInfoRow(
             'ORIGIN (REGION-DISTRICT-TOWN):',
             [data['chapter'], data['district'], data['town']].where((e) => e != null && e.toString().isNotEmpty && e != 'null').join(' - '),
           ),
-          _buildInfoRow('WAYBILL OR B/L N°:', ''),
+          _buildInfoRow('WAYBILL OR B/L N°:', data['waybillNumber'] ?? ''),
+          _buildInfoRow('ANALYSIS TYPE:', data['analysisType'] ?? ''),
           pw.Row(
             children: [
               pw.Expanded(child: _buildInfoRow('QUANTITY (KG/MT):', data['quantity'] ?? '')),
@@ -163,6 +164,23 @@ class PdfService {
   pw.Widget _buildAnalysisTable(Map<String, dynamic> data) {
     const tableHeaders = ['Parameter', 'I', 'II', 'III', 'AVERAGE'];
 
+    double totalDefective = double.tryParse(data['totalDefective'] ?? '0') ?? 0;
+    double totalSpotted = double.tryParse(data['totalSpotted'] ?? '0') ?? 0;
+    
+    double halfTotalSpotted = totalSpotted * 0.5;
+    double goodKernels = double.tryParse(data['goodKernels'] ?? '0') ?? 0;
+    double totalYield = goodKernels + halfTotalSpotted;
+
+    // Final Total raw sum
+    double emptyShells = double.tryParse(data['emptyShells'] ?? '0') ?? 0;
+    double fullyDamaged = double.tryParse(data['fullyDamagedKernels'] ?? '0') ?? 0;
+    double voidKernels = double.tryParse(data['voidKernels'] ?? '0') ?? 0;
+    double oilyKernels = double.tryParse(data['oilyKernels'] ?? '0') ?? 0;
+    double spottedKernels = double.tryParse(data['spottedKernels'] ?? '0') ?? 0;
+    double immatureKernels = double.tryParse(data['immatureKernels'] ?? '0') ?? 0;
+
+    double finalTotal = emptyShells + goodKernels + voidKernels + fullyDamaged + oilyKernels + spottedKernels + immatureKernels;
+
     return pw.Table(
       border: pw.TableBorder.all(width: 0.5),
       columnWidths: {
@@ -192,40 +210,43 @@ class PdfService {
         _buildTableRow('NUT COUNT (per Kg)', data['nutCount']),
         // Defects
         _buildSectionHeaderRow('FULLY DAMAGED NUTS (gm)'),
+        _buildTableRow('  FULLY DAMAGED NUTS (gm)', data['fullyDamagedKernels']),
         _buildTableRow('  VOID NUTS (gm)', data['voidKernels']),
         _buildTableRow('  OIL NUTS (gm)', data['oilyKernels']),
-        _buildTableRow('  TOTAL (gm)', data['totalDefective'], isBold: true),
+        _buildTableRow('  TOTAL (gm)', totalDefective.toStringAsFixed(1), isBold: true),
         // Spotted
         _buildSectionHeaderRow('SPOTTED/PARTLY SOUND NUTS (gm)'),
         _buildTableRow('  SPOTTED/PARTLY SOUND (gm)', data['spottedKernels']),
         _buildTableRow('  IMMATURE NUTS (gm)', data['immatureKernels']),
-        _buildTableRow('  TOTAL (gm)', data['totalSpotted'], isBold: true), // Need totalSpotted passed or calculated
-        _buildTableRow('  50% of above TOTAL (gm)', _calculate50Percent(data['totalSpotted'])),
+        _buildTableRow('  TOTAL (gm)', totalSpotted.toStringAsFixed(1), isBold: true),
+        _buildTableRow('  50% of above TOTAL (gm)', halfTotalSpotted.toStringAsFixed(1)),
 
         _buildTableRow('GOOD KERNELS (gm)', data['goodKernels']),
-        _buildTableRow('TOTAL YIELD (gm)', _calculateTotalYield(data)),
-        _buildTableRow('EMPTY SHELLS (gm)', ''), // Not usually captured?
-        _buildTableRow('TOTAL (gm)', '1000g'), // Sample weight usually 1kg
+        _buildTableRow('TOTAL YIELD (gm)', totalYield.toStringAsFixed(1)),
+        _buildTableRow('EMPTY SHELLS (gm)', data['emptyShells']),
+        _buildTableRow('TOTAL (gm)', finalTotal.toStringAsFixed(1)), // usually 1000g sum
       ],
     );
   }
 
   pw.TableRow _buildTableRow(String label, String? value, {bool isBold = false}) {
+    final valueWidget = pw.Padding(
+      padding: const pw.EdgeInsets.all(2),
+      child: pw.Center(
+        child: pw.Text(value ?? '-', style: pw.TextStyle(fontSize: 8, fontWeight: isBold ? pw.FontWeight.bold : null)),
+      ),
+    );
+
     return pw.TableRow(
       children: [
         pw.Padding(
           padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 4),
           child: pw.Text(label, style: pw.TextStyle(fontSize: 8, fontWeight: isBold ? pw.FontWeight.bold : null)),
         ),
-        _buildEmptyCell(),
-        _buildEmptyCell(),
-        _buildEmptyCell(),
-        pw.Padding(
-          padding: const pw.EdgeInsets.all(2),
-          child: pw.Center(
-            child: pw.Text(value ?? '-', style: pw.TextStyle(fontSize: 8, fontWeight: isBold ? pw.FontWeight.bold : null)),
-          ),
-        ),
+        valueWidget, // Column I
+        _buildEmptyCell(), // Column II
+        _buildEmptyCell(), // Column III
+        valueWidget, // Column AVERAGE
       ],
     );
   }
@@ -248,18 +269,6 @@ class PdfService {
         _buildEmptyCell(),
       ],
     );
-  }
-
-  String _calculate50Percent(String? value) {
-    if (value == null) return '-';
-    final v = double.tryParse(value) ?? 0;
-    return (v * 0.5).toStringAsFixed(1);
-  }
-
-  String _calculateTotalYield(Map<String, dynamic> data) {
-    // Logic for total yield gm? usually sum of kernels
-    // For now returning placeholder or goodKernels
-    return data['goodKernels'] ?? '-';
   }
 
   pw.Widget _buildKORBlock(Map<String, dynamic> data) {

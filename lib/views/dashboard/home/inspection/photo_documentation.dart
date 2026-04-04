@@ -33,10 +33,34 @@ class _PhotoDocumentationStepState extends State<PhotoDocumentationStep> {
   }
 
   Future<void> _pickImage(String key) async {
+    final ImageSource? source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Gallery'),
+                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: const Text('Camera'),
+                onTap: () => Navigator.of(context).pop(ImageSource.camera),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (source == null) return;
+
     try {
       final picker = ImagePicker();
       final XFile? image = await picker.pickImage(
-        source: ImageSource.camera,
+        source: source,
         imageQuality: 80,
       );
 

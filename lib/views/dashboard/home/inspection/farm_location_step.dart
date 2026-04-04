@@ -69,16 +69,18 @@ class _FarmLocationStepState extends ConsumerState<FarmLocationStep> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildInfoField("Inspector", inspectorName, colorScheme),
-                Gap(16.h),
-                Divider(color: colorScheme.secondary.withValues(alpha: 0.1)),
-                Gap(16.h),
-                _buildInfoField(
-                  "Location",
-                  location,
-                  colorScheme,
-                ),
               ],
             ),
+          ),
+
+          Gap(24.h),
+
+          CustomTextField(
+            name: "exact_location",
+            label: "Location Details",
+            hint: "e.g., Jaman North, Bono",
+            initialValue: location,
+            prefixIcon: Icons.location_on_outlined,
           ),
 
           Gap(40.h),

@@ -151,7 +151,7 @@ class InspectionCard extends StatelessWidget {
                   ],
                 ),
                 CustomText(
-                  "$weight MT",
+                  "$weight KG",
                   variant: TextVariant.bodyLarge,
                   fontWeight: FontWeight.bold,
                 ),

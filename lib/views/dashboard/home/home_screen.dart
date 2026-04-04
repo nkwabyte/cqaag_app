@@ -182,7 +182,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   weight: inspection.quantity.toStringAsFixed(1),
                                   onTap: () {
                                     // Resume pending or view completed
-                                    if (inspection.status == InspectionStatus.pending || inspection.status == InspectionStatus.inProgress) {
+                                    if (inspection.status == InspectionStatus.pending || inspection.status == InspectionStatus.inProgress || inspection.status == InspectionStatus.pendingSync) {
                                       context.pushNamed(
                                         QualityInspectionWizard.id,
                                         extra: inspection,
@@ -215,6 +215,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     switch (status) {
       case InspectionStatus.pending:
         return 'Pending';
+      case InspectionStatus.pendingSync:
+        return 'Pending Sync';
       case InspectionStatus.inProgress:
         return 'In Progress';
       case InspectionStatus.completed:
@@ -227,6 +229,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Color _getStatusColor(InspectionStatus status) {
     switch (status) {
       case InspectionStatus.pending:
+      case InspectionStatus.pendingSync:
         return const Color(0xFFD6A467); // grayOrange
       case InspectionStatus.inProgress:
         return const Color(0xFF2E7D32); // green

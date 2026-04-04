@@ -1,3 +1,4 @@
+import 'dart:io' as io;
 import 'package:cqaag_app/index.dart';
 import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -28,7 +29,7 @@ abstract class InspectionState with _$InspectionState {
 
   /// Get uncompleted inspections (pending + in-progress, sorted by updatedAt/createdAt descending)
   List<Inspection> get uncompleted {
-    final list = allInspections.where((i) => i.status == InspectionStatus.pending || i.status == InspectionStatus.inProgress).toList();
+    final list = allInspections.where((i) => i.status == InspectionStatus.pending || i.status == InspectionStatus.inProgress || i.status == InspectionStatus.pendingSync).toList();
     list.sort((a, b) {
       final aTime = a.updatedAt ?? a.createdAt ?? DateTime(2000);
       final bTime = b.updatedAt ?? b.createdAt ?? DateTime(2000);
@@ -108,5 +109,63 @@ class InspectionController extends _$InspectionController {
     );
 
     await inspectionService.updateInspection(pendingInspection);
+  }
+
+  /// Sync offline pending Sync inspections
+  Future<int> syncPendingInspections() async {
+    final connectivity = ref.read(connectivityServiceProvider);
+    if (!await connectivity.hasInternetAccess()) return 0;
+
+    final stateValue = state.value;
+    if (stateValue == null) return 0;
+
+    final pendingSyncInspections = stateValue.allInspections.where((i) => i.status == InspectionStatus.pendingSync).toList();
+    if (pendingSyncInspections.isEmpty) return 0;
+
+    final cloudinary = ref.read(cloudinaryServiceProvider);
+    final inspectionService = ref.read(inspectionServiceProvider);
+    int syncedCount = 0;
+
+    for (final inspection in pendingSyncInspections) {
+      try {
+        final List<String> oldUrls = inspection.imageUrls;
+        final List<String> newUrls = [];
+
+        for (final localPath in oldUrls) {
+          if (!localPath.startsWith('http')) {
+            final file = io.File(localPath); 
+            if (await file.exists()) {
+              final url = await cloudinary.uploadInspectionPhoto(file);
+              if (url != null) {
+                newUrls.add(url);
+              } else {
+                throw Exception('Failed to upload image $localPath');
+              }
+            } else {
+              // If file is missing, we must decide either fail or continue. Let's throw.
+              throw Exception('Local image missing: $localPath');
+            }
+          } else {
+            // It's already an http URL (unlikely but possible if manually set)
+            newUrls.add(localPath);
+          }
+        }
+
+        final syncedInspection = inspection.copyWith(
+          imageUrls: newUrls,
+          status: InspectionStatus.completed,
+          completedAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
+        await inspectionService.updateInspection(syncedInspection);
+        syncedCount++;
+      } catch (e) {
+        debugPrint('Failed to sync inspection ${inspection.id}: $e');
+        // Continue to the next one
+      }
+    }
+    
+    return syncedCount;
   }
 }

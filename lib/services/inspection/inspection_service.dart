@@ -8,27 +8,23 @@ part 'inspection_service.g.dart';
 class InspectionService {
   final Logger logger = Logger();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final ConnectivityService _connectivityService;
 
-  InspectionService(this._connectivityService);
+  InspectionService();
 
   CollectionReference<Map<String, dynamic>> get _inspectionsCollection => _firestore.collection('inspections');
 
   /// Create a new inspection
   Future<void> createInspection(Inspection inspection) async {
-    await _connectivityService.ensureConnected();
     await _inspectionsCollection.doc(inspection.id).set(inspection.toJson());
   }
 
   /// Update an existing inspection
   Future<void> updateInspection(Inspection inspection) async {
-    await _connectivityService.ensureConnected();
     await _inspectionsCollection.doc(inspection.id).update(inspection.toJson());
   }
 
   /// Get all inspections for a specific inspector
   Future<List<Inspection>> getInspections(String inspectorId) async {
-    await _connectivityService.ensureConnected();
     final snapshot = await _inspectionsCollection
         .where('inspector_id', isEqualTo: inspectorId)
         .orderBy('created_at', descending: true)
@@ -39,7 +35,6 @@ class InspectionService {
 
   /// Get recent inspections (limit 10)
   Future<List<Inspection>> getRecentInspections(String inspectorId, {int limit = 10}) async {
-    await _connectivityService.ensureConnected();
     final snapshot = await _inspectionsCollection
         .where('inspector_id', isEqualTo: inspectorId)
         .orderBy('created_at', descending: true)
@@ -62,7 +57,6 @@ class InspectionService {
 
   /// Get total count of all inspections (for ID generation)
   Future<int> getInspectionCount() async {
-    await _connectivityService.ensureConnected();
     final snapshot = await _inspectionsCollection.count().get();
     return snapshot.count ?? 0;
   }
@@ -81,7 +75,6 @@ class InspectionService {
 
   /// Get inspection by ID
   Future<Inspection?> getInspectionById(String inspectionId) async {
-    await _connectivityService.ensureConnected();
     final doc = await _inspectionsCollection.doc(inspectionId).get();
 
     if (!doc.exists) return null;
@@ -94,7 +87,6 @@ class InspectionService {
     required InspectionStatus status,
     DateTime? completedAt,
   }) async {
-    await _connectivityService.ensureConnected();
 
     final updateData = <String, dynamic>{
       'status': status.name,
@@ -110,7 +102,6 @@ class InspectionService {
 
   /// Get all completed inspections (for history screen - all users)
   Future<List<Inspection>> getAllCompletedInspections() async {
-    await _connectivityService.ensureConnected();
     final snapshot = await _inspectionsCollection
         .where('status', isEqualTo: 'completed')
         .orderBy('completed_at', descending: true)
@@ -137,7 +128,6 @@ class InspectionService {
 
   /// Get user's uncompleted inspections (pending + in-progress)
   Future<List<Inspection>> getUserUncompletedInspections(String inspectorId) async {
-    await _connectivityService.ensureConnected();
     final snapshot = await _inspectionsCollection
         .where('inspector_id', isEqualTo: inspectorId)
         .where('status', whereIn: ['pending', 'in_progress'])
@@ -175,6 +165,5 @@ class InspectionService {
 
 @Riverpod(keepAlive: true)
 InspectionService inspectionService(Ref ref) {
-  final connectivityService = ref.watch(connectivityServiceProvider);
-  return InspectionService(connectivityService);
+  return InspectionService();
 }
