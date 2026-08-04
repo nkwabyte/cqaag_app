@@ -58,4 +58,4 @@ final class MembershipServiceProvider
   }
 }
 
-String _$membershipServiceHash() => r'374c1704db297869f10788475db9f209b32eff9a';
+String _$membershipServiceHash() => r'86340d199016262678e8ff481263b12560f4673e';

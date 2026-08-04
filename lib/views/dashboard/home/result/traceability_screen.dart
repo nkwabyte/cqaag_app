@@ -186,7 +186,7 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildStat("Weight", "${i.quantity} MT"),
+                _buildStat("Weight", "${i.quantity} KG"),
                 // Basic grading logic
                 _buildStat("Grade", i.kor >= 48 ? "Grade A" : "Grade B"),
                 // Days since creation
@@ -256,7 +256,7 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _summaryItem("Total Weight", "${i.quantity} MT"),
+              _summaryItem("Total Weight", "${i.quantity} KG"),
               _summaryItem("Quality Grade", i.kor >= 48 ? "Grade A" : "Grade B"),
             ],
           ),

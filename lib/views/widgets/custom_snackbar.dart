@@ -11,6 +11,7 @@ class CustomSnackBar {
     required SnackBarType type,
     String? title,
     Duration duration = const Duration(seconds: 3),
+    FlushbarPosition position = FlushbarPosition.BOTTOM,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -54,7 +55,7 @@ class CustomSnackBar {
       borderRadius: BorderRadius.circular(12.r),
       margin: EdgeInsets.all(16.r),
       padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-      flushbarPosition: FlushbarPosition.TOP,
+      flushbarPosition: position,
       isDismissible: true,
       dismissDirection: FlushbarDismissDirection.HORIZONTAL,
       forwardAnimationCurve: Curves.easeOutBack,
@@ -74,6 +75,7 @@ class CustomSnackBar {
     required String message,
     String? title,
     Duration duration = const Duration(seconds: 3),
+    FlushbarPosition position = FlushbarPosition.BOTTOM,
   }) {
     show(
       context,
@@ -81,6 +83,7 @@ class CustomSnackBar {
       type: SnackBarType.success,
       title: title ?? 'Success',
       duration: duration,
+      position: position,
     );
   }
 
@@ -89,6 +92,7 @@ class CustomSnackBar {
     required String message,
     String? title,
     Duration duration = const Duration(seconds: 3),
+    FlushbarPosition position = FlushbarPosition.BOTTOM,
   }) {
     show(
       context,
@@ -96,6 +100,7 @@ class CustomSnackBar {
       type: SnackBarType.error,
       title: title ?? 'Error',
       duration: duration,
+      position: position,
     );
   }
 
@@ -104,6 +109,7 @@ class CustomSnackBar {
     required String message,
     String? title,
     Duration duration = const Duration(seconds: 3),
+    FlushbarPosition position = FlushbarPosition.BOTTOM,
   }) {
     show(
       context,
@@ -111,6 +117,7 @@ class CustomSnackBar {
       type: SnackBarType.warning,
       title: title ?? 'Warning',
       duration: duration,
+      position: position,
     );
   }
 
@@ -119,6 +126,7 @@ class CustomSnackBar {
     required String message,
     String? title,
     Duration duration = const Duration(seconds: 3),
+    FlushbarPosition position = FlushbarPosition.BOTTOM,
   }) {
     show(
       context,
@@ -126,6 +134,7 @@ class CustomSnackBar {
       type: SnackBarType.info,
       title: title ?? 'Info',
       duration: duration,
+      position: position,
     );
   }
 }

@@ -65,20 +65,20 @@ class HistoryCard extends StatelessWidget {
                 ],
               ),
               Gap(12.h),
-              RichText(
-                text: TextSpan(
-                  style: TextStyle(fontFamily: 'Poppins', color: colorScheme.onSurface, fontSize: 16.sp),
-                  children: [
-                    const TextSpan(
-                      text: "Total: ",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    TextSpan(
-                      text: "$totalMT MT",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  const CustomText(
+                    "Total: ",
+                    variant: TextVariant.bodyLarge,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  CustomText(
+                    "$totalMT MT",
+                    variant: TextVariant.bodyLarge,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ],
               ),
             ],
           ),
@@ -141,14 +141,14 @@ Widget buildHistoryHeader(
                 ),
               ),
               Gap(8.0.w),
-              CustomButton(
-                text: "Export",
-                width: 110.w,
-                height: 45.h,
-                backgroundColor: Colors.white.withValues(alpha: 0.1),
-                leadingIcon: const Icon(Icons.file_download_outlined, color: Colors.white),
-                onPressed: () {},
-              ),
+              // CustomButton(
+              //   text: "Export",
+              //   width: 110.w,
+              //   height: 45.h,
+              //   backgroundColor: Colors.white.withValues(alpha: 0.1),
+              //   leadingIcon: const Icon(Icons.file_download_outlined, color: Colors.white),
+              //   onPressed: () {},
+              // ),
             ],
           ),
         ],

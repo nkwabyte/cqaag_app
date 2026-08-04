@@ -18,3 +18,4 @@
 
 export 'admin_dashboard_screen.dart';
 export 'tabs/index.dart';
+export 'qr_scanner_screen.dart';

@@ -54,7 +54,7 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
           const Divider(),
           Gap(16.h),
           const CustomText(
-            "Defect Analysis (grams)",
+            "Analysis (grams)",
             variant: TextVariant.headlineSmall,
           ),
           Gap(16.h),
@@ -71,8 +71,8 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
               Gap(16.w),
               Expanded(
                 child: const CustomTextField(
-                  name: "spotted_kernels",
-                  label: "Spotted",
+                  name: "fully_damaged_kernels",
+                  label: "Fully Damaged",
                   hint: "g",
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
                 ),
@@ -82,6 +82,15 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
           Gap(16.h),
           Row(
             children: <Widget>[
+              Expanded(
+                child: const CustomTextField(
+                  name: "spotted_kernels",
+                  label: "Spotted",
+                  hint: "g",
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                ),
+              ),
+              Gap(16.w),
               Expanded(
                 child: const CustomTextField(
                   name: "immature_kernels",
@@ -90,7 +99,11 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
                 ),
               ),
-              Gap(16.w),
+            ],
+          ),
+          Gap(16.h),
+          Row(
+            children: <Widget>[
               Expanded(
                 child: const CustomTextField(
                   name: "oily_kernels",
@@ -99,24 +112,11 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
                 ),
               ),
-            ],
-          ),
-          Gap(16.h),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: const CustomTextField(
-                  name: "void_kernels",
-                  label: "Void / Fungi",
-                  hint: "g",
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                ),
-              ),
               Gap(16.w),
               Expanded(
                 child: const CustomTextField(
-                  name: "total_defective",
-                  label: "Total Defective",
+                  name: "void_kernels",
+                  label: "Void",
                   hint: "g",
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
                 ),
@@ -125,8 +125,8 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
           ),
           Gap(16.h),
           const CustomTextField(
-            name: "total_spotted",
-            label: "Total Spotted",
+            name: "empty_shells",
+            label: "Empty Shells",
             hint: "g",
             keyboardType: TextInputType.numberWithOptions(decimal: true),
           ),

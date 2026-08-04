@@ -1,69 +1,80 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cqaag_app/index.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:logger/logger.dart';
 
 part 'inspection_service.g.dart';
 
 class InspectionService {
+  final Logger logger = Logger();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final ConnectivityService _connectivityService;
 
-  InspectionService(this._connectivityService);
+  InspectionService();
 
   CollectionReference<Map<String, dynamic>> get _inspectionsCollection => _firestore.collection('inspections');
 
   /// Create a new inspection
   Future<void> createInspection(Inspection inspection) async {
-    await _connectivityService.ensureConnected();
     await _inspectionsCollection.doc(inspection.id).set(inspection.toJson());
   }
 
   /// Update an existing inspection
   Future<void> updateInspection(Inspection inspection) async {
-    await _connectivityService.ensureConnected();
     await _inspectionsCollection.doc(inspection.id).update(inspection.toJson());
   }
 
   /// Get all inspections for a specific inspector
   Future<List<Inspection>> getInspections(String inspectorId) async {
-    await _connectivityService.ensureConnected();
-    final snapshot = await _inspectionsCollection.where('inspector_id', isEqualTo: inspectorId).orderBy('created_at', descending: true).get();
+    final snapshot = await _inspectionsCollection
+        .where('inspector_id', isEqualTo: inspectorId)
+        .orderBy('created_at', descending: true)
+        .get();
 
     return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
   }
 
   /// Get recent inspections (limit 10)
   Future<List<Inspection>> getRecentInspections(String inspectorId, {int limit = 10}) async {
-    await _connectivityService.ensureConnected();
-    final snapshot = await _inspectionsCollection.where('inspector_id', isEqualTo: inspectorId).orderBy('created_at', descending: true).limit(limit).get();
+    final snapshot = await _inspectionsCollection
+        .where('inspector_id', isEqualTo: inspectorId)
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .get();
 
     return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
   }
 
   /// Stream user's inspections in real-time
   Stream<List<Inspection>> streamUserInspections(String inspectorId) {
-    return _inspectionsCollection.where('inspector_id', isEqualTo: inspectorId).orderBy('created_at', descending: true).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
-    });
+    return _inspectionsCollection
+        .where('inspector_id', isEqualTo: inspectorId)
+        .orderBy('created_at', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
+        });
   }
 
   /// Get total count of all inspections (for ID generation)
   Future<int> getInspectionCount() async {
-    await _connectivityService.ensureConnected();
     final snapshot = await _inspectionsCollection.count().get();
     return snapshot.count ?? 0;
   }
 
   /// Stream recent inspections (limit 10)
   Stream<List<Inspection>> streamRecentInspections(String inspectorId, {int limit = 10}) {
-    return _inspectionsCollection.where('inspector_id', isEqualTo: inspectorId).orderBy('created_at', descending: true).limit(limit).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
-    });
+    return _inspectionsCollection
+        .where('inspector_id', isEqualTo: inspectorId)
+        .orderBy('created_at', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
+        });
   }
 
   /// Get inspection by ID
   Future<Inspection?> getInspectionById(String inspectionId) async {
-    await _connectivityService.ensureConnected();
     final doc = await _inspectionsCollection.doc(inspectionId).get();
 
     if (!doc.exists) return null;
@@ -76,7 +87,6 @@ class InspectionService {
     required InspectionStatus status,
     DateTime? completedAt,
   }) async {
-    await _connectivityService.ensureConnected();
 
     final updateData = <String, dynamic>{
       'status': status.name,
@@ -92,22 +102,32 @@ class InspectionService {
 
   /// Get all completed inspections (for history screen - all users)
   Future<List<Inspection>> getAllCompletedInspections() async {
-    await _connectivityService.ensureConnected();
-    final snapshot = await _inspectionsCollection.where('status', isEqualTo: 'completed').orderBy('completed_at', descending: true).get();
+    final snapshot = await _inspectionsCollection
+        .where('status', isEqualTo: 'completed')
+        .orderBy('completed_at', descending: true)
+        .get();
 
     return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
   }
 
   /// Stream all completed inspections (for history screen - all users)
   Stream<List<Inspection>> streamAllCompletedInspections() {
-    return _inspectionsCollection.where('status', isEqualTo: 'completed').orderBy('completed_at', descending: true).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
-    });
+    return _inspectionsCollection
+        .where('status', isEqualTo: 'completed')
+        .orderBy('completed_at', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          // _logger.i("Raw stream event received. Document count: ${snapshot.docs.length}");
+          // for (final doc in snapshot.docs) {
+          //   // _logger.d("Doc ID: ${doc.id}, Data: ${doc.data()}");
+          //   _logger.d("Doc ID: ${doc.id}");
+          // }
+          return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
+        });
   }
 
   /// Get user's uncompleted inspections (pending + in-progress)
   Future<List<Inspection>> getUserUncompletedInspections(String inspectorId) async {
-    await _connectivityService.ensureConnected();
     final snapshot = await _inspectionsCollection
         .where('inspector_id', isEqualTo: inspectorId)
         .where('status', whereIn: ['pending', 'in_progress'])
@@ -128,10 +148,22 @@ class InspectionService {
           return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
         });
   }
+
+  /// Stream user's completed inspections (for home screen recent activity if no pending)
+  Stream<List<Inspection>> streamUserCompletedInspections(String inspectorId, {int limit = 10}) {
+    return _inspectionsCollection
+        .where('inspector_id', isEqualTo: inspectorId)
+        .where('status', isEqualTo: 'completed')
+        .orderBy('completed_at', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => Inspection.fromJson(doc.data())).toList();
+        });
+  }
 }
 
 @Riverpod(keepAlive: true)
 InspectionService inspectionService(Ref ref) {
-  final connectivityService = ref.watch(connectivityServiceProvider);
-  return InspectionService(connectivityService);
+  return InspectionService();
 }

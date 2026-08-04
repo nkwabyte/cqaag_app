@@ -183,6 +183,55 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
           ),
           Gap(20.h),
           const CustomTextField(
+            name: "buyer_name",
+            label: "Buyer / Company Name",
+            hint: "e.g., Global Traders Ltd",
+            prefixIcon: Icons.shopping_cart_outlined,
+          ),
+          Gap(20.h),
+          const CustomTextField(
+            name: "waybill_number",
+            label: "Waybill or B/L N°",
+            hint: "e.g., WB-99812",
+            prefixIcon: Icons.receipt_long_outlined,
+          ),
+          Gap(20.h),
+          CustomText(
+            "Analysis Type",
+            variant: TextVariant.bodyLarge,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
+          ),
+          Gap(4.h),
+          FormBuilderDropdown<String>(
+            name: "analysis_type",
+            decoration: InputDecoration(
+              hintText: "Select Analysis Type",
+              prefixIcon: Icon(Icons.analytics_outlined, color: colorScheme.secondary),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 16.w),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(
+                  color: colorScheme.secondary.withValues(alpha: 0.3),
+                  width: 1.w,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.r),
+                borderSide: BorderSide(color: colorScheme.secondary, width: 1.5.w),
+              ),
+            ),
+            items: ['Arrival', 'Dispatch', 'Export']
+                .map((type) => DropdownMenuItem(
+                      value: type,
+                      child: Text(type),
+                    ))
+                .toList(),
+          ),
+          Gap(20.h),
+          const CustomTextField(
             name: "farmer_name",
             label: "Supplier / Farmer Name",
             hint: "e.g., Ama Darko",

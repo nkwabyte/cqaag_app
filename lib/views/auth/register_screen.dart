@@ -174,11 +174,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               return;
                             }
 
-                            if (email != null &&
-                                password != null &&
-                                firstName != null &&
-                                lastName != null &&
-                                phone != null) {
+                            if (email != null && password != null && firstName != null && lastName != null && phone != null) {
                               try {
                                 final authService = ref.read(authServiceProvider);
                                 await authService.signUpWithEmailAndPassword(
@@ -199,7 +195,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                     message: "Account created successfully!",
                                   );
                                   // Navigate to Terms and Conditions before dashboard
-                                  context.go('/${TermsAndConditionsScreen.id}');
+                                  context.goNamed(TermsAndConditionsScreen.id, extra: {'fromRegister': true});
                                 }
                               } catch (e) {
                                 if (context.mounted) {
@@ -321,7 +317,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   Gap(8.w),
                   const CustomText(
-                    "Back to Login",
+                    "Back",
                     variant: TextVariant.bodyMedium,
                     color: Colors.white,
                   ),

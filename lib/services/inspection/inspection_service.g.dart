@@ -54,4 +54,4 @@ final class InspectionServiceProvider
   }
 }
 
-String _$inspectionServiceHash() => r'1d1913cd2c1cec01ccc0a2dd860fe1a1a9406823';
+String _$inspectionServiceHash() => r'1789684aa3f6d7a18723e8f32e2074c91cbeb7b5';

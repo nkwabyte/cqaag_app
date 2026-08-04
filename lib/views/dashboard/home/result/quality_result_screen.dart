@@ -2,9 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gap/gap.dart';
-import 'package:cqaag_app/index.dart';
+import 'dart:io';
 
-class QualityResultScreen extends StatefulWidget {
+import 'package:cqaag_app/index.dart';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:printing/printing.dart'; // For PDF preview/printing
+import 'package:share_plus/share_plus.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:flutter_file_dialog/flutter_file_dialog.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class QualityResultScreen extends ConsumerStatefulWidget {
   static const String id = 'quality_result_screen';
 
   final Inspection inspection;
@@ -12,10 +22,10 @@ class QualityResultScreen extends StatefulWidget {
   const QualityResultScreen({super.key, required this.inspection});
 
   @override
-  State<QualityResultScreen> createState() => _QualityResultScreenState();
+  ConsumerState<QualityResultScreen> createState() => _QualityResultScreenState();
 }
 
-class _QualityResultScreenState extends State<QualityResultScreen> {
+class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -58,7 +68,11 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
                             variant: TextVariant.displayLarge,
                             color: Colors.white,
                           ),
-                          CustomText("KOR", variant: TextVariant.bodySmall, color: Colors.white70),
+                          CustomText(
+                            "KOR",
+                            variant: TextVariant.bodySmall,
+                            color: Colors.white70,
+                          ),
                         ],
                       ),
                     ),
@@ -129,11 +143,15 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: CustomButton(
-                        text: "Share",
-                        variant: ButtonVariant.outlined,
-                        leadingIcon: Icon(Icons.share_outlined, color: colorScheme.primary),
-                        onPressed: () {},
+                      child: Builder(
+                        builder: (context) {
+                          return CustomButton(
+                            text: "Share",
+                            variant: ButtonVariant.outlined,
+                            leadingIcon: Icon(Icons.share_outlined, color: colorScheme.primary),
+                            onPressed: () => _shareReport(context, i),
+                          );
+                        },
                       ),
                     ),
                     Gap(16.w),
@@ -142,7 +160,7 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
                         text: "PDF",
                         variant: ButtonVariant.outlined,
                         leadingIcon: Icon(Icons.picture_as_pdf_outlined, color: colorScheme.primary),
-                        onPressed: () {},
+                        onPressed: () => _downloadReport(context, i),
                       ),
                     ),
                   ],
@@ -168,7 +186,7 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
         const CustomText("Quality Result", variant: TextVariant.headlineMedium, color: Colors.white),
         IconButton(
           icon: const Icon(Icons.share, color: Colors.white),
-          onPressed: () {},
+          onPressed: () => _shareReport(context, widget.inspection),
         ),
       ],
     );
@@ -197,7 +215,7 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
           const Divider(),
           _InfoRow(label: "Company", value: i.company ?? "N/A"),
           const Divider(),
-          _InfoRow(label: "Quantity", value: "${i.quantity} MT"),
+          _InfoRow(label: "Quantity", value: "${i.quantity} KG"),
         ],
       ),
     );
@@ -248,6 +266,12 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
           unit: "g",
           status: "Pass",
         ),
+        ParameterCard(
+          label: "KOR",
+          value: i.kor.toStringAsFixed(1),
+          unit: "lbs",
+          status: "Pass",
+        ),
       ],
     );
   }
@@ -265,10 +289,19 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
           Row(
             children: [
               Container(
-                width: 100.r,
-                height: 100.r,
-                color: Colors.grey.withValues(alpha: 0.1),
-                child: const Icon(Icons.qr_code_2, size: 80),
+                width: 130.r,
+                height: 130.r,
+                padding: EdgeInsets.all(1.r),
+                decoration: BoxDecoration(
+                  // color: Colors.grey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(1.r),
+                  border: Border.all(color: colorScheme.secondary.withValues(alpha: 0.7)),
+                ),
+                child: QrImageView(
+                  data: 'inspection:${i.inspectionId ?? i.id}',
+                  version: QrVersions.auto,
+                  size: 80.0,
+                ),
               ),
               Gap(20.w),
               Expanded(
@@ -320,6 +353,188 @@ class _QualityResultScreenState extends State<QualityResultScreen> {
         ],
       ),
     );
+  }
+
+  Future<Map<String, dynamic>> _prepareReportData(Inspection i) async {
+    return {
+      'batchId': i.batchId ?? 'N/A',
+      'date': i.completedAt?.toString().split(' ')[0] ?? DateTime.now().toString().split(' ')[0],
+      'location': i.exactLocation?.isNotEmpty == true ? i.exactLocation : (i.location ?? 'N/A'),
+      'company': i.company ?? 'N/A',
+      'buyerName': i.buyerName ?? '',
+      'waybillNumber': i.waybillNumber ?? '',
+      'analysisType': i.analysisType ?? '',
+      'truckNumber': i.truckNumber ?? 'N/A',
+      'quantity': i.quantity.toString(),
+      'bagCount': i.quantityBags.toString(),
+      'nutCount': i.nutCount.toString(),
+      'nutCountStatus': 'Pass', // Logic for status can be refined
+      'moisture': '${i.moistureContent}%',
+      'moistureStatus': i.moistureContent <= 10.0 ? 'Pass' : 'Fail',
+      'kor': '${i.kor.toStringAsFixed(1)} lbs',
+      'korStatus': i.kor >= 48.0 ? 'Pass' : 'Fail',
+      'defectiveRate': '${i.totalDefective}%', // Assuming percentage or needing conversion
+      'defectiveStatus': 'Pass', // Logic for status
+      'voidKernels': i.voidKernels.toString(),
+      'spottedKernels': i.spottedKernels.toString(),
+      'oilyKernels': i.oilyKernels.toString(),
+      'immatureKernels': i.immatureKernels.toString(),
+      'goodKernels': i.goodKernels.toString(),
+      'fullyDamagedKernels': i.fullyDamagedKernels.toString(),
+      'emptyShells': i.emptyShells.toString(),
+      'totalDefective': i.totalDefective.toString(),
+      'totalSpotted': i.totalSpotted.toString(),
+      'town': i.town ?? '',
+      'chapter': i.chapter ?? '',
+      'inspector': _getInspectorFullName(),
+      'inspectionId': i.inspectionId,
+      'id': i.id,
+      'conclusion': i.kor >= 48.0
+          ? 'This batch meets all export quality standards for Grade A raw cashew nuts. Approved for shipment.'
+          : 'This batch is below standard for export quality.',
+    };
+  }
+
+  Future<void> _shareReport(BuildContext context, Inspection i) async {
+    try {
+      // Ask if user wants to sign digitally
+      final signature = await _showSignatureDialog(context);
+      if (signature == null) return; // User cancelled
+
+      final pdfService = PdfService();
+      final data = await _prepareReportData(i);
+      if (signature.isNotEmpty) {
+        data['signature'] = signature;
+      }
+      final pdfBytes = await pdfService.generateReport(data);
+
+      final directory = await getTemporaryDirectory();
+      final file = File('${directory.path}/analysis_report_${i.batchId ?? 'temp'}.pdf');
+      await file.writeAsBytes(pdfBytes);
+
+      if (!context.mounted) return;
+
+      // Get the render box of the button that triggered this action
+      final box = context.findRenderObject() as RenderBox?;
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Analysis Report for Batch ${i.batchId ?? 'N/A'}',
+        sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
+      );
+    } catch (e) {
+      debugPrint('Error sharing report: $e');
+    }
+  }
+
+  Future<void> _downloadReport(BuildContext context, Inspection i) async {
+    try {
+      // Ask if user wants to sign digitally
+      final signature = await _showSignatureDialog(context);
+      if (signature == null) return; // User cancelled
+
+      final pdfService = PdfService();
+      final data = await _prepareReportData(i);
+      if (signature.isNotEmpty) {
+        data['signature'] = signature;
+      }
+      final pdfBytes = await pdfService.generateReport(data);
+
+      if (kIsWeb) {
+        await Printing.layoutPdf(
+          onLayout: (format) async => pdfBytes,
+          name: 'analysis_report_${i.batchId ?? 'temp'}.pdf',
+        );
+      } else {
+        // Save file to temp directory first
+        final directory = await getTemporaryDirectory();
+        final fileName = 'analysis_report_${i.batchId ?? 'temp'}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+        final file = File('${directory.path}/$fileName');
+        await file.writeAsBytes(pdfBytes);
+
+        // Ask user where to save the file
+        final params = SaveFileDialogParams(sourceFilePath: file.path);
+        final filePath = await FlutterFileDialog.saveFile(params: params);
+
+        if (context.mounted && filePath != null) {
+          CustomSnackBar.success(
+            context,
+            message: 'Report saved',
+            duration: const Duration(seconds: 4),
+          );
+
+          await OpenFilex.open(filePath);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error downloading report: $e');
+      if (context.mounted) {
+        CustomSnackBar.error(
+          context,
+          message: 'Failed to save report: $e',
+        );
+      }
+    }
+  }
+
+  Future<String?> _showSignatureDialog(BuildContext context) async {
+    final user = ref.read(currentUserProfileProvider).value;
+    final defaultInitials = _getUserInitials(user);
+
+    final controller = TextEditingController(text: defaultInitials);
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Digital Signature'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Would you like to sign this report digitally?'),
+            const SizedBox(height: 16),
+            const Text('Enter your initials (optional):', style: TextStyle(fontSize: 12)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'e.g., J.D.',
+                border: OutlineInputBorder(),
+              ),
+              maxLength: 10,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, ''),
+            child: const Text('Skip'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text.trim()),
+            child: const Text('Sign'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getInspectorFullName() {
+    final user = ref.read(currentUserProfileProvider).value;
+    if (user != null) {
+      return '${user.firstName} ${user.lastName}'.trim();
+    }
+    return widget.inspection.inspectorId;
+  }
+
+  String _getUserInitials(AppUser? user) {
+    if (user == null) return '';
+    final firstInitial = user.firstName.isNotEmpty ? user.firstName[0].toUpperCase() : '';
+    final lastInitial = user.lastName.isNotEmpty ? user.lastName[0].toUpperCase() : '';
+    return '$firstInitial$lastInitial';
   }
 }
 

@@ -19,6 +19,7 @@ class CustomButton extends StatelessWidget {
   final double? borderRadius;
   final Widget? leadingIcon;
   final Widget? trailingIcon;
+  final bool fullWidth;
 
   const CustomButton({
     super.key,
@@ -35,6 +36,7 @@ class CustomButton extends StatelessWidget {
     this.borderRadius,
     this.leadingIcon,
     this.trailingIcon,
+    this.fullWidth = true,
   });
 
   @override
@@ -56,7 +58,7 @@ class CustomButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(borderRadius ?? 12.r),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        width: width ?? double.infinity,
+        width: width ?? (fullWidth ? double.infinity : null),
         height: height ?? 56.h,
         padding: padding ?? EdgeInsets.symmetric(horizontal: 16.w),
         decoration: BoxDecoration(

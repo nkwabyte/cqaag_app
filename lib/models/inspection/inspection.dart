@@ -13,6 +13,8 @@ enum InspectionStatus {
   completed,
   @JsonValue('rejected')
   rejected,
+  @JsonValue('pending_sync')
+  pendingSync,
 }
 
 @freezed
@@ -30,10 +32,14 @@ abstract class Inspection with _$Inspection {
     CapturedLocation? capturedLocation, // GPS-captured location with coordinates
     String? town,
     String? chapter,
+    String? exactLocation,
 
     // Basic Info
     String? truckNumber,
     String? company,
+    String? buyerName,
+    String? waybillNumber,
+    String? analysisType,
     @Default(0.0) double quantity,
     @Default(0) int quantityBags,
 
@@ -48,6 +54,8 @@ abstract class Inspection with _$Inspection {
     @Default(0.0) double immatureKernels,
     @Default(0.0) double oilyKernels,
     @Default(0.0) double voidKernels,
+    @Default(0.0) double fullyDamagedKernels,
+    @Default(0.0) double emptyShells,
     @Default(0.0) double totalDefective,
     @Default(0.0) double totalSpotted,
 

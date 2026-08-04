@@ -18,3 +18,4 @@
 
 export 'constants/index.dart';
 export 'theme/index.dart';
+export 'services/index.dart';

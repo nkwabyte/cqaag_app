@@ -1,12 +1,10 @@
 import 'package:adaptive_theme/adaptive_theme.dart';
-import 'package:cqaag_app/core/index.dart';
-
-import 'package:cqaag_app/router/app_router.dart';
+import 'package:cqaag_app/index.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'services/firebase_options.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -14,6 +12,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
   final savedThemeMode = await AdaptiveTheme.getThemeMode();
   runApp(ProviderScope(child: MyApp(savedThemeMode: savedThemeMode)));
 }

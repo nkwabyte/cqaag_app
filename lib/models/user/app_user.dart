@@ -101,6 +101,7 @@ abstract class AppUser with _$AppUser {
     VerificationData? verification,
     @Default(VerificationStatus.unverified) VerificationStatus verificationStatus,
     @Default(MembershipStatus.notAMember) MembershipStatus membershipStatus,
+    @Default(false) bool hasAcceptedTerms,
     @Default(false) bool isAdmin,
   }) = _AppUser;
 

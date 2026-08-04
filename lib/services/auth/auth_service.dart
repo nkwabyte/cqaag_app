@@ -78,17 +78,14 @@ class AuthService {
   }
 
   Future<void> updateUser(AppUser user) async {
-    await _connectivityService.ensureConnected();
     await _firestore.collection('users').doc(user.id).update(user.toJson());
   }
 
   Future<void> resetPassword(String email) async {
-    await _connectivityService.ensureConnected();
     await _auth.sendPasswordResetEmail(email: email);
   }
 
   Future<void> deleteUser() async {
-    await _connectivityService.ensureConnected();
     final user = _auth.currentUser;
     if (user == null) return;
 

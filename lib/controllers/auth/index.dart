@@ -16,4 +16,5 @@
  * Any manual changes to this file may be overwritten.
  */
 
+export 'guest_mode_provider.dart';
 export 'auth_controller.dart';
