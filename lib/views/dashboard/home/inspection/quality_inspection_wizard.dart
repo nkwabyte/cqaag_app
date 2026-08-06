@@ -134,6 +134,34 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         return 0;
       }
 
+      // Collect the cut tests that were actually filled in. Blank ones are
+      // dropped so an untouched "3rd Cutting" card cannot drag the average
+      // toward zero.
+      final cutTests = <CutTest>[];
+      for (var cutting = 1; cutting <= kMaxCutTests; cutting++) {
+        final label = formData[cutTestField(cutting, 'label')] as String?;
+
+        final cut = CutTest(
+          index: cutTests.length + 1,
+          label: label,
+          moistureContent: parseDouble(formData[cutTestField(cutting, 'moisture')]),
+          nutCount: parseInt(formData[cutTestField(cutting, 'nut_count')]),
+          fullyDamagedNuts: parseDouble(formData[cutTestField(cutting, 'fully_damaged')]),
+          voidNuts: parseDouble(formData[cutTestField(cutting, 'void')]),
+          oilNuts: parseDouble(formData[cutTestField(cutting, 'oil')]),
+          spottedNuts: parseDouble(formData[cutTestField(cutting, 'spotted')]),
+          immatureNuts: parseDouble(formData[cutTestField(cutting, 'immature')]),
+          goodKernels: parseDouble(formData[cutTestField(cutting, 'good_kernels')]),
+          emptyShells: parseDouble(formData[cutTestField(cutting, 'empty_shells')]),
+        );
+
+        if (!cut.isEmpty) cutTests.add(cut);
+      }
+
+      if (cutTests.isEmpty) {
+        throw Exception('Enter the measurements for at least one cut test.');
+      }
+
       // Create inspection object from form data
       final inspection = Inspection(
         id: _docId,
@@ -155,19 +183,23 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         quantity: parseDouble(formData['quantity']),
         quantityBags: parseInt(formData['quantity_bags']),
 
-        moistureContent: parseDouble(formData['moisture']),
-        nutCount: parseInt(formData['nut_count']),
-        kor: parseDouble(formData['kor']),
+        cutTests: cutTests,
 
-        goodKernels: parseDouble(formData['good_kernels']),
-        fullyDamagedKernels: parseDouble(formData['fully_damaged_kernels']),
-        spottedKernels: parseDouble(formData['spotted_kernels']),
-        immatureKernels: parseDouble(formData['immature_kernels']),
-        oilyKernels: parseDouble(formData['oily_kernels']),
-        voidKernels: parseDouble(formData['void_kernels']),
-        emptyShells: parseDouble(formData['empty_shells']),
-        totalDefective: parseDouble(formData['fully_damaged_kernels']) + parseDouble(formData['void_kernels']) + parseDouble(formData['oily_kernels']),
-        totalSpotted: parseDouble(formData['spotted_kernels']) + parseDouble(formData['immature_kernels']),
+        // The flat fields carry the average across the cut tests, which is what
+        // the report's AVERAGE column and the rest of the app already read.
+        moistureContent: cutTests.averageMoisture,
+        nutCount: cutTests.averageNutCount.round(),
+        kor: cutTests.averageKor,
+
+        goodKernels: cutTests.averageGoodKernels,
+        fullyDamagedKernels: cutTests.averageFullyDamaged,
+        spottedKernels: cutTests.averageSpotted,
+        immatureKernels: cutTests.averageImmature,
+        oilyKernels: cutTests.averageOilNuts,
+        voidKernels: cutTests.averageVoidNuts,
+        emptyShells: cutTests.averageEmptyShells,
+        totalDefective: cutTests.averageTotalDamaged,
+        totalSpotted: cutTests.averageTotalSpotted,
 
         imageUrls: uploadedImageUrls,
         notes: formData['notes'] as String?,
@@ -268,6 +300,7 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
                       QualityMetricsStep(
                         key: ValueKey('step_2_$_docId'),
                         footer: _buildBottomAction(colorScheme),
+                        initialCutTests: widget.existingInspection?.effectiveCutTests ?? const <CutTest>[],
                       ).fadeInSlideUp(),
                       PhotoDocumentationStep(
                         key: ValueKey('step_3_$_docId'),

@@ -356,7 +356,12 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
   }
 
   Future<Map<String, dynamic>> _prepareReportData(Inspection i) async {
+    // Cut tests drive the I / II / III columns and the AVERAGE column. Older
+    // inspections that only stored averages surface as a single cut test.
+    final cuts = i.effectiveCutTests;
+
     return {
+      'cutTests': cuts,
       'batchId': i.batchId ?? 'N/A',
       'date': i.completedAt?.toString().split(' ')[0] ?? DateTime.now().toString().split(' ')[0],
       'location': i.exactLocation?.isNotEmpty == true ? i.exactLocation : (i.location ?? 'N/A'),
@@ -371,8 +376,8 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
       'nutCountStatus': 'Pass', // Logic for status can be refined
       'moisture': '${i.moistureContent}%',
       'moistureStatus': i.moistureContent <= 10.0 ? 'Pass' : 'Fail',
-      'kor': '${i.kor.toStringAsFixed(1)} lbs',
-      'korStatus': i.kor >= 48.0 ? 'Pass' : 'Fail',
+      'kor': '${cuts.averageKor.toStringAsFixed(2)} lbs',
+      'korStatus': cuts.averageKor >= 48.0 ? 'Pass' : 'Fail',
       'defectiveRate': '${i.totalDefective}%', // Assuming percentage or needing conversion
       'defectiveStatus': 'Pass', // Logic for status
       'voidKernels': i.voidKernels.toString(),

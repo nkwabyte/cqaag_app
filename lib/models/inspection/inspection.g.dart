@@ -28,6 +28,11 @@ _Inspection _$InspectionFromJson(Map<String, dynamic> json) => _Inspection(
   analysisType: json['analysis_type'] as String?,
   quantity: (json['quantity'] as num?)?.toDouble() ?? 0.0,
   quantityBags: (json['quantity_bags'] as num?)?.toInt() ?? 0,
+  cutTests:
+      (json['cut_tests'] as List<dynamic>?)
+          ?.map((e) => CutTest.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <CutTest>[],
   moistureContent: (json['moisture_content'] as num?)?.toDouble() ?? 0.0,
   nutCount: (json['nut_count'] as num?)?.toInt() ?? 0,
   kor: (json['kor'] as num?)?.toDouble() ?? 0.0,
@@ -80,6 +85,7 @@ Map<String, dynamic> _$InspectionToJson(_Inspection instance) =>
       'analysis_type': instance.analysisType,
       'quantity': instance.quantity,
       'quantity_bags': instance.quantityBags,
+      'cut_tests': instance.cutTests.map((e) => e.toJson()).toList(),
       'moisture_content': instance.moistureContent,
       'nut_count': instance.nutCount,
       'kor': instance.kor,

@@ -17,3 +17,4 @@
  */
 
 export 'inspection.dart';
+export 'cut_test.dart';
