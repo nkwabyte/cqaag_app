@@ -235,6 +235,14 @@ GoRouter goRouter(Ref ref) {
           return MembershipAgreementScreen(applicationData: applicationData ?? {});
         },
       ),
+      GoRoute(
+        path: '/${MembershipPaymentScreen.id}',
+        name: MembershipPaymentScreen.id,
+        builder: (context, state) {
+          final applicationData = state.extra as Map<String, dynamic>?;
+          return MembershipPaymentScreen(applicationData: applicationData ?? {});
+        },
+      ),
 
       // Admin Details Routes
       GoRoute(

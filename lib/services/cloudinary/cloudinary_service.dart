@@ -77,6 +77,12 @@ class CloudinaryService {
     return _uploadFile(file, folder: 'Inspections');
   }
 
+  /// Evidence of a Mobile Money registration payment, kept apart from identity
+  /// documents so it can be retained on a different schedule.
+  Future<String?> uploadPaymentEvidence(File file) async {
+    return _uploadFile(file, folder: 'Payments');
+  }
+
   Future<String?> _uploadFile(File file, {required String folder}) async {
     try {
       debugPrint("Attempting to upload file: ${file.path} to folder: $folder");

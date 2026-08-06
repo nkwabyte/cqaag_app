@@ -1,0 +1,517 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:uuid/uuid.dart' as uuid_pkg;
+
+import 'package:cqaag_app/index.dart';
+import 'package:cqaag_app/models/membership/membership_category.dart' as membership_models;
+
+/// Final step of registration: pay the fee, then submit.
+///
+/// The application is only written to Firestore once payment has been provided,
+/// so a member is registered pending admin approval rather than sitting in an
+/// unpaid state.
+class MembershipPaymentScreen extends ConsumerStatefulWidget {
+  static const String id = 'membership_payment_screen';
+  final Map<String, dynamic> applicationData;
+
+  const MembershipPaymentScreen({super.key, required this.applicationData});
+
+  @override
+  ConsumerState<MembershipPaymentScreen> createState() => _MembershipPaymentScreenState();
+}
+
+class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScreen> {
+  PaymentMethod? _selectedMethod;
+  File? _evidenceFile;
+  final TextEditingController _referenceController = TextEditingController();
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _referenceController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final settingsAsync = ref.watch(paymentSettingsProvider);
+
+    // Defaults keep the screen usable even if settings/payment cannot be read.
+    final settings = settingsAsync.value ?? PaymentSettings.defaults;
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: Column(
+        children: [
+          _buildHeader(colorScheme, settings),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(24.r),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const CustomText(
+                    "Choose how to pay",
+                    variant: TextVariant.headlineMedium,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  Gap(8.h),
+                  CustomText(
+                    "Your application is submitted once payment is provided. An administrator then verifies it along with your identity documents.",
+                    variant: TextVariant.bodyMedium,
+                    color: colorScheme.secondary,
+                  ),
+                  Gap(24.h),
+
+                  _buildMethodCard(
+                    colorScheme: colorScheme,
+                    method: PaymentMethod.momo,
+                    icon: Icons.smartphone_outlined,
+                    title: "Pay via Mobile Money",
+                    description: "Send the fee to the CQAAG MoMo account and upload your payment evidence.",
+                    enabled: true,
+                  ),
+                  Gap(12.h),
+                  _buildMethodCard(
+                    colorScheme: colorScheme,
+                    method: PaymentMethod.paystack,
+                    icon: Icons.credit_card_outlined,
+                    title: "Pay with Paystack",
+                    description: "Card and instant mobile money. Not available yet — please use Mobile Money.",
+                    enabled: false,
+                  ),
+
+                  if (_selectedMethod == PaymentMethod.momo) ...[
+                    Gap(24.h),
+                    _buildMomoInstructions(colorScheme, settings),
+                    Gap(24.h),
+                    _buildEvidenceUpload(colorScheme),
+                    Gap(24.h),
+                    _buildReferenceField(colorScheme),
+                  ],
+
+                  Gap(32.h),
+                  CustomButton(
+                    text: _isSubmitting ? "Submitting..." : "Submit Application",
+                    isLoading: _isSubmitting,
+                    onPressed: _isSubmitting ? () {} : () => _handleSubmit(settings),
+                  ),
+                  Gap(40.h),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(ColorScheme colorScheme, PaymentSettings settings) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(20.w, 60.h, 20.w, 32.h),
+      decoration: BoxDecoration(
+        color: colorScheme.onSurface,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(50.r),
+          bottomRight: Radius.circular(50.r),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => context.pop(),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.arrow_back, color: Colors.white, size: 20.r),
+                Gap(8.w),
+                const CustomText("Back", color: Colors.white),
+              ],
+            ),
+          ),
+          Gap(24.h),
+          const CustomText("Registration Payment", variant: TextVariant.displaySmall, color: Colors.white),
+          Gap(8.h),
+          CustomText(
+            "Amount due: ${settings.formattedFee}",
+            variant: TextVariant.bodyLarge,
+            color: Colors.white.withValues(alpha: 0.85),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMethodCard({
+    required ColorScheme colorScheme,
+    required PaymentMethod method,
+    required IconData icon,
+    required String title,
+    required String description,
+    required bool enabled,
+  }) {
+    final selected = _selectedMethod == method;
+
+    return Opacity(
+      opacity: enabled ? 1 : 0.6,
+      child: InkWell(
+        onTap: enabled ? () => setState(() => _selectedMethod = method) : null,
+        borderRadius: BorderRadius.circular(12.r),
+        child: Container(
+          padding: EdgeInsets.all(16.r),
+          decoration: BoxDecoration(
+            color: selected ? colorScheme.primary.withValues(alpha: 0.06) : Colors.white,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(
+              color: selected ? colorScheme.primary : colorScheme.secondary.withValues(alpha: 0.3),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: colorScheme.primary, size: 28.r),
+              Gap(12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: CustomText(title, variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+                        ),
+                        if (!enabled) ...[
+                          Gap(8.w),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(99.r),
+                            ),
+                            child: const CustomText("Coming soon", variant: TextVariant.bodySmall),
+                          ),
+                        ],
+                      ],
+                    ),
+                    Gap(4.h),
+                    CustomText(description, variant: TextVariant.bodySmall, color: colorScheme.secondary),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMomoInstructions(ColorScheme colorScheme, PaymentSettings settings) {
+    return Container(
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CustomText(
+            "Send ${settings.formattedFee} to",
+            variant: TextVariant.bodyLarge,
+            fontWeight: FontWeight.bold,
+          ),
+          Gap(12.h),
+          _buildDetailRow("Network", settings.network.label),
+          Gap(8.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              CustomText("Number", variant: TextVariant.bodyMedium, color: colorScheme.secondary),
+              Row(
+                children: [
+                  CustomText(settings.momoNumber, variant: TextVariant.bodyMedium, fontWeight: FontWeight.bold),
+                  Gap(4.w),
+                  InkWell(
+                    onTap: () async {
+                      await Clipboard.setData(ClipboardData(text: settings.momoNumber));
+                      if (mounted) {
+                        CustomSnackBar.success(context, message: 'Number copied');
+                      }
+                    },
+                    child: Icon(Icons.copy_outlined, size: 18.r, color: colorScheme.primary),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Gap(8.h),
+          _buildDetailRow("Account name", settings.momoAccountName),
+          Gap(16.h),
+          const Divider(),
+          Gap(8.h),
+          CustomText(
+            "1. Send the exact amount from your Mobile Money wallet.\n"
+            "2. Use your full name as the reference.\n"
+            "3. Screenshot the confirmation message.\n"
+            "4. Upload it below for verification.",
+            variant: TextVariant.bodySmall,
+            color: colorScheme.secondary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        CustomText(label, variant: TextVariant.bodyMedium, color: Theme.of(context).colorScheme.secondary),
+        Flexible(
+          child: CustomText(value, variant: TextVariant.bodyMedium, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEvidenceUpload(ColorScheme colorScheme) {
+    final file = _evidenceFile;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const CustomText("Payment evidence", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+        Gap(8.h),
+        InkWell(
+          onTap: _pickEvidence,
+          borderRadius: BorderRadius.circular(12.r),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(16.r),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(
+                color: file != null ? colorScheme.primary : colorScheme.secondary.withValues(alpha: 0.3),
+              ),
+            ),
+            child: file == null
+                ? Column(
+                    children: [
+                      Icon(Icons.receipt_long_outlined, size: 36.r, color: colorScheme.secondary),
+                      Gap(8.h),
+                      CustomText(
+                        "Take a photo or upload your payment screenshot",
+                        variant: TextVariant.bodySmall,
+                        color: colorScheme.secondary,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8.r),
+                        child: Image.file(file, height: 160.h, width: double.infinity, fit: BoxFit.cover),
+                      ),
+                      Gap(8.h),
+                      const CustomText("Tap to change", variant: TextVariant.bodySmall),
+                    ],
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReferenceField(ColorScheme colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const CustomText("Transaction ID (optional)", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+        Gap(8.h),
+        TextField(
+          controller: _referenceController,
+          decoration: InputDecoration(
+            hintText: "e.g. MP250804.1523.A12345",
+            filled: true,
+            fillColor: Colors.white,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12.r),
+              borderSide: BorderSide(color: colorScheme.secondary.withValues(alpha: 0.3)),
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+          ),
+        ),
+        Gap(4.h),
+        CustomText(
+          "Speeds up verification, but you can leave it blank.",
+          variant: TextVariant.bodySmall,
+          color: colorScheme.secondary,
+        ),
+      ],
+    );
+  }
+
+  Future<void> _pickEvidence() async {
+    try {
+      final file = await ImageSourcePicker.pick(
+        context,
+        cameraLabel: 'Take a photo of the receipt',
+      );
+      if (file != null) {
+        setState(() => _evidenceFile = file);
+      }
+    } catch (e) {
+      if (mounted) CustomSnackBar.error(context, message: 'Error picking evidence: $e');
+    }
+  }
+
+  Future<void> _handleSubmit(PaymentSettings settings) async {
+    if (_selectedMethod != PaymentMethod.momo) {
+      CustomSnackBar.error(context, message: 'Please choose a payment method to continue.');
+      return;
+    }
+
+    final evidence = _evidenceFile;
+    if (evidence == null) {
+      CustomSnackBar.error(context, message: 'Please upload evidence of your Mobile Money payment.');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final user = ref.read(authServiceProvider).currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final evidenceUrl = await ref.read(cloudinaryServiceProvider).uploadPaymentEvidence(evidence);
+      if (evidenceUrl == null) {
+        throw Exception('Could not upload your payment evidence. Please try again.');
+      }
+
+      final application = _buildApplication(
+        userId: user.uid,
+        userEmail: user.email ?? '',
+        settings: settings,
+        evidenceUrl: evidenceUrl,
+      );
+
+      await ref.read(membershipControllerProvider.notifier).submitApplication(application);
+
+      if (!mounted) return;
+
+      CustomSnackBar.success(
+        context,
+        message: 'Your application and payment were submitted. An administrator will verify them shortly.',
+        title: 'Application Submitted',
+      );
+
+      context.goNamed(ProfileScreen.id);
+    } catch (e) {
+      if (!mounted) return;
+      CustomSnackBar.error(
+        context,
+        message: 'Failed to submit application: ${e.toString()}',
+        title: 'Submission Failed',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  MembershipApplication _buildApplication({
+    required String userId,
+    required String userEmail,
+    required PaymentSettings settings,
+    required String evidenceUrl,
+  }) {
+    final formData = widget.applicationData;
+
+    final titleStr = (formData['title'] as String?)?.toLowerCase() ?? 'mr';
+    final title = membership_models.Title.values.firstWhere(
+      (t) => t.name == titleStr,
+      orElse: () => membership_models.Title.mr,
+    );
+
+    final dobDateTime = formData['dob'] as DateTime?;
+    final dateOfBirth = dobDateTime?.toIso8601String() ?? DateTime.now().toIso8601String();
+
+    final now = DateTime.now();
+
+    return MembershipApplication(
+      id: const uuid_pkg.Uuid().v4(),
+      userId: userId,
+      title: title,
+      firstName: formData['first_name'] as String? ?? '',
+      lastName: formData['last_name'] as String? ?? '',
+      dateOfBirth: dateOfBirth,
+      gender: _parseGender(formData['gender'] as String?),
+      nationality: formData['nationality'] as String? ?? 'Ghanaian',
+      phoneNumberPrimary: formData['phone'] as String? ?? '',
+      emailAddress: userEmail,
+      residentialAddress: formData['address'] as String? ?? '',
+      regionDistrict: formData['region'] as String? ?? '',
+      currentJobTitle: formData['job_title'] as String? ?? '',
+      employerOrganization: formData['employer'] as String? ?? '',
+      membershipCategory: _parseMembershipCategory(formData['membership_category'] as String?),
+      status: ApplicationStatus.submitted,
+      createdAt: now,
+      submittedAt: now,
+
+      // Snapshot what was actually charged, so later fee changes do not rewrite
+      // this applicant's record.
+      paymentMethod: PaymentMethod.momo.value,
+      paymentStatus: PaymentStatus.pendingVerification.value,
+      paymentAmount: settings.registrationFee,
+      paymentCurrency: settings.currency,
+      paymentEvidenceUrl: evidenceUrl,
+      paymentReference: _referenceController.text.trim().isEmpty ? null : _referenceController.text.trim(),
+      paymentMomoNetwork: settings.network.value,
+      paymentMomoNumber: settings.momoNumber,
+      paymentSubmittedAt: now,
+    );
+  }
+
+  MembershipCategory _parseMembershipCategory(String? categoryStr) {
+    switch (categoryStr?.toLowerCase()) {
+      case 'full member':
+        return MembershipCategory.full;
+      case 'associate member':
+        return MembershipCategory.associate;
+      case 'corporate member':
+        return MembershipCategory.corporate;
+      case 'honorary member':
+        return MembershipCategory.honorary;
+      default:
+        return MembershipCategory.full;
+    }
+  }
+
+  membership_models.Gender _parseGender(String? genderStr) {
+    switch (genderStr?.toLowerCase()) {
+      case 'female':
+        return membership_models.Gender.female;
+      case 'prefer not to say':
+        return membership_models.Gender.preferNotToSay;
+      default:
+        return membership_models.Gender.male;
+    }
+  }
+}

@@ -18,3 +18,4 @@
 
 export 'membership_application_screen.dart';
 export 'membership_aggreement_screen.dart';
+export 'membership_payment_screen.dart';

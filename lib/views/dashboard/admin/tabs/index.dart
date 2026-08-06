@@ -21,3 +21,4 @@ export 'user_management_tab.dart';
 export 'member_detail_screen.dart';
 export 'membership_management_tab.dart';
 export 'reports_management_tab.dart';
+export 'payment_settings_tab.dart';
