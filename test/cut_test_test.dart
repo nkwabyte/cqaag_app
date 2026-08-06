@@ -115,6 +115,71 @@ void main() {
     });
   });
 
+  // Rules as stated by the association, checked against the EAK EBAKOP
+  // certificate. Its printed OUTTURN of 46.2 lbs is an independent check: that
+  // figure is only reachable from a TOTAL YIELD of 262.5, which is why the
+  // 254.0 printed on that certificate was wrong.
+  group('report arithmetic rules', () {
+    const eak = CutTest(
+      index: 1,
+      moistureContent: 15,
+      nutCount: 148,
+      fullyDamagedNuts: 49,
+      voidNuts: 14,
+      oilNuts: 0,
+      spottedNuts: 12,
+      immatureNuts: 5,
+      goodKernels: 254,
+      emptyShells: 666,
+    );
+
+    test('first TOTAL = fully damaged + void + oil', () {
+      expect(eak.totalDamaged, 63);
+      expect(eak.totalDamaged, eak.fullyDamagedNuts + eak.voidNuts + eak.oilNuts);
+    });
+
+    test('second TOTAL = spotted + immature', () {
+      expect(eak.totalSpotted, 17);
+      expect(eak.totalSpotted, eak.spottedNuts + eak.immatureNuts);
+    });
+
+    test('50% of above TOTAL is half of spotted + immature', () {
+      expect(eak.halfTotalSpotted, 8.5);
+      expect(eak.halfTotalSpotted, (eak.spottedNuts + eak.immatureNuts) / 2);
+    });
+
+    test('TOTAL YIELD = good kernels + half of spotted + immature', () {
+      expect(eak.totalYield, 262.5);
+      expect(eak.totalYield, eak.goodKernels + eak.halfTotalSpotted);
+      // Guards the bug where total yield was printed as good kernels alone.
+      expect(eak.totalYield, isNot(eak.goodKernels));
+    });
+
+    test('OUTTURN matches the figure printed on the certificate', () {
+      expect(eak.kor, closeTo(46.2, 0.05));
+    });
+
+    test('final TOTAL = empty shells + good + void + fully damaged + oil + spotted + immature', () {
+      expect(eak.total, 1000);
+      expect(
+        eak.total,
+        eak.emptyShells +
+            eak.goodKernels +
+            eak.voidNuts +
+            eak.fullyDamagedNuts +
+            eak.oilNuts +
+            eak.spottedNuts +
+            eak.immatureNuts,
+      );
+    });
+
+    test('empty shells is carried through rather than dropped', () {
+      const withoutShells = CutTest(index: 1, goodKernels: 254);
+      expect(withoutShells.total, 254);
+      expect(eak.total - withoutShells.total, 746);
+    });
+  });
+
   group('labels', () {
     test('falls back to ordinal naming when no location is given', () {
       expect(const CutTest(index: 1).displayLabel, '1st Cutting');

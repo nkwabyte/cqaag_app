@@ -129,7 +129,7 @@ class PdfService {
           _buildInfoRow('ANALYSIS TYPE:', data['analysisType'] ?? ''),
           pw.Row(
             children: [
-              pw.Expanded(child: _buildInfoRow('QUANTITY (KG/MT):', data['quantity'] ?? '')),
+              pw.Expanded(child: _buildInfoRow('QUANTITY (KG):', data['quantity'] ?? '')),
               pw.SizedBox(width: 10),
               pw.Expanded(child: _buildInfoRow('BAGS:', data['bagCount'] ?? '')),
             ],
@@ -210,14 +210,16 @@ class PdfService {
         _buildDataRow('MOISTURE CONTENT (%)', cuts, (c) => c.moistureContent),
         _buildDataRow('NUT COUNT (per Kg)', cuts, (c) => c.nutCount.toDouble(), decimals: 0),
 
-        _buildSectionHeaderRow('FULLY DAMAGED NUTS (gm)'),
-        _buildDataRow('  FULLY DAMAGED NUTS (gm)', cuts, (c) => c.fullyDamagedNuts),
+        // Fully damaged group. The group heading carries its own figure on the
+        // association's sheet, and TOTAL is the sum of all three lines.
+        _buildDataRow('FULLY DAMAGED NUTS (gm)', cuts, (c) => c.fullyDamagedNuts, isGroupHeading: true),
         _buildDataRow('  VOID NUTS (gm)', cuts, (c) => c.voidNuts),
         _buildDataRow('  OIL NUTS (gm)', cuts, (c) => c.oilNuts),
         _buildDataRow('  TOTAL (gm)', cuts, (c) => c.totalDamaged, isBold: true),
 
-        _buildSectionHeaderRow('SPOTTED/PARTLY SOUND NUTS (gm)'),
-        _buildDataRow('  SPOTTED/PARTLY SOUND (gm)', cuts, (c) => c.spottedNuts),
+        // Spotted group, same shape: heading line holds the spotted figure and
+        // TOTAL is spotted + immature.
+        _buildDataRow('SPOTTED/PARTLY SOUND NUTS (gm)', cuts, (c) => c.spottedNuts, isGroupHeading: true),
         _buildDataRow('  IMMATURE NUTS (gm)', cuts, (c) => c.immatureNuts),
         _buildDataRow('  TOTAL (gm)', cuts, (c) => c.totalSpotted, isBold: true),
         _buildDataRow('  50% of above TOTAL (gm)', cuts, (c) => c.halfTotalSpotted),
@@ -225,7 +227,7 @@ class PdfService {
         _buildDataRow('GOOD KERNELS (gm)', cuts, (c) => c.goodKernels),
         _buildDataRow('TOTAL YIELD (gm)', cuts, (c) => c.totalYield, isBold: true),
         _buildDataRow('EMPTY SHELLS (gm)', cuts, (c) => c.emptyShells),
-        _buildDataRow('TOTAL (gm)', cuts, (c) => c.total),
+        _buildDataRow('TOTAL (gm)', cuts, (c) => c.total, isBold: true),
         _buildDataRow('OUTTURN (KOR) - LBS', cuts, (c) => c.kor, isBold: true, decimals: 2),
       ],
     );
@@ -235,11 +237,16 @@ class PdfService {
   ///
   /// Every cell is constructed separately because a pdf widget cannot be laid
   /// out in two places.
+  ///
+  /// [isGroupHeading] renders the label bold italic while still showing its
+  /// figures, matching how the association's sheet presents FULLY DAMAGED NUTS
+  /// and SPOTTED/PARTLY SOUND NUTS: a heading that is also a measurement.
   pw.TableRow _buildDataRow(
     String label,
     List<CutTest> cuts,
     double Function(CutTest) select, {
     bool isBold = false,
+    bool isGroupHeading = false,
     int decimals = 1,
   }) {
     const slots = 3;
@@ -247,15 +254,23 @@ class PdfService {
     String format(double value) => value.toStringAsFixed(decimals);
 
     final average = cuts.isEmpty ? null : cuts.map(select).reduce((a, b) => a + b) / cuts.length;
+    final emphasised = isBold || isGroupHeading;
 
     return pw.TableRow(
       children: [
         pw.Padding(
           padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-          child: pw.Text(label, style: pw.TextStyle(fontSize: 8, fontWeight: isBold ? pw.FontWeight.bold : null)),
+          child: pw.Text(
+            label,
+            style: pw.TextStyle(
+              fontSize: 8,
+              fontWeight: emphasised ? pw.FontWeight.bold : null,
+              fontStyle: isGroupHeading ? pw.FontStyle.italic : null,
+            ),
+          ),
         ),
         for (var i = 0; i < slots; i++)
-          _buildValueCell(i < cuts.length ? format(select(cuts[i])) : '', isBold: isBold),
+          _buildValueCell(i < cuts.length ? format(select(cuts[i])) : '', isBold: emphasised),
         _buildValueCell(average == null ? '-' : format(average), isBold: true),
       ],
     );
@@ -267,26 +282,6 @@ class PdfService {
       child: pw.Center(
         child: pw.Text(value, style: pw.TextStyle(fontSize: 8, fontWeight: isBold ? pw.FontWeight.bold : null)),
       ),
-    );
-  }
-
-  pw.Widget _buildEmptyCell() => pw.Container();
-
-  pw.TableRow _buildSectionHeaderRow(String label) {
-    return pw.TableRow(
-      children: [
-        pw.Padding(
-          padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-          child: pw.Text(
-            label,
-            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, fontStyle: pw.FontStyle.italic),
-          ),
-        ),
-        _buildEmptyCell(),
-        _buildEmptyCell(),
-        _buildEmptyCell(),
-        _buildEmptyCell(),
-      ],
     );
   }
 

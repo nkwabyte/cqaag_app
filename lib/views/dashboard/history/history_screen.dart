@@ -83,8 +83,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     final district = entry.key;
                     final districtInspections = entry.value;
 
-                    // Calculate total MT for district
-                    final totalMT = districtInspections.fold<double>(
+                    // Calculate total KG for district
+                    final totalKg = districtInspections.fold<double>(
                       0.0,
                       (sum, inspection) => sum + inspection.quantity,
                     );
@@ -96,7 +96,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       title: district,
                       inspectionsCount: "${districtInspections.length}",
                       communitiesCount: "$communities",
-                      totalMT: totalMT.toStringAsFixed(1),
+                      totalKg: totalKg.toStringAsFixed(1),
                       onTap: () => context.pushNamed(
                         DistrictDetailScreen.id,
                         extra: {

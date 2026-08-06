@@ -7,7 +7,7 @@ class HistoryCard extends StatelessWidget {
   final String title;
   final String? inspectionsCount;
   final String? communitiesCount;
-  final String totalMT;
+  final String totalKg;
   final VoidCallback onTap;
 
   const HistoryCard({
@@ -15,7 +15,7 @@ class HistoryCard extends StatelessWidget {
     required this.title,
     this.inspectionsCount,
     this.communitiesCount,
-    required this.totalMT,
+    required this.totalKg,
     required this.onTap,
   });
 
@@ -74,7 +74,7 @@ class HistoryCard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                   CustomText(
-                    "$totalMT MT",
+                    "$totalKg KG",
                     variant: TextVariant.bodyLarge,
                     fontWeight: FontWeight.bold,
                   ),

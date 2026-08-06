@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:form_builder_validators/form_builder_validators.dart';
 
 class BasicInfoStep extends ConsumerStatefulWidget {
   static final String id = 'basic_info_step';
@@ -182,18 +183,23 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
             onChanged: _updateBatchId,
           ),
           Gap(20.h),
-          const CustomTextField(
+          // These three print on the certificate, so they are required rather
+          // than optional: a blank Buyer, Waybill or Analysis Type leaves gaps
+          // on an issued document.
+          CustomTextField(
             name: "buyer_name",
             label: "Buyer / Company Name",
             hint: "e.g., Global Traders Ltd",
             prefixIcon: Icons.shopping_cart_outlined,
+            validator: FormBuilderValidators.required(errorText: "Enter the buyer or company name"),
           ),
           Gap(20.h),
-          const CustomTextField(
+          CustomTextField(
             name: "waybill_number",
             label: "Waybill or B/L N°",
             hint: "e.g., WB-99812",
             prefixIcon: Icons.receipt_long_outlined,
+            validator: FormBuilderValidators.required(errorText: "Enter the waybill or B/L number"),
           ),
           Gap(20.h),
           CustomText(
@@ -229,6 +235,7 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
                       child: Text(type),
                     ))
                 .toList(),
+            validator: FormBuilderValidators.required(errorText: "Select the analysis type"),
           ),
           Gap(20.h),
           const CustomTextField(
