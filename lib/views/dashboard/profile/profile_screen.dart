@@ -1,10 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:cqaag_app/index.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -26,45 +23,42 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _handleAvatarUpload() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
+      final picked = await ImageSourcePicker.pick(
+        context,
+        useFrontCamera: true,
       );
 
       if (!mounted) return;
 
-      if (result != null && result.files.isNotEmpty) {
-        final path = result.files.single.path;
-        if (path != null) {
-          setState(() => _isUploading = true);
+      if (picked != null) {
+        setState(() => _isUploading = true);
 
-          final file = File(path);
-          final cloudinaryService = ref.read(cloudinaryServiceProvider);
-          final url = await cloudinaryService.uploadAvatar(file); // Changed to uploadAvatar
+        final file = picked;
+        final cloudinaryService = ref.read(cloudinaryServiceProvider);
+        final url = await cloudinaryService.uploadAvatar(file); // Changed to uploadAvatar
 
-          if (url != null) {
-            final currentUser = ref.read(currentUserProfileProvider).value;
-            if (currentUser != null) {
-              await ref.read(userServiceProvider).updateUserData(
-                currentUser.id,
-                {
-                  'profile_picture': url,
-                },
-              );
-              if (!mounted) return;
-              CustomSnackBar.success(
-                context,
-                message: 'Profile picture updated!',
-              );
-              // Invalidate user provider to refresh UI if needed, usually stream updates automatically
-            }
-          } else {
-            if (!mounted) return;
-            CustomSnackBar.error(
-              context,
-              message: 'Failed to upload image',
+        if (url != null) {
+          final currentUser = ref.read(currentUserProfileProvider).value;
+          if (currentUser != null) {
+            await ref.read(userServiceProvider).updateUserData(
+              currentUser.id,
+              {
+                'profile_picture': url,
+              },
             );
+            if (!mounted) return;
+            CustomSnackBar.success(
+              context,
+              message: 'Profile picture updated!',
+            );
+            // Invalidate user provider to refresh UI if needed, usually stream updates automatically
           }
+        } else {
+          if (!mounted) return;
+          CustomSnackBar.error(
+            context,
+            message: 'Failed to upload image',
+          );
         }
       }
     } catch (e) {
@@ -134,7 +128,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           backgroundImage: ref.watch(currentUserProfileProvider).value?.profilePicture != null
                               ? CachedNetworkImageProvider(ref.watch(currentUserProfileProvider).value!.profilePicture)
                               : null,
-                          child: ref.watch(currentUserProfileProvider).value?.profilePicture == null ? Icon(Icons.person, size: 60.r, color: Colors.white) : null,
+                          child: ref.watch(currentUserProfileProvider).value?.profilePicture == null
+                              ? Icon(Icons.person, size: 60.r, color: Colors.white)
+                              : null,
                         ),
                         Container(
                           padding: EdgeInsets.all(6.r),

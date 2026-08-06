@@ -4,24 +4,32 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-/// Lets the user supply an image either by taking a photo or by choosing an
-/// existing file.
+/// Lets the user supply an image by taking a photo, choosing one from the
+/// gallery, or browsing for a file.
 ///
-/// Every document upload in the app needs both routes, so the choice is asked
-/// once here rather than being duplicated per screen.
+/// Every image upload in the app needs the same choice, so it is asked once
+/// here rather than being reimplemented per screen.
 class ImageSourcePicker {
   const ImageSourcePicker._();
 
-  /// Shows a sheet offering camera or file, then returns the chosen image.
+  /// Shows a sheet offering camera, gallery and files, then returns the image.
   ///
   /// Returns null if the user dismisses the sheet or picks nothing.
+  ///
+  /// [useFrontCamera] selects the selfie camera. [allowFiles] can be turned
+  /// off where only a photo makes sense.
+  ///
+  /// Callers pass a plain flag rather than a CameraDevice so screens do not
+  /// have to import the picker library just to ask for the front camera.
   static Future<File?> pick(
     BuildContext context, {
-    CameraDevice preferredCamera = CameraDevice.rear,
+    bool useFrontCamera = false,
     String cameraLabel = 'Take a photo',
+    String galleryLabel = 'Choose from gallery',
     String fileLabel = 'Choose from files',
+    bool allowFiles = true,
   }) async {
-    final source = await showModalBottomSheet<_ImageSource>(
+    final source = await showModalBottomSheet<_PickSource>(
       context: context,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
@@ -45,13 +53,19 @@ class ImageSourcePicker {
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined),
                 title: Text(cameraLabel),
-                onTap: () => Navigator.of(sheetContext).pop(_ImageSource.camera),
+                onTap: () => Navigator.of(sheetContext).pop(_PickSource.camera),
               ),
               ListTile(
-                leading: const Icon(Icons.folder_outlined),
-                title: Text(fileLabel),
-                onTap: () => Navigator.of(sheetContext).pop(_ImageSource.file),
+                leading: const Icon(Icons.photo_library_outlined),
+                title: Text(galleryLabel),
+                onTap: () => Navigator.of(sheetContext).pop(_PickSource.gallery),
               ),
+              if (allowFiles)
+                ListTile(
+                  leading: const Icon(Icons.folder_outlined),
+                  title: Text(fileLabel),
+                  onTap: () => Navigator.of(sheetContext).pop(_PickSource.file),
+                ),
               const SizedBox(height: 8),
             ],
           ),
@@ -62,14 +76,27 @@ class ImageSourcePicker {
     if (source == null) return null;
 
     return switch (source) {
-      _ImageSource.camera => _fromCamera(preferredCamera),
-      _ImageSource.file => _fromFiles(),
+      _PickSource.camera => _fromCamera(useFrontCamera),
+      _PickSource.gallery => _fromGallery(),
+      _PickSource.file => _fromFiles(),
     };
   }
 
-  static Future<File?> _fromCamera(CameraDevice preferredCamera) async {
+  static Future<File?> _fromCamera(bool useFrontCamera) {
+    return _fromImagePicker(
+      ImageSource.camera,
+      preferredCamera: useFrontCamera ? CameraDevice.front : CameraDevice.rear,
+    );
+  }
+
+  static Future<File?> _fromGallery() => _fromImagePicker(ImageSource.gallery);
+
+  static Future<File?> _fromImagePicker(
+    ImageSource source, {
+    CameraDevice preferredCamera = CameraDevice.rear,
+  }) async {
     final image = await ImagePicker().pickImage(
-      source: ImageSource.camera,
+      source: source,
       preferredCameraDevice: preferredCamera,
       // Keep uploads small enough for slow connections without making the
       // Ghana Card text unreadable.
@@ -91,4 +118,4 @@ class ImageSourcePicker {
   }
 }
 
-enum _ImageSource { camera, file }
+enum _PickSource { camera, gallery, file }

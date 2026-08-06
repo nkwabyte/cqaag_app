@@ -6,7 +6,6 @@ import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:cqaag_app/index.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
@@ -54,17 +53,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      allowMultiple: false,
+    final file = await ImageSourcePicker.pick(
+      context,
+      useFrontCamera: true,
+      cameraLabel: 'Take a photo',
     );
 
-    if (result != null && result.files.isNotEmpty) {
-      if (result.files.single.path != null) {
-        setState(() {
-          _newProfileImage = File(result.files.single.path!);
-        });
-      }
+    if (file != null) {
+      setState(() {
+        _newProfileImage = file;
+      });
     }
   }
 

@@ -8,7 +8,6 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 
 class VerificationUploadScreen extends ConsumerStatefulWidget {
   static const String id = 'verification_upload_screen';
@@ -26,8 +25,8 @@ class _VerificationUploadScreenState extends ConsumerState<VerificationUploadScr
   File? _selfieFile;
   bool _isLoading = false;
 
-  /// Offers the camera or the file browser, so a Ghana Card can be photographed
-  /// on the spot instead of having to exist as a file already.
+  /// Offers the camera, the gallery or the file browser, so a Ghana Card can be
+  /// photographed on the spot instead of having to exist as a file already.
   Future<void> _pickDocument(void Function(File) onPick) async {
     try {
       final file = await ImageSourcePicker.pick(
@@ -50,7 +49,7 @@ class _VerificationUploadScreenState extends ConsumerState<VerificationUploadScr
     try {
       final file = await ImageSourcePicker.pick(
         context,
-        preferredCamera: CameraDevice.front,
+        useFrontCamera: true,
         cameraLabel: 'Take a selfie',
         fileLabel: 'Choose an existing photo',
       );
