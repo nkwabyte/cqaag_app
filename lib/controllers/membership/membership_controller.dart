@@ -124,5 +124,5 @@ class MembershipController extends _$MembershipController {
 /// Provider for all membership applications (Admin)
 @Riverpod(keepAlive: true)
 Stream<List<MembershipApplication>> allMembershipApplications(Ref ref) {
-  return ref.watch(membershipControllerProvider.select((value) => Stream.value(value.asData?.value.allApplications ?? [])));
+  return ref.watch(membershipControllerProvider.select((value) => Stream.value(value.value?.allApplications ?? [])));
 }

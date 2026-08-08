@@ -352,6 +352,110 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     Gap(12.h),
 
+                    // Membership Application & Payment Status Card
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final membershipState = ref.watch(membershipControllerProvider).value;
+                        final myApp = membershipState?.myApplication;
+
+                        if (myApp != null && myApp.paymentStatus == 'unpaid') {
+                          return Container(
+                            margin: EdgeInsets.only(bottom: 12.h),
+                            padding: EdgeInsets.all(16.r),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(16.r),
+                              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.pending_actions, color: Colors.amber.shade800, size: 28.r),
+                                    Gap(12.w),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const CustomText(
+                                            "Payment Evidence Pending",
+                                            variant: TextVariant.bodyLarge,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          CustomText(
+                                            "Your registration is submitted! Upload your payment screenshot to finish verification.",
+                                            variant: TextVariant.bodySmall,
+                                            color: Colors.amber.shade900,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Gap(12.h),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () {
+                                      context.pushNamed(
+                                        MembershipPaymentScreen.id,
+                                        extra: {'existing_application_id': myApp.id},
+                                      );
+                                    },
+                                    icon: const Icon(Icons.upload_file, color: Colors.white, size: 18),
+                                    label: const Text("Upload Payment Evidence"),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.amber.shade800,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        if (myApp != null && myApp.paymentStatus == 'pending_verification') {
+                          return Container(
+                            margin: EdgeInsets.only(bottom: 12.h),
+                            padding: EdgeInsets.all(16.r),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(16.r),
+                              border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.hourglass_top, color: Colors.blue, size: 28.r),
+                                Gap(12.w),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const CustomText(
+                                        "Payment Evidence Submitted",
+                                        variant: TextVariant.bodyLarge,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      const CustomText(
+                                        "Your Mobile Money payment evidence is awaiting administrator verification.",
+                                        variant: TextVariant.bodySmall,
+                                        color: Colors.blue,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        return const SizedBox.shrink();
+                      },
+                    ),
+
                     _buildCard(context, [
                       ProfileTile(
                         icon: Icons.edit_outlined,
@@ -363,11 +467,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           }
                         },
                       ),
-                      ProfileTile(
-                        icon: Icons.card_membership_outlined,
-                        title: "Membership Application",
-                        subtitle: "Apply to be a member",
-                        onTap: () => context.pushNamed(MembershipApplicationScreen.id),
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final membershipState = ref.watch(membershipControllerProvider).value;
+                          final myApp = membershipState?.myApplication;
+
+                          return ProfileTile(
+                            icon: Icons.card_membership_outlined,
+                            title: "Membership Application",
+                            subtitle: myApp != null
+                                ? "Status: ${myApp.status.displayName}"
+                                : "Apply to be a member",
+                            onTap: () => context.pushNamed(MembershipApplicationScreen.id),
+                          );
+                        },
                       ),
                     ]),
 

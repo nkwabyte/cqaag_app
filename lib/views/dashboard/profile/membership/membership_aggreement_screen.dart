@@ -3,7 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:uuid/uuid.dart' as uuid_pkg;
 import 'package:cqaag_app/index.dart';
+import 'package:cqaag_app/models/membership/membership_category.dart' as membership_models;
 
 class MembershipAgreementScreen extends ConsumerStatefulWidget {
   static const String id = 'membership_agreement_screen';
@@ -16,6 +18,8 @@ class MembershipAgreementScreen extends ConsumerStatefulWidget {
 }
 
 class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementScreen> {
+  bool _isSubmitting = false;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -157,12 +161,13 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   CustomButton(
-                    text: "Accept and Continue to Payment",
-                    onPressed: _continueToPayment,
+                    text: _isSubmitting ? "Registering..." : "Accept & Submit Application",
+                    isLoading: _isSubmitting,
+                    onPressed: _isSubmitting ? () {} : _handleAcceptAndRegister,
                   ),
                   Gap(12.h),
                   OutlinedButton(
-                    onPressed: _handleDecline,
+                    onPressed: _isSubmitting ? null : _handleDecline,
                     style: OutlinedButton.styleFrom(
                       minimumSize: Size(double.infinity, 50.h),
                       shape: RoundedRectangleBorder(
@@ -209,16 +214,199 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
   }
 
   void _handleDecline() {
-    // Navigate back to profile screen
     context.goNamed(ProfileScreen.id);
   }
 
-  /// Payment is the final step, so the agreement hands the collected form data
-  /// on rather than writing the application itself.
-  void _continueToPayment() {
-    context.pushNamed(
-      MembershipPaymentScreen.id,
-      extra: widget.applicationData,
+  Future<void> _handleAcceptAndRegister() async {
+    setState(() => _isSubmitting = true);
+
+    try {
+      final user = ref.read(authServiceProvider).currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      final settings = await ref.read(paymentSettingsServiceProvider).getSettings();
+
+      final application = _buildApplication(
+        userId: user.uid,
+        userEmail: user.email ?? '',
+        settings: settings,
+      );
+
+      await ref.read(membershipControllerProvider.notifier).submitApplication(application);
+
+      if (!mounted) return;
+
+      _showRegistrationSuccessDialog(application.id);
+    } catch (e) {
+      if (!mounted) return;
+      CustomSnackBar.error(
+        context,
+        message: 'Failed to submit application: ${e.toString()}',
+        title: 'Registration Failed',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  void _showRegistrationSuccessDialog(String applicationId) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (bottomSheetContext) => Container(
+        padding: EdgeInsets.all(24.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_outline, color: Colors.green, size: 56.r),
+            Gap(16.h),
+            const CustomText(
+              "Application Registered!",
+              variant: TextVariant.headlineMedium,
+              fontWeight: FontWeight.bold,
+              textAlign: TextAlign.center,
+            ),
+            Gap(8.h),
+            CustomText(
+              "Your membership application has been submitted and registered. An administrator will review your application and details for approval.",
+              variant: TextVariant.bodyMedium,
+              color: colorScheme.secondary,
+              textAlign: TextAlign.center,
+            ),
+            Gap(12.h),
+            Container(
+              padding: EdgeInsets.all(12.r),
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15)),
+              ),
+              child: CustomText(
+                "You can pay the registration fee now to expedite verification, or wait for admin approval before paying.",
+                variant: TextVariant.bodySmall,
+                color: colorScheme.secondary,
+                textAlign: TextAlign.center,
+              ),
+            ),
+            Gap(24.h),
+            CustomButton(
+              text: "Pay Registration Fee Now",
+              onPressed: () {
+                Navigator.of(bottomSheetContext).pop();
+                context.goNamed(
+                  MembershipPaymentScreen.id,
+                  extra: {'existing_application_id': applicationId},
+                );
+              },
+            ),
+            Gap(12.h),
+            OutlinedButton(
+              onPressed: () {
+                Navigator.of(bottomSheetContext).pop();
+                context.goNamed(ProfileScreen.id);
+              },
+              style: OutlinedButton.styleFrom(
+                minimumSize: Size(double.infinity, 50.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+              child: const CustomText(
+                "Wait for Approval (Pay Later)",
+                variant: TextVariant.bodyLarge,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Gap(16.h),
+          ],
+        ),
+      ),
     );
+  }
+
+  MembershipApplication _buildApplication({
+    required String userId,
+    required String userEmail,
+    required PaymentSettings settings,
+  }) {
+    final formData = widget.applicationData;
+
+    final titleStr = (formData['title'] as String?)?.toLowerCase() ?? 'mr';
+    final title = membership_models.Title.values.firstWhere(
+      (t) => t.name == titleStr,
+      orElse: () => membership_models.Title.mr,
+    );
+
+    final dobDateTime = formData['dob'] as DateTime?;
+    final dateOfBirth = dobDateTime?.toIso8601String() ?? DateTime.now().toIso8601String();
+
+    final now = DateTime.now();
+
+    return MembershipApplication(
+      id: const uuid_pkg.Uuid().v4(),
+      userId: userId,
+      title: title,
+      firstName: formData['first_name'] as String? ?? '',
+      lastName: formData['last_name'] as String? ?? '',
+      dateOfBirth: dateOfBirth,
+      gender: _parseGender(formData['gender'] as String?),
+      nationality: formData['nationality'] as String? ?? 'Ghanaian',
+      phoneNumberPrimary: formData['phone'] as String? ?? '',
+      emailAddress: userEmail,
+      residentialAddress: formData['address'] as String? ?? '',
+      regionDistrict: formData['region'] as String? ?? '',
+      currentJobTitle: formData['job_title'] as String? ?? '',
+      employerOrganization: formData['employer'] as String? ?? '',
+      membershipCategory: _parseMembershipCategory(formData['membership_category'] as String?),
+      status: ApplicationStatus.submitted,
+      createdAt: now,
+      submittedAt: now,
+
+      paymentMethod: PaymentMethod.momo.value,
+      paymentStatus: PaymentStatus.unpaid.value,
+      paymentAmount: settings.registrationFee,
+      paymentCurrency: settings.currency,
+      paymentEvidenceUrl: null,
+      paymentReference: null,
+      paymentMomoNetwork: settings.network.value,
+      paymentMomoNumber: settings.momoNumber,
+      paymentSubmittedAt: null,
+    );
+  }
+
+  MembershipCategory _parseMembershipCategory(String? categoryStr) {
+    switch (categoryStr?.toLowerCase()) {
+      case 'full member':
+        return MembershipCategory.full;
+      case 'associate member':
+        return MembershipCategory.associate;
+      case 'corporate member':
+        return MembershipCategory.corporate;
+      case 'honorary member':
+        return MembershipCategory.honorary;
+      default:
+        return MembershipCategory.full;
+    }
+  }
+
+  membership_models.Gender _parseGender(String? genderStr) {
+    switch (genderStr?.toLowerCase()) {
+      case 'female':
+        return membership_models.Gender.female;
+      case 'prefer not to say':
+        return membership_models.Gender.preferNotToSay;
+      default:
+        return membership_models.Gender.male;
+    }
   }
 }

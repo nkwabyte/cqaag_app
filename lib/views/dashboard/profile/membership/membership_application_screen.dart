@@ -22,10 +22,9 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
   void _navigateToAgreement() {
     if (_formKey.currentState?.saveAndValidate() ?? false) {
       final formData = _formKey.currentState?.value;
-      // Note: MembershipAgreementScreen needs formData - will need to handle this with GoRouter extra parameter
       context.pushNamed(
         MembershipAgreementScreen.id,
-        extra: formData,
+        extra: formData != null ? Map<String, dynamic>.from(formData) : <String, dynamic>{},
       );
     }
   }
