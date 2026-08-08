@@ -24,12 +24,12 @@ _pages/
 .agents/
 .agent/
 .vscode/
+.github/
 .github/skills/
 .github/agents/
 .github/prompts/
 .github/hooks/
 .impeccable/
-.agent/
 .kilo/
 .kimi/
 
