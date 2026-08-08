@@ -27,3 +27,6 @@ export 'user/index.dart';
 export 'inspection/index.dart';
 export 'membership/index.dart';
 export 'payment/index.dart';
+export 'system/index.dart';
+export 'notification/index.dart';
+

@@ -35,7 +35,7 @@ class SummaryCard extends StatelessWidget {
           ),
           Gap(10.0.h),
           CustomText(
-            count,
+            (count == 'null' || count.trim().isEmpty) ? '0' : count,
             variant: TextVariant.displayMedium,
             color: Colors.white,
           ),

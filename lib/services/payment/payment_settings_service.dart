@@ -19,10 +19,22 @@ class PaymentSettingsService {
   ///
   /// Falls back to [PaymentSettings.defaults] when the document is missing or
   /// unreadable, so the payment screen never renders a blank fee.
-  Stream<PaymentSettings> streamSettings() {
-    return _settingsDoc.snapshots().map(_fromSnapshot).handleError((Object error) {
-      debugPrint('Could not read payment settings, using defaults: $error');
-    });
+  Stream<PaymentSettings> streamSettings() async* {
+    // Yield cached or default settings immediately so paymentSettingsProvider never hangs
+    PaymentSettings initial;
+    try {
+      initial = await getSettings();
+    } catch (_) {
+      initial = PaymentSettings.defaults;
+    }
+    yield initial;
+
+    // Stream live updates from Firestore
+    await for (final snap in _settingsDoc.snapshots().handleError((Object error) {
+      // Quietly fall back to defaults if unauthenticated or permissions denied
+    })) {
+      yield _fromSnapshot(snap);
+    }
   }
 
   /// One-off read, used where a stream would be overkill.
@@ -30,7 +42,6 @@ class PaymentSettingsService {
     try {
       return _fromSnapshot(await _settingsDoc.get());
     } catch (e) {
-      debugPrint('Could not read payment settings, using defaults: $e');
       return PaymentSettings.defaults;
     }
   }

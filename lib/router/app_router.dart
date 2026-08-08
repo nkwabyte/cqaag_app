@@ -52,6 +52,7 @@ GoRouter goRouter(Ref ref) {
         '/${CodeOfEthicsScreen.id}',
         '/${ConstitutionScreen.id}',
         '/${TermsAndConditionsScreen.id}',
+        '/${PrivacyPolicyScreen.id}',
         '/${GuestEventsScreen.id}',
         '/${GuestEventsScreen.id}',
         '/${GuestEventDetailsScreen.id}',
@@ -226,6 +227,16 @@ GoRouter goRouter(Ref ref) {
         path: '/${ConstitutionScreen.id}',
         name: ConstitutionScreen.id,
         builder: (context, state) => const ConstitutionScreen(),
+      ),
+      GoRoute(
+        path: '/${PrivacyPolicyScreen.id}',
+        name: PrivacyPolicyScreen.id,
+        builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
+        path: '/${NotificationsScreen.id}',
+        name: NotificationsScreen.id,
+        builder: (context, state) => const NotificationsScreen(),
       ),
       GoRoute(
         path: '/${MembershipAgreementScreen.id}',

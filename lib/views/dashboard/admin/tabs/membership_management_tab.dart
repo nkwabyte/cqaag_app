@@ -129,12 +129,13 @@ class _MembershipManagementTabState extends ConsumerState<MembershipManagementTa
   }
 
   Widget _buildApplicationCard(MembershipApplication app, ColorScheme colorScheme) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+        side: BorderSide(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
       ),
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
         contentPadding: EdgeInsets.all(12.r),
         leading: Container(

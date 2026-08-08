@@ -181,6 +181,16 @@ class AppDrawer extends ConsumerWidget {
                           context.pushNamed(TermsAndConditionsScreen.id);
                         },
                       ),
+                      _buildDrawerItem(
+                        context: context,
+                        colorScheme: colorScheme,
+                        icon: Icons.privacy_tip_outlined,
+                        title: 'Privacy Policy',
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.pushNamed(PrivacyPolicyScreen.id);
+                        },
+                      ),
 
                       Divider(
                         height: 25.h,
@@ -382,19 +392,22 @@ class AppDrawer extends ConsumerWidget {
     required String title,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: colorScheme.primary,
-        size: 24.r,
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        leading: Icon(
+          icon,
+          color: colorScheme.primary,
+          size: 24.r,
+        ),
+        title: CustomText(
+          title,
+          variant: TextVariant.bodyMedium,
+          fontWeight: FontWeight.w500,
+        ),
+        onTap: onTap,
+        contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 4.h),
       ),
-      title: CustomText(
-        title,
-        variant: TextVariant.bodyMedium,
-        fontWeight: FontWeight.w500,
-      ),
-      onTap: onTap,
-      contentPadding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 4.h),
     );
   }
 }

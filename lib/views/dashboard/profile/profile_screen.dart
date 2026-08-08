@@ -16,7 +16,6 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isUploading = false;
-  bool _notificationsEnabled = true;
   String _selectedLanguage = 'English';
   bool _autoSyncEnabled = true;
   bool _offlineModeEnabled = false;
@@ -377,17 +376,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _buildCard(context, [
                       ProfileTile(
                         icon: Icons.notifications_outlined,
-                        title: "Notifications",
-                        subtitle: "Push notifications",
-                        trailing: Switch(
-                          value: _notificationsEnabled,
-                          onChanged: (value) {
-                            setState(() {
-                              _notificationsEnabled = value;
-                            });
-                          },
-                          activeThumbColor: Colors.green,
-                        ),
+                        title: "System Bulletins & Notifications",
+                        subtitle: "View broadcast alerts & messages",
+                        onTap: () {
+                          context.pushNamed(NotificationsScreen.id);
+                        },
+                        trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.secondary),
                       ),
                       ProfileTile(
                         icon: Icons.language_outlined,
@@ -444,6 +438,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         title: "Constitution",
                         subtitle: "Association governing document",
                         onTap: () => context.pushNamed(ConstitutionScreen.id),
+                      ),
+                      ProfileTile(
+                        icon: Icons.privacy_tip_outlined,
+                        title: "Privacy Policy",
+                        subtitle: "Data protection & privacy policy",
+                        onTap: () => context.pushNamed(PrivacyPolicyScreen.id),
                       ),
                       ProfileTile(
                         icon: Icons.assignment,
@@ -512,27 +512,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            ListTile(
-              leading: const Icon(Icons.language),
-              title: const Text("English"),
-              trailing: _selectedLanguage == 'English' ? const Icon(Icons.check, color: Colors.green) : null,
-              onTap: () {
-                setState(() {
-                  _selectedLanguage = 'English';
-                });
-                context.pop();
-              },
+            Material(
+              color: Colors.transparent,
+              child: ListTile(
+                leading: const Icon(Icons.language),
+                title: const Text("English"),
+                trailing: _selectedLanguage == 'English' ? const Icon(Icons.check, color: Colors.green) : null,
+                onTap: () {
+                  setState(() {
+                    _selectedLanguage = 'English';
+                  });
+                  context.pop();
+                },
+              ),
             ),
-            ListTile(
-              leading: const Icon(Icons.language),
-              title: const Text("French"),
-              trailing: _selectedLanguage == 'French' ? const Icon(Icons.check, color: Colors.green) : null,
-              onTap: () {
-                setState(() {
-                  _selectedLanguage = 'French';
-                });
-                context.pop();
-              },
+            Material(
+              color: Colors.transparent,
+              child: ListTile(
+                leading: const Icon(Icons.language),
+                title: const Text("French"),
+                trailing: _selectedLanguage == 'French' ? const Icon(Icons.check, color: Colors.green) : null,
+                onTap: () {
+                  setState(() {
+                    _selectedLanguage = 'French';
+                  });
+                  context.pop();
+                },
+              ),
             ),
           ],
         ),
@@ -542,10 +548,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   // Helper to wrap items in a themed card look
   Widget _buildCard(BuildContext context, List<Widget> children) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
         boxShadow: <BoxShadow>[
           BoxShadow(
@@ -555,7 +559,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ],
       ),
-      child: Column(children: children),
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+          child: Column(children: children),
+        ),
+      ),
     );
   }
 }

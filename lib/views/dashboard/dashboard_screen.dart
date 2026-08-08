@@ -122,9 +122,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           if (isAuthenticated)
             InkWell(
               onTap: () {
-                setState(() {
-                  _selectedIndex = 3;
-                });
+                context.pushNamed(NotificationsScreen.id);
               },
               child: Container(
                 padding: EdgeInsets.all(8.r),

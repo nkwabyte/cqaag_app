@@ -50,21 +50,30 @@ class ImageSourcePicker {
                 ),
               ),
               const SizedBox(height: 8),
-              ListTile(
-                leading: const Icon(Icons.photo_camera_outlined),
-                title: Text(cameraLabel),
-                onTap: () => Navigator.of(sheetContext).pop(_PickSource.camera),
+              Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  leading: const Icon(Icons.photo_camera_outlined),
+                  title: Text(cameraLabel),
+                  onTap: () => Navigator.of(sheetContext).pop(_PickSource.camera),
+                ),
               ),
-              ListTile(
-                leading: const Icon(Icons.photo_library_outlined),
-                title: Text(galleryLabel),
-                onTap: () => Navigator.of(sheetContext).pop(_PickSource.gallery),
+              Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: Text(galleryLabel),
+                  onTap: () => Navigator.of(sheetContext).pop(_PickSource.gallery),
+                ),
               ),
               if (allowFiles)
-                ListTile(
-                  leading: const Icon(Icons.folder_outlined),
-                  title: Text(fileLabel),
-                  onTap: () => Navigator.of(sheetContext).pop(_PickSource.file),
+                Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    leading: const Icon(Icons.folder_outlined),
+                    title: Text(fileLabel),
+                    onTap: () => Navigator.of(sheetContext).pop(_PickSource.file),
+                  ),
                 ),
               const SizedBox(height: 8),
             ],

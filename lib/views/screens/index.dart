@@ -28,4 +28,7 @@ export 'contact_us_screen.dart';
 export 'guest_events_screen.dart';
 export 'membership_info_screen.dart';
 export 'terms_and_conditions_screen.dart';
+export 'privacy_policy_screen.dart';
+export 'notifications_screen.dart';
+
 export 'chapters_screen.dart';

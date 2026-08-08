@@ -30,6 +30,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final pendingCount = inspectionState?.uncompleted.length;
     final completedCount = inspectionState?.completed.length;
 
+    final notificationsAsync = ref.watch(userNotificationsStreamProvider);
+    final readIds = ref.watch(readNotificationIdsProvider);
+    final unreadCount = notificationsAsync.asData?.value.where((n) => !readIds.contains(n.id)).length ?? 0;
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
@@ -76,6 +80,51 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ],
                       ),
+                      InkWell(
+                        onTap: () {
+                          context.pushNamed(NotificationsScreen.id);
+                        },
+                        borderRadius: BorderRadius.circular(12.r),
+                        child: Container(
+                          padding: EdgeInsets.all(10.r),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Icon(
+                                Icons.notifications_outlined,
+                                color: Colors.white,
+                                size: 22.r,
+                              ),
+                              if (unreadCount > 0)
+                                Positioned(
+                                  right: -4.w,
+                                  top: -4.h,
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(10.r),
+                                    ),
+                                    constraints: BoxConstraints(minWidth: 16.w, minHeight: 16.h),
+                                    child: Text(
+                                      '$unreadCount',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9.sp,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   Gap(18.h),
@@ -83,9 +132,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
-                      SummaryCard(label: "Today", count: "$todayInspections"),
-                      SummaryCard(label: "Pending", count: "$pendingCount"),
-                      SummaryCard(label: "Done", count: "$completedCount"),
+                      SummaryCard(label: "Today", count: "${todayInspections ?? 0}"),
+                      SummaryCard(label: "Pending", count: "${pendingCount ?? 0}"),
+                      SummaryCard(label: "Done", count: "${completedCount ?? 0}"),
                     ],
                   ),
                 ],
