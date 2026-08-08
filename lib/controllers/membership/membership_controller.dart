@@ -98,6 +98,19 @@ class MembershipController extends _$MembershipController {
     }
   }
 
+  /// Withdraw an unapproved application
+  Future<void> withdrawApplication(String applicationId) async {
+    try {
+      final authUser = ref.read(authServiceProvider).currentUser;
+      if (authUser == null) throw Exception('Not authenticated');
+
+      final membershipService = ref.read(membershipServiceProvider);
+      await membershipService.withdrawApplication(applicationId, authUser.uid);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Review Application (Admin)
   Future<void> reviewApplication({
     required String applicationId,

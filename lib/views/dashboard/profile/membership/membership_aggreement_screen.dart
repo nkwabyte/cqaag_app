@@ -214,7 +214,7 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
   }
 
   void _handleDecline() {
-    context.goNamed(ProfileScreen.id);
+    context.goNamed(DashboardScreen.id);
   }
 
   Future<void> _handleAcceptAndRegister() async {
@@ -235,6 +235,29 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
       );
 
       await ref.read(membershipControllerProvider.notifier).submitApplication(application);
+
+      final currentUserProfile = ref.read(currentUserProfileProvider).value;
+      final isAlreadyVerified = currentUserProfile?.verificationStatus == VerificationStatus.verified;
+
+      final formData = widget.applicationData;
+      final updateData = <String, dynamic>{
+        'membership_status': 'applied',
+      };
+
+      if (!isAlreadyVerified) {
+        updateData['verification_status'] = 'pending';
+        updateData['verification'] = {
+          'id_card_front_url': formData['id_card_front_url'] as String? ?? '',
+          'id_card_back_url': formData['id_card_back_url'] as String? ?? '',
+          'selfie_url': formData['selfie_url'] as String? ?? '',
+          'id_card_number': formData['ghana_card_number'] as String? ?? '',
+        };
+      }
+
+      await ref.read(userServiceProvider).updateUserData(
+        user.uid,
+        updateData,
+      );
 
       if (!mounted) return;
 
@@ -260,75 +283,80 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
       context: context,
       isDismissible: false,
       enableDrag: false,
+      isScrollControlled: true,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
-      builder: (bottomSheetContext) => Container(
-        padding: EdgeInsets.all(24.r),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.check_circle_outline, color: Colors.green, size: 56.r),
-            Gap(16.h),
-            const CustomText(
-              "Application Registered!",
-              variant: TextVariant.headlineMedium,
-              fontWeight: FontWeight.bold,
-              textAlign: TextAlign.center,
-            ),
-            Gap(8.h),
-            CustomText(
-              "Your membership application has been submitted and registered. An administrator will review your application and details for approval.",
-              variant: TextVariant.bodyMedium,
-              color: colorScheme.secondary,
-              textAlign: TextAlign.center,
-            ),
-            Gap(12.h),
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(12.r),
-                border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15)),
+      builder: (bottomSheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_circle_outline, color: Colors.green, size: 48.r),
+              Gap(12.h),
+              const CustomText(
+                "Application Registered!",
+                variant: TextVariant.headlineMedium,
+                fontWeight: FontWeight.bold,
+                textAlign: TextAlign.center,
               ),
-              child: CustomText(
-                "You can pay the registration fee now to expedite verification, or wait for admin approval before paying.",
-                variant: TextVariant.bodySmall,
+              Gap(8.h),
+              CustomText(
+                "Your membership application has been submitted and registered. An administrator will review your application and details for approval.",
+                variant: TextVariant.bodyMedium,
                 color: colorScheme.secondary,
                 textAlign: TextAlign.center,
               ),
-            ),
-            Gap(24.h),
-            CustomButton(
-              text: "Pay Registration Fee Now",
-              onPressed: () {
-                Navigator.of(bottomSheetContext).pop();
-                context.goNamed(
-                  MembershipPaymentScreen.id,
-                  extra: {'existing_application_id': applicationId},
-                );
-              },
-            ),
-            Gap(12.h),
-            OutlinedButton(
-              onPressed: () {
-                Navigator.of(bottomSheetContext).pop();
-                context.goNamed(ProfileScreen.id);
-              },
-              style: OutlinedButton.styleFrom(
-                minimumSize: Size(double.infinity, 50.h),
-                shape: RoundedRectangleBorder(
+              Gap(12.h),
+              Container(
+                padding: EdgeInsets.all(12.r),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15)),
+                ),
+                child: CustomText(
+                  "You can pay the registration fee now to expedite verification, or wait for admin approval before paying.",
+                  variant: TextVariant.bodySmall,
+                  color: colorScheme.secondary,
+                  textAlign: TextAlign.center,
                 ),
               ),
-              child: const CustomText(
-                "Wait for Approval (Pay Later)",
-                variant: TextVariant.bodyLarge,
-                fontWeight: FontWeight.w600,
+              Gap(16.h),
+              CustomButton(
+                text: "Pay Registration Fee Now",
+                onPressed: () {
+                  Navigator.of(bottomSheetContext).pop();
+                  context.pushReplacementNamed(
+                    MembershipPaymentScreen.id,
+                    extra: {'existing_application_id': applicationId},
+                  );
+                },
               ),
-            ),
-            Gap(16.h),
-          ],
+              Gap(10.h),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.of(bottomSheetContext).pop();
+                  if (Navigator.of(context).canPop()) {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  }
+                  context.goNamed(DashboardScreen.id);
+                },
+                style: OutlinedButton.styleFrom(
+                  minimumSize: Size(double.infinity, 48.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                ),
+                child: const CustomText(
+                  "Wait for Approval (Pay Later)",
+                  variant: TextVariant.bodyLarge,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -361,6 +389,7 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
       dateOfBirth: dateOfBirth,
       gender: _parseGender(formData['gender'] as String?),
       nationality: formData['nationality'] as String? ?? 'Ghanaian',
+      ghanaCardNumber: formData['ghana_card_number'] as String?,
       phoneNumberPrimary: formData['phone'] as String? ?? '',
       emailAddress: userEmail,
       residentialAddress: formData['address'] as String? ?? '',

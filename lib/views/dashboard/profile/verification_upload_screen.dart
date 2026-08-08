@@ -11,7 +11,9 @@ import 'package:go_router/go_router.dart';
 
 class VerificationUploadScreen extends ConsumerStatefulWidget {
   static const String id = 'verification_upload_screen';
-  const VerificationUploadScreen({super.key});
+  final Map<String, dynamic>? applicationData;
+
+  const VerificationUploadScreen({super.key, this.applicationData});
 
   @override
   ConsumerState<VerificationUploadScreen> createState() => _VerificationUploadScreenState();
@@ -98,6 +100,28 @@ class _VerificationUploadScreenState extends ConsumerState<VerificationUploadScr
         final formData = _formKey.currentState!.value;
         final ghanaCardNumber = formData['ghana_card_number'] as String;
 
+        // When part of membership application flow
+        if (widget.applicationData != null) {
+          if (mounted) {
+            if (_isLoading) {
+              Navigator.of(context, rootNavigator: true).pop();
+              setState(() => _isLoading = false);
+            }
+
+            final combinedData = Map<String, dynamic>.from(widget.applicationData!);
+            combinedData['ghana_card_number'] = ghanaCardNumber;
+            combinedData['id_card_front_url'] = frontUrl;
+            combinedData['id_card_back_url'] = backUrl;
+            combinedData['selfie_url'] = selfieUrl;
+
+            context.pushNamed(
+              MembershipAgreementScreen.id,
+              extra: combinedData,
+            );
+          }
+          return;
+        }
+
         final verificationData = VerificationData(
           idCardFrontUrl: frontUrl,
           idCardBackUrl: backUrl,
@@ -120,10 +144,12 @@ class _VerificationUploadScreenState extends ConsumerState<VerificationUploadScr
               Navigator.of(context, rootNavigator: true).pop();
               setState(() => _isLoading = false);
             }
-            CustomSnackBar.success(context, message: 'Verification submitted successfully!');
-            if (mounted) {
-              context.go('/${DashboardScreen.id}');
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.goNamed(DashboardScreen.id);
             }
+            CustomSnackBar.success(context, message: 'Verification submitted successfully!');
             ref.invalidate(currentUserProfileProvider);
           }
         } else {
@@ -221,7 +247,7 @@ class _VerificationUploadScreenState extends ConsumerState<VerificationUploadScr
                 Gap(40.h),
 
                 CustomButton(
-                  text: "Submit Verification",
+                  text: widget.applicationData != null ? "Continue to Membership Agreement" : "Submit Verification",
                   onPressed: _submitVerification,
                 ),
               ],

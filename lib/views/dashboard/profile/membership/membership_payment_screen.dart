@@ -466,7 +466,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
         );
       }
 
-      context.goNamed(ProfileScreen.id);
+      context.goNamed(DashboardScreen.id);
     } catch (e) {
       if (!mounted) return;
       CustomSnackBar.error(

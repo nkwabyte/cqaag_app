@@ -19,12 +19,37 @@ class MembershipApplicationScreen extends ConsumerStatefulWidget {
 class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicationScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
-  void _navigateToAgreement() {
+  void _navigateToNextStep() {
     if (_formKey.currentState?.saveAndValidate() ?? false) {
-      final formData = _formKey.currentState?.value;
-      context.pushNamed(
-        MembershipAgreementScreen.id,
-        extra: formData != null ? Map<String, dynamic>.from(formData) : <String, dynamic>{},
+      final formData = Map<String, dynamic>.from(_formKey.currentState!.value);
+      final user = ref.read(currentUserProfileProvider).value;
+
+      final isAlreadyVerifiedOrPending = user?.verificationStatus == VerificationStatus.verified ||
+          user?.verificationStatus == VerificationStatus.pending ||
+          user?.verification != null;
+
+      if (isAlreadyVerifiedOrPending) {
+        if (user?.verification != null) {
+          formData['ghana_card_number'] = user!.verification!.idCardNumber;
+          formData['id_card_front_url'] = user.verification!.idCardFrontUrl;
+          formData['id_card_back_url'] = user.verification!.idCardBackUrl;
+          formData['selfie_url'] = user.verification!.selfieUrl;
+        }
+
+        context.pushNamed(
+          MembershipAgreementScreen.id,
+          extra: formData,
+        );
+      } else {
+        context.pushNamed(
+          VerificationUploadScreen.id,
+          extra: formData,
+        );
+      }
+    } else {
+      CustomSnackBar.error(
+        context,
+        message: 'Please complete all required fields (Category, Date of Birth, Gender, etc.) before proceeding.',
       );
     }
   }
@@ -33,12 +58,19 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final user = ref.read(currentUserProfileProvider).value;
+    final user = ref.watch(currentUserProfileProvider).value;
+
+    final isAlreadyVerifiedOrPending = user?.verificationStatus == VerificationStatus.verified ||
+        user?.verificationStatus == VerificationStatus.pending ||
+        user?.verification != null;
 
     final initialValues = {
+      'membership_category': 'Full Member',
+      'title': 'Mr',
       'first_name': user?.firstName ?? '',
       'last_name': user?.lastName ?? '',
       'nationality': 'Ghanaian',
+      'gender': 'Male',
       'phone': user?.phoneNumber ?? '',
       'email': user?.email ?? '',
       'job_title': user?.role?.toString().split('.').last.capitalize() ?? '',
@@ -158,8 +190,8 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     Gap(40.h),
                     // Action Button to proceed to Agreement
                     CustomButton(
-                      text: "Review & Sign Agreement",
-                      onPressed: _navigateToAgreement,
+                      text: isAlreadyVerifiedOrPending ? "Review & Sign Agreement" : "Continue to Identity Verification",
+                      onPressed: _navigateToNextStep,
                     ),
                     Gap(40.h),
                   ],

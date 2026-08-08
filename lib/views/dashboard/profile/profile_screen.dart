@@ -4,7 +4,6 @@ import 'package:gap/gap.dart';
 import 'package:cqaag_app/index.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   static final String id = 'profile_screen';
@@ -120,16 +119,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Stack(
                       alignment: Alignment.bottomRight,
                       children: <Widget>[
-                        CircleAvatar(
-                          radius: 55.r,
-                          backgroundColor: colorScheme.secondary.withValues(alpha: 0.2),
-                          // Display actual profile picture using ref to watch current user
-                          backgroundImage: ref.watch(currentUserProfileProvider).value?.profilePicture != null
-                              ? CachedNetworkImageProvider(ref.watch(currentUserProfileProvider).value!.profilePicture)
-                              : null,
-                          child: ref.watch(currentUserProfileProvider).value?.profilePicture == null
-                              ? Icon(Icons.person, size: 60.r, color: Colors.white)
-                              : null,
+                        Consumer(
+                          builder: (context, ref, child) {
+                            final currentUser = ref.watch(currentUserProfileProvider).value;
+                            return AppAvatar(
+                              profilePicture: currentUser?.profilePicture,
+                              selfieUrl: currentUser?.verification?.selfieUrl,
+                              name: currentUser?.firstName,
+                              radius: 55,
+                            );
+                          },
                         ),
                         Container(
                           padding: EdgeInsets.all(6.r),
@@ -188,17 +187,60 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Consumer(
                       builder: (context, ref, child) {
                         final user = ref.watch(currentUserProfileProvider).value;
-                        return Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20.r),
-                          ),
-                          child: CustomText(
-                            user != null ? "ID: ${user.id.substring(0, 8).toUpperCase()}" : "ID: ...",
-                            variant: TextVariant.bodySmall,
-                            color: Colors.white,
-                          ),
+                        final membershipState = ref.watch(membershipControllerProvider).value;
+                        final myApp = membershipState?.myApplication;
+
+                        final memStatus = user?.membershipStatus ?? MembershipStatus.notAMember;
+                        final isApproved = myApp?.status == ApplicationStatus.approved || memStatus == MembershipStatus.verified;
+
+                        String memText;
+                        Color memBgColor;
+
+                        if (isApproved) {
+                          memText = "Membership: Approved";
+                          memBgColor = Colors.green.withValues(alpha: 0.25);
+                        } else if (memStatus == MembershipStatus.applied ||
+                            memStatus == MembershipStatus.pendingReview ||
+                            memStatus == MembershipStatus.underReview ||
+                            (myApp != null && myApp.status != ApplicationStatus.draft)) {
+                          memText = "Membership: Applied";
+                          memBgColor = Colors.amber.withValues(alpha: 0.25);
+                        } else {
+                          memText = "Not a Member";
+                          memBgColor = Colors.white.withValues(alpha: 0.1);
+                        }
+
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20.r),
+                              ),
+                              child: CustomText(
+                                user != null ? "ID: ${user.id.substring(0, 8).toUpperCase()}" : "ID: ...",
+                                variant: TextVariant.bodySmall,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Gap(8.w),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                              decoration: BoxDecoration(
+                                color: memBgColor,
+                                borderRadius: BorderRadius.circular(20.r),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                              ),
+                              child: CustomText(
+                                memText,
+                                variant: TextVariant.bodySmall,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         );
                       },
                     ),
@@ -358,35 +400,45 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         final membershipState = ref.watch(membershipControllerProvider).value;
                         final myApp = membershipState?.myApplication;
 
-                        if (myApp != null && myApp.paymentStatus == 'unpaid') {
+                        if (myApp != null && (myApp.status == ApplicationStatus.submitted || myApp.status == ApplicationStatus.underReview || myApp.status == ApplicationStatus.draft)) {
+                          final isUnpaid = myApp.paymentStatus == 'unpaid';
+
                           return Container(
                             margin: EdgeInsets.only(bottom: 12.h),
                             padding: EdgeInsets.all(16.r),
                             decoration: BoxDecoration(
-                              color: Colors.amber.withValues(alpha: 0.1),
+                              color: isUnpaid ? Colors.amber.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(16.r),
-                              border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                              border: Border.all(
+                                color: isUnpaid ? Colors.amber.withValues(alpha: 0.3) : Colors.blue.withValues(alpha: 0.2),
+                              ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: [
-                                    Icon(Icons.pending_actions, color: Colors.amber.shade800, size: 28.r),
+                                    Icon(
+                                      isUnpaid ? Icons.pending_actions : Icons.hourglass_top,
+                                      color: isUnpaid ? Colors.amber.shade800 : Colors.blue,
+                                      size: 28.r,
+                                    ),
                                     Gap(12.w),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          const CustomText(
-                                            "Payment Evidence Pending",
+                                          CustomText(
+                                            isUnpaid ? "Payment Evidence Pending" : "Application Under Review",
                                             variant: TextVariant.bodyLarge,
                                             fontWeight: FontWeight.bold,
                                           ),
                                           CustomText(
-                                            "Your registration is submitted! Upload your payment screenshot to finish verification.",
+                                            isUnpaid
+                                                ? "Your registration is submitted! Upload your payment screenshot or wait for admin review."
+                                                : "Your application and payment evidence are awaiting administrator verification.",
                                             variant: TextVariant.bodySmall,
-                                            color: Colors.amber.shade900,
+                                            color: isUnpaid ? Colors.amber.shade900 : Colors.blue,
                                           ),
                                         ],
                                       ),
@@ -394,55 +446,75 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   ],
                                 ),
                                 Gap(12.h),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton.icon(
-                                    onPressed: () {
-                                      context.pushNamed(
-                                        MembershipPaymentScreen.id,
-                                        extra: {'existing_application_id': myApp.id},
-                                      );
-                                    },
-                                    icon: const Icon(Icons.upload_file, color: Colors.white, size: 18),
-                                    label: const Text("Upload Payment Evidence"),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.amber.shade800,
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                                Row(
+                                  children: [
+                                    if (isUnpaid) ...[
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          onPressed: () {
+                                            context.pushNamed(
+                                              MembershipPaymentScreen.id,
+                                              extra: {'existing_application_id': myApp.id},
+                                            );
+                                          },
+                                          icon: const Icon(Icons.upload_file, color: Colors.white, size: 16),
+                                          label: const Text("Pay / Upload"),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.amber.shade800,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                                          ),
+                                        ),
+                                      ),
+                                      Gap(8.w),
+                                    ],
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => _confirmWithdrawApplication(context, ref, myApp.id),
+                                        icon: Icon(Icons.cancel_outlined, color: Colors.red.shade700, size: 16),
+                                        label: Text(
+                                          "Withdraw",
+                                          style: TextStyle(color: Colors.red.shade700, fontSize: 13.sp),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          side: BorderSide(color: Colors.red.shade300),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ],
                             ),
                           );
                         }
 
-                        if (myApp != null && myApp.paymentStatus == 'pending_verification') {
+                        if (myApp != null && myApp.status == ApplicationStatus.approved) {
                           return Container(
                             margin: EdgeInsets.only(bottom: 12.h),
                             padding: EdgeInsets.all(16.r),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.08),
+                              color: Colors.green.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(16.r),
-                              border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                              border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.hourglass_top, color: Colors.blue, size: 28.r),
+                                Icon(Icons.workspace_premium, color: Colors.green, size: 36.r),
                                 Gap(12.w),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       const CustomText(
-                                        "Payment Evidence Submitted",
+                                        "CQAAG Membership Approved",
                                         variant: TextVariant.bodyLarge,
                                         fontWeight: FontWeight.bold,
                                       ),
-                                      const CustomText(
-                                        "Your Mobile Money payment evidence is awaiting administrator verification.",
+                                      CustomText(
+                                        "Congratulations! Your official CQAAG membership application has been approved.",
                                         variant: TextVariant.bodySmall,
-                                        color: Colors.blue,
+                                        color: Colors.green.shade800,
                                       ),
                                     ],
                                   ),
@@ -657,6 +729,65 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmWithdrawApplication(BuildContext context, WidgetRef ref, String applicationId) async {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        title: Text(
+          "Withdraw Application?",
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
+        ),
+        content: Text(
+          "Are you sure you want to withdraw your membership application? This will cancel your pending submission and allow you to re-apply whenever you are ready.",
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: colorScheme.secondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              "Keep Application",
+              style: TextStyle(fontSize: 14.sp),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.error,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              "Withdraw",
+              style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        await ref.read(membershipControllerProvider.notifier).withdrawApplication(applicationId);
+        if (context.mounted) {
+          CustomSnackBar.success(context, message: "Membership application withdrawn successfully.");
+        }
+      } catch (e) {
+        if (context.mounted) {
+          CustomSnackBar.error(context, message: "Failed to withdraw application: ${e.toString()}");
+        }
+      }
+    }
   }
 
   // Helper to wrap items in a themed card look

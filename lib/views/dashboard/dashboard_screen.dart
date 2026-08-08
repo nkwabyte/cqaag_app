@@ -80,14 +80,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     ref.listen(currentUserProfileProvider, (previous, next) {
       next.whenData((user) {
         if (user != null) {
-          // Check for verification status
-          if (user.verificationStatus != VerificationStatus.verified &&
-              user.verificationStatus != VerificationStatus.pending) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _showVerificationDialog(context);
-            });
-          }
-
           // Update admin status if changed
           _updateAdminStatus(user.isAdmin);
         }
@@ -185,29 +177,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               },
             )
           : null,
-    );
-  }
-
-  void _showVerificationDialog(BuildContext context) {
-    // Prevent multiple dialogs if possible, but sticking to basic implementation
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
-      builder: (BuildContext context) {
-        return PopScope(
-          canPop: false,
-          child: StatusDialog(
-            type: DialogType.info,
-            title: "Verification",
-            message: "Please verify your account to continue using the application.",
-            buttonText: "Ok",
-            onConfirm: () {
-              context.goNamed(VerificationUploadScreen.id);
-            },
-          ),
-        );
-      },
     );
   }
 }

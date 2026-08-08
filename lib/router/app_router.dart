@@ -275,7 +275,10 @@ GoRouter goRouter(Ref ref) {
       GoRoute(
         path: '/${VerificationUploadScreen.id}',
         name: VerificationUploadScreen.id,
-        builder: (context, state) => const VerificationUploadScreen(),
+        builder: (context, state) {
+          final applicationData = state.extra as Map<String, dynamic>?;
+          return VerificationUploadScreen(applicationData: applicationData);
+        },
       ),
       GoRoute(
         path: '/${EditProfileScreen.id}',

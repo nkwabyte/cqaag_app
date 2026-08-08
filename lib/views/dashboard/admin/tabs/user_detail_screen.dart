@@ -50,11 +50,11 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
             Center(
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 50.r,
-                    backgroundImage: CachedNetworkImageProvider(_user.profilePicture),
-                    onBackgroundImageError: (ctx, err) {},
-                    child: CustomText(_user.firstName[0], variant: TextVariant.headlineMedium),
+                  AppAvatar(
+                    profilePicture: _user.profilePicture,
+                    selfieUrl: _user.verification?.selfieUrl,
+                    name: _user.firstName,
+                    radius: 50,
                   ),
                   Gap(16.h),
                   CustomText(

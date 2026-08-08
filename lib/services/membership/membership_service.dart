@@ -108,6 +108,24 @@ class MembershipService {
     await _applicationsCollection.doc(applicationId).delete();
   }
 
+  /// Withdraw an unapproved application (submitted, under_review, draft, pending)
+  Future<void> withdrawApplication(String applicationId, String userId) async {
+    final application = await getApplicationById(applicationId);
+    if (application == null) {
+      throw Exception('Application not found');
+    }
+
+    if (application.status == ApplicationStatus.approved) {
+      throw Exception('Approved memberships cannot be withdrawn');
+    }
+
+    await _applicationsCollection.doc(applicationId).delete();
+
+    await _firestore.collection('users').doc(userId).update({
+      'membership_status': 'Not a member',
+    });
+  }
+
   /// Get all applications (for admin use)
   Future<List<MembershipApplication>> getAllApplications() async {
     final querySnapshot = await _applicationsCollection.get();
@@ -148,6 +166,25 @@ class MembershipService {
     }
 
     await _applicationsCollection.doc(applicationId).update(updateData);
+
+    final application = await getApplicationById(applicationId);
+    if (application != null) {
+      String userMemStatus;
+      switch (status) {
+        case ApplicationStatus.approved:
+          userMemStatus = 'verified';
+          break;
+        case ApplicationStatus.rejected:
+          userMemStatus = 'Not a member';
+          break;
+        default:
+          userMemStatus = 'applied';
+      }
+
+      await _firestore.collection('users').doc(application.userId).update({
+        'membership_status': userMemStatus,
+      });
+    }
   }
 
   /// Records payment evidence uploaded by an applicant after initial registration.
