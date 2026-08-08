@@ -42,36 +42,39 @@ class ProfileTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return ListTile(
-      onTap: onTap,
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: EdgeInsets.all(8.r),
-        decoration: BoxDecoration(
-          color: colorScheme.secondary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Icon(icon, color: colorScheme.secondary, size: 22.r),
-      ),
-      title: CustomText(
-        title,
-        variant: TextVariant.bodySmall,
-        fontWeight: FontWeight.w600,
-      ),
-      subtitle: subtitle != null
-          ? CustomText(
-              subtitle!,
-              variant: TextVariant.bodySmall,
-              color: colorScheme.secondary,
-            )
-          : null,
-      trailing:
-          trailing ??
-          Icon(
-            Icons.chevron_right,
-            color: colorScheme.secondary,
-            size: 20.r,
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        onTap: onTap,
+        contentPadding: EdgeInsets.zero,
+        leading: Container(
+          padding: EdgeInsets.all(8.r),
+          decoration: BoxDecoration(
+            color: colorScheme.secondary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8.r),
           ),
+          child: Icon(icon, color: colorScheme.secondary, size: 22.r),
+        ),
+        title: CustomText(
+          title,
+          variant: TextVariant.bodySmall,
+          fontWeight: FontWeight.w600,
+        ),
+        subtitle: subtitle != null
+            ? CustomText(
+                subtitle!,
+                variant: TextVariant.bodySmall,
+                color: colorScheme.secondary,
+              )
+            : null,
+        trailing:
+            trailing ??
+            Icon(
+              Icons.chevron_right,
+              color: colorScheme.secondary,
+              size: 20.r,
+            ),
+      ),
     );
   }
 }

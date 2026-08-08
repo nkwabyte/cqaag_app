@@ -63,7 +63,7 @@ class _DistrictDetailScreenState extends State<DistrictDetailScreen> {
                       final town = entry.key;
                       final townInspections = entry.value;
 
-                      final totalMT = townInspections.fold<double>(
+                      final totalKg = townInspections.fold<double>(
                         0.0,
                         (sum, inspection) => sum + inspection.quantity,
                       );
@@ -71,7 +71,7 @@ class _DistrictDetailScreenState extends State<DistrictDetailScreen> {
                       return HistoryCard(
                         title: town,
                         inspectionsCount: "${townInspections.length}",
-                        totalMT: totalMT.toStringAsFixed(1),
+                        totalKg: totalKg.toStringAsFixed(1),
                         onTap: () => context.pushNamed(
                           TownDetailScreen.id,
                           extra: {

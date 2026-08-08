@@ -129,7 +129,7 @@ class PdfService {
           _buildInfoRow('ANALYSIS TYPE:', data['analysisType'] ?? ''),
           pw.Row(
             children: [
-              pw.Expanded(child: _buildInfoRow('QUANTITY (KG/MT):', data['quantity'] ?? '')),
+              pw.Expanded(child: _buildInfoRow('QUANTITY (KG):', data['quantity'] ?? '')),
               pw.SizedBox(width: 10),
               pw.Expanded(child: _buildInfoRow('BAGS:', data['bagCount'] ?? '')),
             ],
@@ -162,39 +162,40 @@ class PdfService {
   }
 
   pw.Widget _buildAnalysisTable(Map<String, dynamic> data) {
-    const tableHeaders = ['Parameter', 'I', 'II', 'III', 'AVERAGE'];
+    // Each cut test performed gets its own column; the report always shows
+    // three slots so the sheet keeps its familiar shape even when only one or
+    // two cut tests were required.
+    final cuts = (data['cutTests'] as List<CutTest>?) ?? const <CutTest>[];
+    const slots = 3;
 
-    double totalDefective = double.tryParse(data['totalDefective'] ?? '0') ?? 0;
-    double totalSpotted = double.tryParse(data['totalSpotted'] ?? '0') ?? 0;
-    
-    double halfTotalSpotted = totalSpotted * 0.5;
-    double goodKernels = double.tryParse(data['goodKernels'] ?? '0') ?? 0;
-    double totalYield = goodKernels + halfTotalSpotted;
+    String headingFor(int slot) {
+      if (slot < cuts.length) return cuts[slot].displayLabel;
+      return switch (slot) {
+        1 => '2nd Cutting',
+        2 => '3rd Cutting',
+        _ => '',
+      };
+    }
 
-    // Final Total raw sum
-    double emptyShells = double.tryParse(data['emptyShells'] ?? '0') ?? 0;
-    double fullyDamaged = double.tryParse(data['fullyDamagedKernels'] ?? '0') ?? 0;
-    double voidKernels = double.tryParse(data['voidKernels'] ?? '0') ?? 0;
-    double oilyKernels = double.tryParse(data['oilyKernels'] ?? '0') ?? 0;
-    double spottedKernels = double.tryParse(data['spottedKernels'] ?? '0') ?? 0;
-    double immatureKernels = double.tryParse(data['immatureKernels'] ?? '0') ?? 0;
-
-    double finalTotal = emptyShells + goodKernels + voidKernels + fullyDamaged + oilyKernels + spottedKernels + immatureKernels;
+    final headers = <String>[
+      'Parameter',
+      for (var i = 0; i < slots; i++) headingFor(i),
+      'AVERAGE',
+    ];
 
     return pw.Table(
       border: pw.TableBorder.all(width: 0.5),
       columnWidths: {
         0: const pw.FlexColumnWidth(4),
-        1: const pw.FlexColumnWidth(1),
-        2: const pw.FlexColumnWidth(1),
-        3: const pw.FlexColumnWidth(1),
+        1: const pw.FlexColumnWidth(1.2),
+        2: const pw.FlexColumnWidth(1.2),
+        3: const pw.FlexColumnWidth(1.2),
         4: const pw.FlexColumnWidth(1.5),
       },
       children: [
-        // Header
         pw.TableRow(
           decoration: pw.BoxDecoration(color: PdfColors.grey200),
-          children: tableHeaders
+          children: headers
               .map(
                 (h) => pw.Padding(
                   padding: const pw.EdgeInsets.all(4),
@@ -205,69 +206,82 @@ class PdfService {
               )
               .toList(),
         ),
-        // Rows
-        _buildTableRow('MOISTURE CONTENT (%)', data['moisture']),
-        _buildTableRow('NUT COUNT (per Kg)', data['nutCount']),
-        // Defects
-        _buildSectionHeaderRow('FULLY DAMAGED NUTS (gm)'),
-        _buildTableRow('  FULLY DAMAGED NUTS (gm)', data['fullyDamagedKernels']),
-        _buildTableRow('  VOID NUTS (gm)', data['voidKernels']),
-        _buildTableRow('  OIL NUTS (gm)', data['oilyKernels']),
-        _buildTableRow('  TOTAL (gm)', totalDefective.toStringAsFixed(1), isBold: true),
-        // Spotted
-        _buildSectionHeaderRow('SPOTTED/PARTLY SOUND NUTS (gm)'),
-        _buildTableRow('  SPOTTED/PARTLY SOUND (gm)', data['spottedKernels']),
-        _buildTableRow('  IMMATURE NUTS (gm)', data['immatureKernels']),
-        _buildTableRow('  TOTAL (gm)', totalSpotted.toStringAsFixed(1), isBold: true),
-        _buildTableRow('  50% of above TOTAL (gm)', halfTotalSpotted.toStringAsFixed(1)),
 
-        _buildTableRow('GOOD KERNELS (gm)', data['goodKernels']),
-        _buildTableRow('TOTAL YIELD (gm)', totalYield.toStringAsFixed(1)),
-        _buildTableRow('EMPTY SHELLS (gm)', data['emptyShells']),
-        _buildTableRow('TOTAL (gm)', finalTotal.toStringAsFixed(1)), // usually 1000g sum
+        _buildDataRow('MOISTURE CONTENT (%)', cuts, (c) => c.moistureContent),
+        _buildDataRow('NUT COUNT (per Kg)', cuts, (c) => c.nutCount.toDouble(), decimals: 0),
+
+        // Fully damaged group. The group heading carries its own figure on the
+        // association's sheet, and TOTAL is the sum of all three lines.
+        _buildDataRow('FULLY DAMAGED NUTS (gm)', cuts, (c) => c.fullyDamagedNuts, isGroupHeading: true),
+        _buildDataRow('  VOID NUTS (gm)', cuts, (c) => c.voidNuts),
+        _buildDataRow('  OIL NUTS (gm)', cuts, (c) => c.oilNuts),
+        _buildDataRow('  TOTAL (gm)', cuts, (c) => c.totalDamaged, isBold: true),
+
+        // Spotted group, same shape: heading line holds the spotted figure and
+        // TOTAL is spotted + immature.
+        _buildDataRow('SPOTTED/PARTLY SOUND NUTS (gm)', cuts, (c) => c.spottedNuts, isGroupHeading: true),
+        _buildDataRow('  IMMATURE NUTS (gm)', cuts, (c) => c.immatureNuts),
+        _buildDataRow('  TOTAL (gm)', cuts, (c) => c.totalSpotted, isBold: true),
+        _buildDataRow('  50% of above TOTAL (gm)', cuts, (c) => c.halfTotalSpotted),
+
+        _buildDataRow('GOOD KERNELS (gm)', cuts, (c) => c.goodKernels),
+        _buildDataRow('TOTAL YIELD (gm)', cuts, (c) => c.totalYield, isBold: true),
+        _buildDataRow('EMPTY SHELLS (gm)', cuts, (c) => c.emptyShells),
+        _buildDataRow('TOTAL (gm)', cuts, (c) => c.total, isBold: true),
+        _buildDataRow('OUTTURN (KOR) - LBS', cuts, (c) => c.kor, isBold: true, decimals: 2),
       ],
     );
   }
 
-  pw.TableRow _buildTableRow(String label, String? value, {bool isBold = false}) {
-    final valueWidget = pw.Padding(
-      padding: const pw.EdgeInsets.all(2),
-      child: pw.Center(
-        child: pw.Text(value ?? '-', style: pw.TextStyle(fontSize: 8, fontWeight: isBold ? pw.FontWeight.bold : null)),
-      ),
-    );
+  /// One parameter row: a cell per cut test, then the mean of those cut tests.
+  ///
+  /// Every cell is constructed separately because a pdf widget cannot be laid
+  /// out in two places.
+  ///
+  /// [isGroupHeading] renders the label bold italic while still showing its
+  /// figures, matching how the association's sheet presents FULLY DAMAGED NUTS
+  /// and SPOTTED/PARTLY SOUND NUTS: a heading that is also a measurement.
+  pw.TableRow _buildDataRow(
+    String label,
+    List<CutTest> cuts,
+    double Function(CutTest) select, {
+    bool isBold = false,
+    bool isGroupHeading = false,
+    int decimals = 1,
+  }) {
+    const slots = 3;
 
-    return pw.TableRow(
-      children: [
-        pw.Padding(
-          padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 4),
-          child: pw.Text(label, style: pw.TextStyle(fontSize: 8, fontWeight: isBold ? pw.FontWeight.bold : null)),
-        ),
-        valueWidget, // Column I
-        _buildEmptyCell(), // Column II
-        _buildEmptyCell(), // Column III
-        valueWidget, // Column AVERAGE
-      ],
-    );
-  }
+    String format(double value) => value.toStringAsFixed(decimals);
 
-  pw.Widget _buildEmptyCell() => pw.Container();
+    final average = cuts.isEmpty ? null : cuts.map(select).reduce((a, b) => a + b) / cuts.length;
+    final emphasised = isBold || isGroupHeading;
 
-  pw.TableRow _buildSectionHeaderRow(String label) {
     return pw.TableRow(
       children: [
         pw.Padding(
           padding: const pw.EdgeInsets.symmetric(vertical: 2, horizontal: 4),
           child: pw.Text(
             label,
-            style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, fontStyle: pw.FontStyle.italic),
+            style: pw.TextStyle(
+              fontSize: 8,
+              fontWeight: emphasised ? pw.FontWeight.bold : null,
+              fontStyle: isGroupHeading ? pw.FontStyle.italic : null,
+            ),
           ),
         ),
-        _buildEmptyCell(),
-        _buildEmptyCell(),
-        _buildEmptyCell(),
-        _buildEmptyCell(),
+        for (var i = 0; i < slots; i++)
+          _buildValueCell(i < cuts.length ? format(select(cuts[i])) : '', isBold: emphasised),
+        _buildValueCell(average == null ? '-' : format(average), isBold: true),
       ],
+    );
+  }
+
+  pw.Widget _buildValueCell(String value, {bool isBold = false}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(2),
+      child: pw.Center(
+        child: pw.Text(value, style: pw.TextStyle(fontSize: 8, fontWeight: isBold ? pw.FontWeight.bold : null)),
+      ),
     );
   }
 

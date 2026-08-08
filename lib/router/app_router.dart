@@ -52,6 +52,7 @@ GoRouter goRouter(Ref ref) {
         '/${CodeOfEthicsScreen.id}',
         '/${ConstitutionScreen.id}',
         '/${TermsAndConditionsScreen.id}',
+        '/${PrivacyPolicyScreen.id}',
         '/${GuestEventsScreen.id}',
         '/${GuestEventsScreen.id}',
         '/${GuestEventDetailsScreen.id}',
@@ -228,11 +229,29 @@ GoRouter goRouter(Ref ref) {
         builder: (context, state) => const ConstitutionScreen(),
       ),
       GoRoute(
+        path: '/${PrivacyPolicyScreen.id}',
+        name: PrivacyPolicyScreen.id,
+        builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
+        path: '/${NotificationsScreen.id}',
+        name: NotificationsScreen.id,
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
         path: '/${MembershipAgreementScreen.id}',
         name: MembershipAgreementScreen.id,
         builder: (context, state) {
           final applicationData = state.extra as Map<String, dynamic>?;
           return MembershipAgreementScreen(applicationData: applicationData ?? {});
+        },
+      ),
+      GoRoute(
+        path: '/${MembershipPaymentScreen.id}',
+        name: MembershipPaymentScreen.id,
+        builder: (context, state) {
+          final applicationData = state.extra as Map<String, dynamic>?;
+          return MembershipPaymentScreen(applicationData: applicationData ?? {});
         },
       ),
 

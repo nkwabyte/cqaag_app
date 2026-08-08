@@ -47,6 +47,21 @@ _MembershipApplication _$MembershipApplicationFromJson(
       : DateTime.parse(json['reviewed_at'] as String),
   reviewNotes: json['review_notes'] as String?,
   reviewerId: json['reviewer_id'] as String?,
+  paymentMethod: json['payment_method'] as String?,
+  paymentStatus: json['payment_status'] as String? ?? 'unpaid',
+  paymentAmount: (json['payment_amount'] as num?)?.toDouble(),
+  paymentCurrency: json['payment_currency'] as String? ?? 'GHS',
+  paymentEvidenceUrl: json['payment_evidence_url'] as String?,
+  paymentReference: json['payment_reference'] as String?,
+  paymentMomoNetwork: json['payment_momo_network'] as String?,
+  paymentMomoNumber: json['payment_momo_number'] as String?,
+  paymentSubmittedAt: json['payment_submitted_at'] == null
+      ? null
+      : DateTime.parse(json['payment_submitted_at'] as String),
+  paymentVerifiedAt: json['payment_verified_at'] == null
+      ? null
+      : DateTime.parse(json['payment_verified_at'] as String),
+  paymentVerifiedBy: json['payment_verified_by'] as String?,
 );
 
 Map<String, dynamic> _$MembershipApplicationToJson(
@@ -78,6 +93,17 @@ Map<String, dynamic> _$MembershipApplicationToJson(
   'reviewed_at': instance.reviewedAt?.toIso8601String(),
   'review_notes': instance.reviewNotes,
   'reviewer_id': instance.reviewerId,
+  'payment_method': instance.paymentMethod,
+  'payment_status': instance.paymentStatus,
+  'payment_amount': instance.paymentAmount,
+  'payment_currency': instance.paymentCurrency,
+  'payment_evidence_url': instance.paymentEvidenceUrl,
+  'payment_reference': instance.paymentReference,
+  'payment_momo_network': instance.paymentMomoNetwork,
+  'payment_momo_number': instance.paymentMomoNumber,
+  'payment_submitted_at': instance.paymentSubmittedAt?.toIso8601String(),
+  'payment_verified_at': instance.paymentVerifiedAt?.toIso8601String(),
+  'payment_verified_by': instance.paymentVerifiedBy,
 };
 
 const _$TitleEnumMap = {

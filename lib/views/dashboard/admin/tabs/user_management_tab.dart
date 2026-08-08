@@ -79,37 +79,40 @@ class _UserManagementTabState extends ConsumerState<UserManagementTab> {
                   ),
                   itemBuilder: (BuildContext context, int index) {
                     final user = users[index];
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        radius: 24.r,
-                        backgroundImage: NetworkImage(user.profilePicture),
-                        // Fallback if image fails or is essential to handle effectively
-                        onBackgroundImageError: (ctx, err) {},
-                        child: Text(user.firstName[0].toUpperCase()),
+                    return Material(
+                      color: Colors.transparent,
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          radius: 24.r,
+                          backgroundImage: NetworkImage(user.profilePicture),
+                          // Fallback if image fails or is essential to handle effectively
+                          onBackgroundImageError: (ctx, err) {},
+                          child: Text(user.firstName[0].toUpperCase()),
+                        ),
+                        title: CustomText(
+                          "${user.firstName} ${user.lastName}",
+                          variant: TextVariant.bodyLarge,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            CustomText(
+                              user.email,
+                              variant: TextVariant.bodySmall,
+                              color: colorScheme.secondary,
+                            ),
+                            Gap(4.h),
+                            _buildStatusBadge(user.status, colorScheme),
+                          ],
+                        ),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: () {
+                          // Navigate to details
+                          context.pushNamed(AdminUserDetailScreen.id, extra: user);
+                        },
                       ),
-                      title: CustomText(
-                        "${user.firstName} ${user.lastName}",
-                        variant: TextVariant.bodyLarge,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          CustomText(
-                            user.email,
-                            variant: TextVariant.bodySmall,
-                            color: colorScheme.secondary,
-                          ),
-                          Gap(4.h),
-                          _buildStatusBadge(user.status, colorScheme),
-                        ],
-                      ),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () {
-                        // Navigate to details
-                        context.pushNamed(AdminUserDetailScreen.id, extra: user);
-                      },
                     );
                   },
                 );

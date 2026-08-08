@@ -89,7 +89,59 @@ abstract class MembershipApplication with _$MembershipApplication {
 
     /// ID of the reviewer
     String? reviewerId,
+
+    // Registration Payment
+    //
+    // Field names mirror the website exactly so both clients read and write the
+    // same `members` documents. The amount and destination account are
+    // snapshotted here at submission time, so later changes to settings/payment
+    // never rewrite what this applicant was actually asked to pay.
+    /// How the fee was paid: `momo` or `paystack`
+    String? paymentMethod,
+
+    /// Verification state: unpaid, pending_verification, verified, rejected
+    @Default('unpaid') String paymentStatus,
+
+    /// Amount the applicant was asked to pay
+    double? paymentAmount,
+
+    /// Currency of [paymentAmount]
+    @Default('GHS') String paymentCurrency,
+
+    /// Cloudinary URL of the uploaded payment evidence
+    String? paymentEvidenceUrl,
+
+    /// Transaction ID supplied by the applicant
+    String? paymentReference,
+
+    /// Network of the account the fee was sent to
+    String? paymentMomoNetwork,
+
+    /// Number the fee was sent to
+    String? paymentMomoNumber,
+
+    /// When the applicant submitted their payment
+    DateTime? paymentSubmittedAt,
+
+    /// When an admin verified the payment
+    DateTime? paymentVerifiedAt,
+
+    /// UID of the admin who verified the payment
+    String? paymentVerifiedBy,
   }) = _MembershipApplication;
 
   factory MembershipApplication.fromJson(Map<String, dynamic> json) => _$MembershipApplicationFromJson(json);
+
+  /// Typed view of [paymentStatus].
+  PaymentStatus get payment => PaymentStatus.fromValue(paymentStatus);
+
+  /// Whether an admin has confirmed the registration fee was received.
+  bool get isPaymentVerified => payment == PaymentStatus.verified;
+
+  /// Payment amount formatted for display, or null when nothing was recorded.
+  String? get formattedPaymentAmount {
+    final amount = paymentAmount;
+    if (amount == null) return null;
+    return '$paymentCurrency ${amount.toStringAsFixed(2)}';
+  }
 }

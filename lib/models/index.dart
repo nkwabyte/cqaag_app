@@ -24,3 +24,6 @@ export 'boarding/index.dart';
 export 'event/index.dart';
 export 'membership/index.dart';
 export 'subscription/index.dart';
+export 'payment/index.dart';
+export 'notification/index.dart';
+

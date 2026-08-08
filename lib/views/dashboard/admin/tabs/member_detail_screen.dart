@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -18,6 +19,7 @@ class AdminMemberDetailScreen extends ConsumerStatefulWidget {
 class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScreen> {
   final TextEditingController _reviewNotesController = TextEditingController();
   bool _isProcessing = false;
+  bool _isProcessingPayment = false;
 
   @override
   void initState() {
@@ -280,6 +282,10 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
                   ],
                 ),
 
+                Gap(16.h),
+
+                _buildPaymentCard(context, colorScheme),
+
                 Gap(20.h),
 
                 // Review Notes Section
@@ -389,6 +395,191 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
         return Colors.orange;
       default:
         return Colors.grey;
+    }
+  }
+
+  /// Registration payment summary, with verification actions while the payment
+  /// is still awaiting a decision.
+  Widget _buildPaymentCard(BuildContext context, ColorScheme colorScheme) {
+    final app = widget.application;
+    final status = app.payment;
+
+    // Applications created before payments existed carry no payment fields.
+    if (app.paymentMethod == null && status == PaymentStatus.unpaid) {
+      return _buildInfoCard(
+        context,
+        title: "Registration Payment",
+        children: [
+          _buildInfoRow("Status", "No payment recorded"),
+        ],
+      );
+    }
+
+    final statusColor = switch (status) {
+      PaymentStatus.verified => Colors.green,
+      PaymentStatus.pendingVerification => Colors.orange,
+      PaymentStatus.rejected => Colors.red,
+      PaymentStatus.unpaid => Colors.grey,
+    };
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const CustomText("Registration Payment", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
+                child: Text(
+                  status.label,
+                  style: TextStyle(color: statusColor, fontSize: 10.sp, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          Gap(12.h),
+          _buildInfoRow("Amount", app.formattedPaymentAmount ?? "Not recorded"),
+          if (app.paymentMethod != null) _buildInfoRow("Method", app.paymentMethod == 'momo' ? 'Mobile Money' : 'Paystack'),
+          if (app.paymentMomoNumber != null)
+            _buildInfoRow("Paid to", "${app.paymentMomoNetwork ?? ''} ${app.paymentMomoNumber}".trim()),
+          _buildInfoRow("Reference", app.paymentReference ?? "Not provided"),
+
+          if (app.paymentEvidenceUrl != null) ...[
+            Gap(12.h),
+            InkWell(
+              onTap: () => _showEvidence(app.paymentEvidenceUrl!),
+              child: Row(
+                children: [
+                  Icon(Icons.receipt_long_outlined, size: 18.r, color: colorScheme.primary),
+                  Gap(6.w),
+                  CustomText(
+                    "View payment evidence",
+                    variant: TextVariant.bodyMedium,
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          if (status == PaymentStatus.pendingVerification) ...[
+            Gap(16.h),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isProcessingPayment ? null : () => _setPaymentStatus(PaymentStatus.rejected),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: Size(double.infinity, 44.h),
+                      side: BorderSide(color: colorScheme.error),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                    ),
+                    child: CustomText("Reject Payment", variant: TextVariant.bodyMedium, color: colorScheme.error),
+                  ),
+                ),
+                Gap(12.w),
+                Expanded(
+                  child: CustomButton(
+                    text: "Verify Payment",
+                    isLoading: _isProcessingPayment,
+                    height: 44.h,
+                    onPressed: _isProcessingPayment ? () {} : () => _setPaymentStatus(PaymentStatus.verified),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showEvidence(String url) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        insetPadding: EdgeInsets.all(16.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppBar(
+              title: const CustomText("Payment Evidence", variant: TextVariant.bodyLarge),
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                ),
+              ],
+            ),
+            Flexible(
+              child: InteractiveViewer(
+                child: CachedNetworkImage(
+                  imageUrl: url,
+                  placeholder: (_, _) => Padding(
+                    padding: EdgeInsets.all(32.r),
+                    child: const CircularProgressIndicator(),
+                  ),
+                  errorWidget: (_, _, _) => Padding(
+                    padding: EdgeInsets.all(32.r),
+                    child: const CustomText("Could not load the evidence image."),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _setPaymentStatus(PaymentStatus status) async {
+    final verb = status == PaymentStatus.verified ? 'verify' : 'reject';
+    final confirmed = await _showConfirmationDialog(
+      title: '${verb[0].toUpperCase()}${verb.substring(1)} payment?',
+      message: status == PaymentStatus.verified
+          ? 'Confirm that this payment was received in the CQAAG Mobile Money account.'
+          : 'The applicant will need to submit valid payment evidence.',
+      confirmText: status == PaymentStatus.verified ? 'Verify' : 'Reject',
+      confirmColor: status == PaymentStatus.verified ? Colors.green : Colors.red,
+    );
+
+    if (!confirmed) return;
+
+    setState(() => _isProcessingPayment = true);
+
+    try {
+      final admin = ref.read(authServiceProvider).currentUser;
+      if (admin == null) throw Exception('Not authenticated');
+
+      await ref.read(membershipServiceProvider).updatePaymentStatus(
+        applicationId: widget.application.id,
+        status: status,
+        verifiedBy: admin.uid,
+      );
+
+      if (!mounted) return;
+      CustomSnackBar.success(context, message: 'Payment ${status.label.toLowerCase()}.');
+      context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      CustomSnackBar.error(context, message: 'Could not update payment: $e');
+    } finally {
+      if (mounted) setState(() => _isProcessingPayment = false);
     }
   }
 

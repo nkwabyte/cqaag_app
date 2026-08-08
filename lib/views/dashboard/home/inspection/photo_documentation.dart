@@ -5,7 +5,6 @@ import 'package:cqaag_app/index.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
-import 'package:image_picker/image_picker.dart';
 
 class PhotoDocumentationStep extends StatefulWidget {
   static final String id = 'photo_documentation_step';
@@ -33,40 +32,12 @@ class _PhotoDocumentationStepState extends State<PhotoDocumentationStep> {
   }
 
   Future<void> _pickImage(String key) async {
-    final ImageSource? source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Wrap(
-            children: <Widget>[
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Gallery'),
-                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_camera),
-                title: const Text('Camera'),
-                onTap: () => Navigator.of(context).pop(ImageSource.camera),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (source == null) return;
-
     try {
-      final picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: source,
-        imageQuality: 80,
-      );
+      final file = await ImageSourcePicker.pick(context);
 
-      if (image != null) {
+      if (file != null) {
         setState(() {
-          _photos[key] = File(image.path);
+          _photos[key] = file;
         });
       }
     } catch (e) {

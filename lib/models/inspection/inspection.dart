@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:cqaag_app/models/inspection/cut_test.dart';
 import 'package:cqaag_app/models/location/captured_location.dart';
 
 part 'inspection.freezed.dart';
@@ -19,6 +20,8 @@ enum InspectionStatus {
 
 @freezed
 abstract class Inspection with _$Inspection {
+  const Inspection._();
+
   @JsonSerializable(fieldRename: FieldRename.snake, explicitToJson: true)
   const factory Inspection({
     required String id, // Firebase auto-generated document ID
@@ -43,7 +46,14 @@ abstract class Inspection with _$Inspection {
     @Default(0.0) double quantity,
     @Default(0) int quantityBags,
 
-    // Quality Metrics
+    /// The individual cut tests behind this inspection, in order.
+    ///
+    /// The report shows each one in its own column and the mean in AVERAGE.
+    /// The flat quality fields below hold that mean, so existing records and
+    /// the website continue to read the same values as before.
+    @Default(<CutTest>[]) List<CutTest> cutTests,
+
+    // Quality Metrics (averages across [cutTests])
     @Default(0.0) double moistureContent,
     @Default(0) int nutCount, // Raw Nut Count
     @Default(0.0) double kor,
@@ -71,4 +81,28 @@ abstract class Inspection with _$Inspection {
   }) = _Inspection;
 
   factory Inspection.fromJson(Map<String, dynamic> json) => _$InspectionFromJson(json);
+
+  /// Cut tests to render on the report.
+  ///
+  /// Inspections recorded before cut tests were stored individually only have
+  /// the averaged fields. Those are presented as a single cut test so older
+  /// records still fill the first column instead of showing an empty table.
+  List<CutTest> get effectiveCutTests {
+    if (cutTests.isNotEmpty) return cutTests;
+
+    return [
+      CutTest(
+        index: 1,
+        moistureContent: moistureContent,
+        nutCount: nutCount,
+        fullyDamagedNuts: fullyDamagedKernels,
+        voidNuts: voidKernels,
+        oilNuts: oilyKernels,
+        spottedNuts: spottedKernels,
+        immatureNuts: immatureKernels,
+        goodKernels: goodKernels,
+        emptyShells: emptyShells,
+      ),
+    ];
+  }
 }

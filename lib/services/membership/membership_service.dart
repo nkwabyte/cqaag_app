@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cqaag_app/models/membership/membership_application.dart';
 import 'package:cqaag_app/models/membership/membership_category.dart';
+import 'package:cqaag_app/models/payment/payment_settings.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'membership_service.g.dart';
@@ -146,6 +147,23 @@ class MembershipService {
     }
 
     await _applicationsCollection.doc(applicationId).update(updateData);
+  }
+
+  /// Records an admin's verdict on an applicant's registration payment.
+  ///
+  /// Kept separate from [updateApplicationStatus] because verifying that money
+  /// arrived and approving the membership are distinct decisions.
+  Future<void> updatePaymentStatus({
+    required String applicationId,
+    required PaymentStatus status,
+    required String verifiedBy,
+  }) async {
+    await _applicationsCollection.doc(applicationId).update({
+      'payment_status': status.value,
+      'payment_verified_at': DateTime.now().toIso8601String(),
+      'payment_verified_by': verifiedBy,
+      'updated_at': DateTime.now().toIso8601String(),
+    });
   }
 }
 

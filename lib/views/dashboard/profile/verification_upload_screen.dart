@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
@@ -9,7 +8,6 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 
 class VerificationUploadScreen extends ConsumerStatefulWidget {
   static const String id = 'verification_upload_screen';
@@ -27,37 +25,38 @@ class _VerificationUploadScreenState extends ConsumerState<VerificationUploadScr
   File? _selfieFile;
   bool _isLoading = false;
 
+  /// Offers the camera, the gallery or the file browser, so a Ghana Card can be
+  /// photographed on the spot instead of having to exist as a file already.
   Future<void> _pickDocument(void Function(File) onPick) async {
     try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
+      final file = await ImageSourcePicker.pick(
+        context,
+        cameraLabel: 'Take a photo of the card',
       );
 
-      if (result != null && result.files.isNotEmpty) {
-        final path = result.files.single.path;
-        if (path != null) {
-          setState(() {
-            onPick(File(path));
-          });
-        }
+      if (file != null) {
+        setState(() {
+          onPick(file);
+        });
       }
     } catch (e) {
       if (mounted) CustomSnackBar.error(context, message: 'Error picking document: $e');
     }
   }
 
+  /// Defaults to the front camera, but still allows picking an existing photo.
   Future<void> _takeSelfie(void Function(File) onPick) async {
     try {
-      final picker = ImagePicker();
-      final XFile? image = await picker.pickImage(
-        source: ImageSource.camera,
-        preferredCameraDevice: CameraDevice.front,
+      final file = await ImageSourcePicker.pick(
+        context,
+        useFrontCamera: true,
+        cameraLabel: 'Take a selfie',
+        fileLabel: 'Choose an existing photo',
       );
 
-      if (image != null) {
+      if (file != null) {
         setState(() {
-          onPick(File(image.path));
+          onPick(file);
         });
       }
     } catch (e) {
