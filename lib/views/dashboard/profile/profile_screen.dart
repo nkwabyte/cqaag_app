@@ -187,60 +187,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Consumer(
                       builder: (context, ref, child) {
                         final user = ref.watch(currentUserProfileProvider).value;
-                        final membershipState = ref.watch(membershipControllerProvider).value;
-                        final myApp = membershipState?.myApplication;
-
-                        final memStatus = user?.membershipStatus ?? MembershipStatus.notAMember;
-                        final isApproved = myApp?.status == ApplicationStatus.approved || memStatus == MembershipStatus.verified;
-
-                        String memText;
-                        Color memBgColor;
-
-                        if (isApproved) {
-                          memText = "Membership: Approved";
-                          memBgColor = Colors.green.withValues(alpha: 0.25);
-                        } else if (memStatus == MembershipStatus.applied ||
-                            memStatus == MembershipStatus.pendingReview ||
-                            memStatus == MembershipStatus.underReview ||
-                            (myApp != null && myApp.status != ApplicationStatus.draft)) {
-                          memText = "Membership: Applied";
-                          memBgColor = Colors.amber.withValues(alpha: 0.25);
-                        } else {
-                          memText = "Not a Member";
-                          memBgColor = Colors.white.withValues(alpha: 0.1);
-                        }
-
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(20.r),
-                              ),
-                              child: CustomText(
-                                user != null ? "ID: ${user.id.substring(0, 8).toUpperCase()}" : "ID: ...",
-                                variant: TextVariant.bodySmall,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Gap(8.w),
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-                              decoration: BoxDecoration(
-                                color: memBgColor,
-                                borderRadius: BorderRadius.circular(20.r),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                              ),
-                              child: CustomText(
-                                memText,
-                                variant: TextVariant.bodySmall,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                        return Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20.r),
+                          ),
+                          child: CustomText(
+                            user != null ? "ID: ${user.id.substring(0, 8).toUpperCase()}" : "ID: ...",
+                            variant: TextVariant.bodySmall,
+                            color: Colors.white,
+                          ),
                         );
                       },
                     ),
