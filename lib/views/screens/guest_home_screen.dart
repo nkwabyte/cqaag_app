@@ -30,6 +30,11 @@ class GuestHomeScreen extends StatelessWidget {
 
               Gap(40.h),
 
+              // Interactive KOR Calculator Banner Shortcut
+              _buildKorCalculatorBanner(context),
+
+              Gap(40.h),
+
               // Vision, Mission, Core Values, Impact Goals
               _buildVisionMissionSection(context),
 
@@ -140,14 +145,14 @@ class GuestHomeScreen extends StatelessWidget {
       child: Column(
         children: <Widget>[
           const CustomText(
-            'Live Quality Statistics',
+            'National Impact Metrics',
             variant: TextVariant.displaySmall,
             fontWeight: FontWeight.bold,
             textAlign: TextAlign.center,
           ),
           Gap(8.h),
           CustomText(
-            'Real-time data from our quality assurance operations',
+            'Official data from our nationwide cashew quality operations',
             variant: TextVariant.bodyMedium,
             color: Theme.of(context).colorScheme.secondary,
             textAlign: TextAlign.center,
@@ -159,15 +164,81 @@ class GuestHomeScreen extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: 16.h,
             crossAxisSpacing: 16.w,
-            childAspectRatio: 1.0,
+            childAspectRatio: 1.1,
             children: <Widget>[
-              _buildStatCard(context, '1,247,890', 'Total Inspected', '+12%', Colors.green),
-              _buildStatCard(context, '1,142,503', 'Export Ready', '8%', Colors.green),
-              _buildStatCard(context, '91.5%', 'Pass Rate', '+2.3%', Colors.green),
-              _buildStatCard(context, '156', 'Active Analysts', '+5', Colors.green),
+              _buildStatCard(context, '1,200+', 'Licensed Controllers', 'Certified', Colors.green),
+              _buildStatCard(context, '99.2%', 'Compliance Rate', 'Passed', Colors.green),
+              _buildStatCard(context, '4 Hubs', 'Regional Chapters', 'Active', Colors.green),
+              _buildStatCard(context, '100%', 'National Coverage', 'Guaranteed', Colors.green),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildKorCalculatorBanner(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 24.w),
+      child: Container(
+        padding: EdgeInsets.all(24.r),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.12)),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(14.r),
+                  decoration: BoxDecoration(
+                    color: AppColors.lightPeach,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.calculate, color: AppColors.darkBrown, size: 30.r),
+                ),
+                Gap(16.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CustomText(
+                        'Interactive KOR Calculator',
+                        variant: TextVariant.headlineSmall,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.darkBrown,
+                      ),
+                      Gap(4.h),
+                      CustomText(
+                        'Compute Kernel Outturn Ratio and trade classifications with official CQAAG formula.',
+                        variant: TextVariant.bodySmall,
+                        color: Colors.grey.shade700,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            Gap(20.h),
+            CustomButton(
+              text: 'Open Interactive KOR Calculator',
+              backgroundColor: AppColors.darkBrown,
+              textColor: Colors.white,
+              onPressed: () {
+                context.pushNamed(QualityStandardsScreen.id);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -83,12 +83,11 @@ class _UserManagementTabState extends ConsumerState<UserManagementTab> {
                       color: Colors.transparent,
                       child: ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
-                          radius: 24.r,
-                          backgroundImage: NetworkImage(user.profilePicture),
-                          // Fallback if image fails or is essential to handle effectively
-                          onBackgroundImageError: (ctx, err) {},
-                          child: Text(user.firstName[0].toUpperCase()),
+                        leading: AppAvatar(
+                          profilePicture: user.profilePicture,
+                          selfieUrl: user.verification?.selfieUrl,
+                          name: user.firstName,
+                          radius: 24,
                         ),
                         title: CustomText(
                           "${user.firstName} ${user.lastName}",

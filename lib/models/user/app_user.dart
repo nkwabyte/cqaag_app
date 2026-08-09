@@ -107,3 +107,8 @@ abstract class AppUser with _$AppUser {
 
   factory AppUser.fromJson(Map<String, dynamic> json) => _$AppUserFromJson(json);
 }
+
+extension AppUserX on AppUser {
+  /// Check if user is approved to perform inspections and access reports
+  bool get isApproved => isAdmin || (verificationStatus == VerificationStatus.verified && status == AppUserStatus.active);
+}

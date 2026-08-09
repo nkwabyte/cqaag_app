@@ -30,6 +30,8 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
   late TextEditingController _qcIdController;
   late TextEditingController _batchIdController;
 
+  String? _selectedAnalysisType;
+
   @override
   void initState() {
     super.initState();
@@ -95,6 +97,19 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
     final defaultLocation = user != null ? '${user.district}, ${user.region}' : '';
     final colorScheme = Theme.of(context).colorScheme;
 
+    final activeAnalysisType = _selectedAnalysisType ??
+        (FormBuilder.of(context)?.fields['analysis_type']?.value as String?);
+
+    final truckLabel = activeAnalysisType == 'Export' ? "Truck/Container Number" : "Truck Number";
+    final truckHint = activeAnalysisType == 'Export' ? "e.g., TN 1234 ABC / CONT-9876" : "e.g., TN 1234 ABC";
+
+    String farmerLabel = "Supplier / Farmer Name";
+    if (activeAnalysisType == 'Dispatch') {
+      farmerLabel = "Supplier/Company";
+    } else if (activeAnalysisType == 'Export') {
+      farmerLabel = "Exporter/Export Company";
+    }
+
     return SingleChildScrollView(
       padding: EdgeInsets.all(24.r),
       child: Column(
@@ -140,15 +155,15 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
             ],
           ),
           Gap(20.h),
-          const CustomTextField(
+          CustomTextField(
             name: "truck_number",
-            label: "Truck Number",
-            hint: "e.g., TN 1234 ABC",
+            label: truckLabel,
+            hint: truckHint,
             prefixIcon: Icons.local_shipping_outlined,
           ),
           Gap(20.h),
           CustomText(
-            "Company / Buying Agency",
+            "Supplier / Supplying Company",
             variant: TextVariant.bodyLarge,
             fontWeight: FontWeight.w600,
             color: colorScheme.onSurface,
@@ -236,11 +251,18 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
                     ))
                 .toList(),
             validator: FormBuilderValidators.required(errorText: "Select the analysis type"),
+            onChanged: (val) {
+              if (val != _selectedAnalysisType) {
+                setState(() {
+                  _selectedAnalysisType = val;
+                });
+              }
+            },
           ),
           Gap(20.h),
-          const CustomTextField(
+          CustomTextField(
             name: "farmer_name",
-            label: "Supplier / Farmer Name",
+            label: farmerLabel,
             hint: "e.g., Ama Darko",
             prefixIcon: Icons.person_outline,
           ),

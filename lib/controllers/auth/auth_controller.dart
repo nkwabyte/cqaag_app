@@ -1,5 +1,6 @@
 import 'package:cqaag_app/services/index.dart';
 import 'package:cqaag_app/models/user/app_user.dart';
+import 'package:cqaag_app/controllers/auth/guest_mode_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'auth_controller.g.dart';
@@ -13,7 +14,12 @@ class AuthController extends _$AuthController {
 
   Future<void> signIn(String email, String password) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => ref.read(authServiceProvider).signInWithEmailAndPassword(email, password));
+    state = await AsyncValue.guard(() async {
+      final user = await ref.read(authServiceProvider).signInWithEmailAndPassword(email, password);
+      ref.read(guestModeProvider.notifier).disableGuestMode();
+      ref.invalidate(currentUserProfileProvider);
+      return user;
+    });
   }
 
   Future<void> signUp({
@@ -26,16 +32,21 @@ class AuthController extends _$AuthController {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref
-          .read(authServiceProvider)
-          .signUpWithEmailAndPassword(
-            email: email,
-            password: password,
-            firstName: firstName,
-            lastName: lastName,
-            phoneNumber: phoneNumber,
-            isAdmin: isAdmin,
-          ),
+      () async {
+        final user = await ref
+            .read(authServiceProvider)
+            .signUpWithEmailAndPassword(
+              email: email,
+              password: password,
+              firstName: firstName,
+              lastName: lastName,
+              phoneNumber: phoneNumber,
+              isAdmin: isAdmin,
+            );
+        ref.read(guestModeProvider.notifier).disableGuestMode();
+        ref.invalidate(currentUserProfileProvider);
+        return user;
+      },
     );
   }
 
@@ -46,7 +57,11 @@ class AuthController extends _$AuthController {
 
   Future<void> signOut() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => ref.read(authServiceProvider).signOut());
+    state = await AsyncValue.guard(() async {
+      await ref.read(authServiceProvider).signOut();
+      ref.read(guestModeProvider.notifier).disableGuestMode();
+      ref.invalidate(currentUserProfileProvider);
+    });
   }
 }
 

@@ -64,19 +64,15 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
 
       if (!mounted) return;
 
-      // Show success snackbar
+      context.pop();
       CustomSnackBar.success(
         context,
         message: 'Application approved successfully!',
         title: 'Success',
       );
-
-      // Navigate back
-      context.pop();
     } catch (e) {
       if (!mounted) return;
 
-      // Show error snackbar
       CustomSnackBar.error(
         context,
         message: 'Failed to approve application: ${e.toString()}',
@@ -131,15 +127,12 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
 
       if (!mounted) return;
 
-      // Show success snackbar
+      context.pop();
       CustomSnackBar.success(
         context,
         message: 'Application rejected.',
         title: 'Success',
       );
-
-      // Navigate back
-      context.pop();
     } catch (e) {
       if (!mounted) return;
 
@@ -167,12 +160,26 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: CustomText(title, variant: TextVariant.headlineMedium, fontWeight: FontWeight.bold),
-        content: CustomText(message, variant: TextVariant.bodyMedium),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            fontSize: 14.sp,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const CustomText('Cancel', variant: TextVariant.bodyLarge),
+            child: Text(
+              'Cancel',
+              style: TextStyle(fontSize: 14.sp),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -180,7 +187,10 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
               backgroundColor: confirmColor,
               foregroundColor: Colors.white,
             ),
-            child: CustomText(confirmText, variant: TextVariant.bodyLarge, color: Colors.white),
+            child: Text(
+              confirmText,
+              style: TextStyle(color: Colors.white, fontSize: 14.sp),
+            ),
           ),
         ],
       ),
@@ -193,6 +203,8 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final currentUser = ref.watch(currentUserProfileProvider).value;
+    final isCallerAdmin = currentUser?.isAdmin ?? false;
     final isReviewed =
         widget.application.status == ApplicationStatus.approved ||
         widget.application.status == ApplicationStatus.rejected;
@@ -222,6 +234,20 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
                   ),
                   child: Column(
                     children: [
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final userState = ref.watch(userControllerProvider).value;
+                          final user = userState?.allUsers.where((u) => u.id == widget.application.userId).firstOrNull;
+
+                          return AppAvatar(
+                            profilePicture: user?.profilePicture,
+                            selfieUrl: user?.verification?.selfieUrl,
+                            name: widget.application.firstName,
+                            radius: 40,
+                          );
+                        },
+                      ),
+                      Gap(12.h),
                       CustomText(
                         "Status: ${widget.application.status.displayName}",
                         variant: TextVariant.headlineMedium,
@@ -337,8 +363,8 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
                 Gap(40.h),
 
                 // Admin Actions
-                if (widget.application.status == ApplicationStatus.submitted ||
-                    widget.application.status == ApplicationStatus.underReview) ...[
+                if (isCallerAdmin && (widget.application.status == ApplicationStatus.submitted ||
+                    widget.application.status == ApplicationStatus.underReview)) ...[
                   CustomText(
                     "Review Actions",
                     variant: TextVariant.headlineMedium,
@@ -476,7 +502,7 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
             ),
           ],
 
-          if (status == PaymentStatus.pendingVerification) ...[
+          if ((ref.watch(currentUserProfileProvider).value?.isAdmin == true) && status == PaymentStatus.pendingVerification) ...[
             Gap(16.h),
             Row(
               children: [

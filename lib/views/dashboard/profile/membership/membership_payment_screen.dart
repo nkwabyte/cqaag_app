@@ -27,7 +27,7 @@ class MembershipPaymentScreen extends ConsumerStatefulWidget {
 }
 
 class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScreen> {
-  PaymentMethod? _selectedMethod;
+  PaymentMethod? _selectedMethod = PaymentMethod.momo;
   File? _evidenceFile;
   final TextEditingController _referenceController = TextEditingController();
   bool _isSubmitting = false;
@@ -46,6 +46,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
 
     // Defaults keep the screen usable even if settings/payment cannot be read.
     final settings = settingsAsync.value ?? PaymentSettings.defaults;
+    final isUploadingForExistingApp = widget.applicationData['existing_application_id'] != null;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -58,14 +59,16 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const CustomText(
-                    "Choose how to pay",
+                  CustomText(
+                    isUploadingForExistingApp ? "Upload Payment Evidence" : "Choose how to pay",
                     variant: TextVariant.headlineMedium,
                     fontWeight: FontWeight.bold,
                   ),
                   Gap(8.h),
                   CustomText(
-                    "Your application is submitted once payment is provided. An administrator then verifies it along with your identity documents.",
+                    isUploadingForExistingApp
+                        ? "Upload evidence of your Mobile Money payment to complete verification of your membership application."
+                        : "You can upload your Mobile Money payment evidence now, or skip and upload it later from your profile.",
                     variant: TextVariant.bodyMedium,
                     color: colorScheme.secondary,
                   ),
@@ -100,10 +103,25 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
 
                   Gap(32.h),
                   CustomButton(
-                    text: _isSubmitting ? "Submitting..." : "Submit Application",
+                    text: _isSubmitting
+                        ? "Submitting..."
+                        : (_evidenceFile != null
+                            ? "Submit Application with Evidence"
+                            : (isUploadingForExistingApp ? "Upload Evidence" : "Submit Application (Pay Later)")),
                     isLoading: _isSubmitting,
                     onPressed: _isSubmitting ? () {} : () => _handleSubmit(settings),
                   ),
+                  if (!isUploadingForExistingApp && _evidenceFile == null) ...[
+                    Gap(12.h),
+                    Center(
+                      child: CustomText(
+                        "Payment is optional right now. You can upload evidence anytime from your Profile.",
+                        variant: TextVariant.bodySmall,
+                        color: colorScheme.secondary,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
                   Gap(40.h),
                 ],
               ),
@@ -265,7 +283,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
             "1. Send the exact amount from your Mobile Money wallet.\n"
             "2. Use your full name as the reference.\n"
             "3. Screenshot the confirmation message.\n"
-            "4. Upload it below for verification.",
+            "4. Upload it below for verification (or upload later).",
             variant: TextVariant.bodySmall,
             color: colorScheme.secondary,
           ),
@@ -292,7 +310,13 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const CustomText("Payment evidence", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const CustomText("Payment evidence", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+            CustomText("(Optional)", variant: TextVariant.bodySmall, color: colorScheme.secondary),
+          ],
+        ),
         Gap(8.h),
         InkWell(
           onTap: _pickEvidence,
@@ -313,7 +337,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
                       Icon(Icons.receipt_long_outlined, size: 36.r, color: colorScheme.secondary),
                       Gap(8.h),
                       CustomText(
-                        "Take a photo or upload your payment screenshot",
+                        "Take a photo or upload your payment screenshot\n(You can also skip and upload later from your profile)",
                         variant: TextVariant.bodySmall,
                         color: colorScheme.secondary,
                         textAlign: TextAlign.center,
@@ -380,13 +404,10 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
   }
 
   Future<void> _handleSubmit(PaymentSettings settings) async {
-    if (_selectedMethod != PaymentMethod.momo) {
-      CustomSnackBar.error(context, message: 'Please choose a payment method to continue.');
-      return;
-    }
-
+    final existingAppId = widget.applicationData['existing_application_id'] as String?;
     final evidence = _evidenceFile;
-    if (evidence == null) {
+
+    if (existingAppId != null && evidence == null) {
       CustomSnackBar.error(context, message: 'Please upload evidence of your Mobile Money payment.');
       return;
     }
@@ -399,29 +420,53 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
         throw Exception('User not authenticated');
       }
 
-      final evidenceUrl = await ref.read(cloudinaryServiceProvider).uploadPaymentEvidence(evidence);
-      if (evidenceUrl == null) {
-        throw Exception('Could not upload your payment evidence. Please try again.');
+      String? evidenceUrl;
+      if (evidence != null) {
+        evidenceUrl = await ref.read(cloudinaryServiceProvider).uploadPaymentEvidence(evidence);
+        if (evidenceUrl == null) {
+          throw Exception('Could not upload your payment evidence. Please try again.');
+        }
       }
 
-      final application = _buildApplication(
-        userId: user.uid,
-        userEmail: user.email ?? '',
-        settings: settings,
-        evidenceUrl: evidenceUrl,
-      );
+      if (existingAppId != null && evidenceUrl != null) {
+        // Updating existing unpaid application with payment evidence
+        await ref.read(membershipServiceProvider).submitPaymentEvidence(
+          applicationId: existingAppId,
+          evidenceUrl: evidenceUrl,
+          reference: _referenceController.text.trim().isEmpty ? null : _referenceController.text.trim(),
+          settings: settings,
+        );
 
-      await ref.read(membershipControllerProvider.notifier).submitApplication(application);
+        if (!mounted) return;
 
-      if (!mounted) return;
+        CustomSnackBar.success(
+          context,
+          message: 'Payment evidence submitted successfully! An administrator will verify it shortly.',
+          title: 'Evidence Uploaded',
+        );
+      } else {
+        // Submitting new application (with or without payment evidence)
+        final application = _buildApplication(
+          userId: user.uid,
+          userEmail: user.email ?? '',
+          settings: settings,
+          evidenceUrl: evidenceUrl,
+        );
 
-      CustomSnackBar.success(
-        context,
-        message: 'Your application and payment were submitted. An administrator will verify them shortly.',
-        title: 'Application Submitted',
-      );
+        await ref.read(membershipControllerProvider.notifier).submitApplication(application);
 
-      context.goNamed(ProfileScreen.id);
+        if (!mounted) return;
+
+        CustomSnackBar.success(
+          context,
+          message: evidenceUrl != null
+              ? 'Your application and payment were submitted. An administrator will verify them shortly.'
+              : 'Your application has been submitted successfully! You can upload your payment evidence anytime from your profile.',
+          title: 'Application Submitted',
+        );
+      }
+
+      context.goNamed(DashboardScreen.id);
     } catch (e) {
       if (!mounted) return;
       CustomSnackBar.error(
@@ -440,7 +485,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
     required String userId,
     required String userEmail,
     required PaymentSettings settings,
-    required String evidenceUrl,
+    required String? evidenceUrl,
   }) {
     final formData = widget.applicationData;
 
@@ -454,6 +499,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
     final dateOfBirth = dobDateTime?.toIso8601String() ?? DateTime.now().toIso8601String();
 
     final now = DateTime.now();
+    final hasEvidence = evidenceUrl != null;
 
     return MembershipApplication(
       id: const uuid_pkg.Uuid().v4(),
@@ -475,17 +521,16 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
       createdAt: now,
       submittedAt: now,
 
-      // Snapshot what was actually charged, so later fee changes do not rewrite
-      // this applicant's record.
+      // Payment details
       paymentMethod: PaymentMethod.momo.value,
-      paymentStatus: PaymentStatus.pendingVerification.value,
+      paymentStatus: hasEvidence ? PaymentStatus.pendingVerification.value : PaymentStatus.unpaid.value,
       paymentAmount: settings.registrationFee,
       paymentCurrency: settings.currency,
       paymentEvidenceUrl: evidenceUrl,
       paymentReference: _referenceController.text.trim().isEmpty ? null : _referenceController.text.trim(),
       paymentMomoNetwork: settings.network.value,
       paymentMomoNumber: settings.momoNumber,
-      paymentSubmittedAt: now,
+      paymentSubmittedAt: hasEvidence ? now : null,
     );
   }
 

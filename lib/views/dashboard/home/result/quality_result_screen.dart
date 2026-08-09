@@ -13,6 +13,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cqaag_app/services/export/excel_export_service.dart';
 
 class QualityResultScreen extends ConsumerStatefulWidget {
   static const String id = 'quality_result_screen';
@@ -154,13 +155,22 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
                         },
                       ),
                     ),
-                    Gap(16.w),
+                    Gap(8.w),
                     Expanded(
                       child: CustomButton(
                         text: "PDF",
                         variant: ButtonVariant.outlined,
                         leadingIcon: Icon(Icons.picture_as_pdf_outlined, color: colorScheme.primary),
                         onPressed: () => _downloadReport(context, i),
+                      ),
+                    ),
+                    Gap(8.w),
+                    Expanded(
+                      child: CustomButton(
+                        text: "Excel",
+                        variant: ButtonVariant.outlined,
+                        leadingIcon: const Icon(Icons.explicit_outlined, color: Colors.green),
+                        onPressed: () => _exportSingleExcel(context, i),
                       ),
                     ),
                   ],
@@ -192,6 +202,38 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
     );
   }
 
+  Future<void> _exportSingleExcel(BuildContext context, Inspection inspection) async {
+    final user = ref.read(currentUserProfileProvider).value;
+    if (user == null) {
+      CustomSnackBar.error(context, message: 'User not authenticated');
+      return;
+    }
+
+    final rootNav = Navigator.of(context, rootNavigator: true);
+    AppDialogs.showLoadingDialog(context, message: 'Exporting report to Excel...');
+
+    try {
+      await ExcelExportService.exportInspections(
+        inspections: [inspection],
+        currentUser: user,
+        filenamePrefix: 'inspection_${inspection.inspectionId ?? inspection.id}',
+      );
+      if (mounted) {
+        rootNav.pop();
+        if (context.mounted) {
+          CustomSnackBar.success(context, message: 'Excel report export ready!');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        rootNav.pop();
+        if (context.mounted) {
+          CustomSnackBar.error(context, message: 'Export failed: ${e.toString()}');
+        }
+      }
+    }
+  }
+
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: EdgeInsets.only(bottom: 16.h),
@@ -209,11 +251,17 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
       ),
       child: Column(
         children: [
-          const _InfoRow(label: "Report Type", value: "Arrival"), // Static for now
+          _InfoRow(
+            label: "Report Type",
+            value: (i.analysisType != null && i.analysisType!.isNotEmpty) ? i.analysisType! : "Arrival",
+          ),
           const Divider(),
-          _InfoRow(label: "Truck Number", value: i.truckNumber ?? "N/A"),
+          _InfoRow(
+            label: i.analysisType == 'Export' ? "Truck/Container Number" : "Truck Number",
+            value: i.truckNumber ?? "N/A",
+          ),
           const Divider(),
-          _InfoRow(label: "Company", value: i.company ?? "N/A"),
+          _InfoRow(label: "Supplier / Supplying Company", value: i.company ?? "N/A"),
           const Divider(),
           _InfoRow(label: "Quantity", value: "${i.quantity} KG"),
         ],

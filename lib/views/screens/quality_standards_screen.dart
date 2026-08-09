@@ -53,9 +53,14 @@ class QualityStandardsScreen extends StatelessWidget {
               ),
             ),
 
+            // Interactive KOR Calculator Widget Block
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: const _InteractiveKorCalculatorCard(),
+            ),
+
             // Key Inspection Metrics Section
             Container(
-              // Background color separation not explicit in design but good for structure
               padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 40.h),
               child: Column(
                 children: [
@@ -102,7 +107,7 @@ class QualityStandardsScreen extends StatelessWidget {
                   _buildResultsTable(),
                   Gap(16.h),
                   CustomText(
-                    '* All measurements based on standard 300g sample size. KOR calculated using formula: K/(Sh+0.75*Tk)',
+                    '* All measurements based on standard 1000g sample size. KOR calculated using CQAAG formula: Useful Kernel (g) = Good (g) + (0.5 × Spotted g); KOR (lbs) = Useful Kernel × 0.188.',
                     variant: TextVariant.bodySmall,
                     color: Colors.grey.shade600,
                     textAlign: TextAlign.center,
@@ -651,3 +656,484 @@ class _CriteriaRow {
 }
 
 enum _Status { pass, conditional, fail }
+
+class _InteractiveKorCalculatorCard extends StatefulWidget {
+  const _InteractiveKorCalculatorCard();
+
+  @override
+  State<_InteractiveKorCalculatorCard> createState() => _InteractiveKorCalculatorCardState();
+}
+
+class _InteractiveKorCalculatorCardState extends State<_InteractiveKorCalculatorCard> {
+  final _goodController = TextEditingController(text: '225');
+  final _spottedController = TextEditingController(text: '35');
+  final _immatureController = TextEditingController(text: '15');
+  final _sampleWeightController = TextEditingController(text: '1000');
+  final _moistureController = TextEditingController(text: '8.0');
+  final _outCountController = TextEditingController(text: '172');
+
+  double _usefulKernel = 242.5;
+  double _korLbs = 45.59;
+  String _gradeLabel = "SECOND CLASS";
+  Color _gradeBg = const Color(0xFFBE6735);
+  String _tradeDesc = "Standard Export Grade. Fully approved for standard international export shipments.";
+  String _nutSizeLabel = "Medium Nuts (172 nuts/kg)";
+  String _moistureLabel = "Optimal (8.0%)";
+  double _meterPercent = 0.75;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculate();
+  }
+
+  @override
+  void dispose() {
+    _goodController.dispose();
+    _spottedController.dispose();
+    _immatureController.dispose();
+    _sampleWeightController.dispose();
+    _moistureController.dispose();
+    _outCountController.dispose();
+    super.dispose();
+  }
+
+  void _calculate() {
+    final goodG = double.tryParse(_goodController.text) ?? 0;
+    final spottedG = double.tryParse(_spottedController.text) ?? 0;
+    final sampleW = double.tryParse(_sampleWeightController.text) ?? 1000;
+    final moisture = double.tryParse(_moistureController.text) ?? 0;
+    final outCount = int.tryParse(_outCountController.text) ?? 0;
+
+    final useful = goodG + (0.5 * spottedG);
+    final actualSample = sampleW > 0 ? sampleW : 1000;
+    final kor = (useful / actualSample) * 0.188 * 80;
+
+    String label = "REJECT";
+    Color bg = const Color(0xFFDC2626);
+    String desc = "Fails export standards. Restricted to local extraction or heavy discount processing.";
+
+    if (kor >= 48) {
+      label = "FIRST CLASS";
+      bg = AppColors.darkBrown;
+      desc = "Premium Export Quality. Eligible for top-tier international contract pricing.";
+    } else if (kor >= 45) {
+      label = "SECOND CLASS";
+      bg = const Color(0xFFBE6735);
+      desc = "Standard Export Grade. Fully approved for standard international export shipments.";
+    } else if (kor >= 40) {
+      label = "UNDERGRADE";
+      bg = Colors.amber.shade800;
+      desc = "Conditional Quality. Subject to local processing discount or price adjustment.";
+    }
+
+    String nutSize = "Medium Nuts";
+    if (outCount > 0 && outCount < 180) {
+      nutSize = "Large Nuts ($outCount nuts/kg)";
+    } else if (outCount >= 180 && outCount <= 210) {
+      nutSize = "Medium Nuts ($outCount nuts/kg)";
+    } else if (outCount > 210) {
+      nutSize = "Small Nuts ($outCount nuts/kg)";
+    }
+
+    String moistureText = "Optimal (${moisture.toStringAsFixed(1)}%)";
+    if (moisture > 10.0) {
+      moistureText = "⚠️ High Risk (${moisture.toStringAsFixed(1)}%) - Redrying Required";
+    } else if (moisture > 8.0) {
+      moistureText = "⚠️ Caution (${moisture.toStringAsFixed(1)}%) - Drying Advised";
+    }
+
+    setState(() {
+      _usefulKernel = useful;
+      _korLbs = kor;
+      _gradeLabel = label;
+      _gradeBg = bg;
+      _tradeDesc = desc;
+      _nutSizeLabel = nutSize;
+      _moistureLabel = moistureText;
+      _meterPercent = (kor / 60.0).clamp(0.05, 1.0);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(20.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Center(
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+              decoration: BoxDecoration(
+                color: AppColors.lightPeach,
+                borderRadius: BorderRadius.circular(99.r),
+                border: Border.all(color: AppColors.bronze.withValues(alpha: 0.2)),
+              ),
+              child: CustomText(
+                'INTERACTIVE KOR CALCULATOR',
+                variant: TextVariant.bodySmall,
+                fontWeight: FontWeight.bold,
+                color: AppColors.darkBrown,
+              ),
+            ),
+          ),
+          Gap(12.h),
+          CustomText(
+            'Cut-Test Metric Calculator',
+            variant: TextVariant.headlineMedium,
+            fontWeight: FontWeight.bold,
+            color: AppColors.darkBrown,
+            textAlign: TextAlign.center,
+          ),
+          Gap(4.h),
+          CustomText(
+            'Adjust field cut-test weights to compute real-time KOR and trade classification.',
+            variant: TextVariant.bodySmall,
+            color: Colors.grey.shade700,
+            textAlign: TextAlign.center,
+          ),
+          Gap(24.h),
+
+          // Inputs Grid
+          Row(
+            children: [
+              Expanded(
+                child: _buildInputField(
+                  label: 'Good Kernels (g) *',
+                  controller: _goodController,
+                ),
+              ),
+              Gap(12.w),
+              Expanded(
+                child: _buildInputField(
+                  label: 'Spotted Kernels (g) *',
+                  controller: _spottedController,
+                ),
+              ),
+            ],
+          ),
+          Gap(12.h),
+          Row(
+            children: [
+              Expanded(
+                child: _buildInputField(
+                  label: 'Immature (g)',
+                  controller: _immatureController,
+                ),
+              ),
+              Gap(12.w),
+              Expanded(
+                child: _buildInputField(
+                  label: 'Sample Weight (g)',
+                  controller: _sampleWeightController,
+                ),
+              ),
+            ],
+          ),
+          Gap(12.h),
+          Row(
+            children: [
+              Expanded(
+                child: _buildInputField(
+                  label: 'Moisture (%) *',
+                  controller: _moistureController,
+                ),
+              ),
+              Gap(12.w),
+              Expanded(
+                child: _buildInputField(
+                  label: 'Out Count (nuts/kg) *',
+                  controller: _outCountController,
+                ),
+              ),
+            ],
+          ),
+          Gap(20.h),
+
+          // Results Output Box
+          Container(
+            padding: EdgeInsets.all(16.r),
+            decoration: BoxDecoration(
+              color: AppColors.beigeBackground,
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.12)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Hero Header Card
+                Container(
+                  padding: EdgeInsets.all(16.r),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CustomText(
+                              'CALCULATED OUTTURN RATIO',
+                              variant: TextVariant.bodySmall,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.grey.shade700,
+                            ),
+                            Gap(4.h),
+                            CustomText(
+                              '${_korLbs.toStringAsFixed(2)} lbs',
+                              variant: TextVariant.displaySmall,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.darkBrown,
+                            ),
+                            Gap(6.h),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
+                              decoration: BoxDecoration(
+                                color: AppColors.beigeBackground,
+                                borderRadius: BorderRadius.circular(99.r),
+                                border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                              ),
+                              child: CustomText(
+                                'Useful: ${_usefulKernel.toStringAsFixed(1)}g (${((_usefulKernel / (double.tryParse(_sampleWeightController.text) ?? 1000)) * 100).toStringAsFixed(1)}%)',
+                                variant: TextVariant.bodySmall,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Gap(8.w),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                        decoration: BoxDecoration(
+                          color: _gradeBg,
+                          borderRadius: BorderRadius.circular(99.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: CustomText(
+                          _gradeLabel,
+                          variant: TextVariant.bodySmall,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Gap(12.h),
+
+                // Visual KOR Scale Meter Bar Card
+                Container(
+                  padding: EdgeInsets.all(14.r),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          CustomText('0 lbs (Reject)', variant: TextVariant.bodySmall, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                          CustomText('40 lbs', variant: TextVariant.bodySmall, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                          CustomText('45 lbs', variant: TextVariant.bodySmall, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                          CustomText('48+ lbs (First Class)', variant: TextVariant.bodySmall, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                        ],
+                      ),
+                      Gap(6.h),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(99.r),
+                        child: LinearProgressIndicator(
+                          value: _meterPercent,
+                          minHeight: 10.h,
+                          backgroundColor: Colors.grey.shade200,
+                          valueColor: AlwaysStoppedAnimation<Color>(_gradeBg),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Gap(12.h),
+
+                // Symmetrical Detail Matrix Cards
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: EdgeInsets.all(12.r),
+                        constraints: BoxConstraints(minHeight: 72.h),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CustomText(
+                              'NUT SIZE CLASSIFICATION',
+                              variant: TextVariant.bodySmall,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600,
+                            ),
+                            Gap(4.h),
+                            CustomText(
+                              _nutSizeLabel,
+                              variant: TextVariant.bodySmall,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.darkBrown,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Gap(10.w),
+                    Expanded(
+                      child: Container(
+                        padding: EdgeInsets.all(12.r),
+                        constraints: BoxConstraints(minHeight: 72.h),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CustomText(
+                              'MOISTURE SAFETY RATING',
+                              variant: TextVariant.bodySmall,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600,
+                            ),
+                            Gap(4.h),
+                            CustomText(
+                              _moistureLabel,
+                              variant: TextVariant.bodySmall,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.darkBrown,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Gap(12.h),
+
+                // Commercial Trade Recommendation Card
+                Container(
+                  padding: EdgeInsets.all(14.r),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border(
+                      top: BorderSide(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                      right: BorderSide(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                      bottom: BorderSide(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                      left: BorderSide(color: _gradeBg, width: 5.w),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CustomText(
+                        'COMMERCIAL TRADE RECOMMENDATION',
+                        variant: TextVariant.bodySmall,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.darkBrown,
+                      ),
+                      Gap(4.h),
+                      CustomText(
+                        _tradeDesc,
+                        variant: TextVariant.bodySmall,
+                        color: Colors.grey.shade800,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required TextEditingController controller,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CustomText(
+          label,
+          variant: TextVariant.bodySmall,
+          fontWeight: FontWeight.bold,
+          color: AppColors.darkBrown,
+        ),
+        Gap(4.h),
+        TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: (_) => _calculate(),
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.bold,
+            color: AppColors.darkBrown,
+          ),
+          decoration: InputDecoration(
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            filled: true,
+            fillColor: AppColors.creamBackground,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: BorderSide(color: AppColors.darkBrown.withValues(alpha: 0.2)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: BorderSide(color: AppColors.darkBrown.withValues(alpha: 0.2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: AppColors.darkBrown, width: 1.5),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

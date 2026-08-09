@@ -126,13 +126,23 @@ class StatusDialog extends StatelessWidget {
             Gap(10.h),
             Icon(getIcon(), size: 60.r, color: getColor()),
             Gap(20.h),
-            CustomText(title, variant: TextVariant.headlineMedium, textAlign: TextAlign.center),
-            Gap(10.h),
-            CustomText(
-              message,
-              variant: TextVariant.bodyMedium,
+            Text(
+              title,
               textAlign: TextAlign.center,
-              color: colorScheme.secondary,
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
+            ),
+            Gap(10.h),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: colorScheme.secondary,
+              ),
             ),
             Gap(30.h),
             CustomButton(

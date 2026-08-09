@@ -138,16 +138,18 @@ class _MembershipManagementTabState extends ConsumerState<MembershipManagementTa
       clipBehavior: Clip.antiAlias,
       child: ListTile(
         contentPadding: EdgeInsets.all(12.r),
-        leading: Container(
-          width: 50.r,
-          height: 50.r,
-          decoration: BoxDecoration(
-            color: colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-          child: Center(
-            child: Icon(Icons.assignment_ind, color: colorScheme.primary),
-          ),
+        leading: Consumer(
+          builder: (context, ref, child) {
+            final userState = ref.watch(userControllerProvider).value;
+            final user = userState?.allUsers.where((u) => u.id == app.userId).firstOrNull;
+
+            return AppAvatar(
+              profilePicture: user?.profilePicture,
+              selfieUrl: user?.verification?.selfieUrl,
+              name: app.firstName,
+              radius: 25,
+            );
+          },
         ),
         title: CustomText(
           app.firstName.isNotEmpty ? "${app.firstName} ${app.lastName}" : "Unknown Applicant",

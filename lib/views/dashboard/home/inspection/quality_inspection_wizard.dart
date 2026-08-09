@@ -6,6 +6,7 @@ import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:cqaag_app/index.dart';
+import 'package:cqaag_app/views/dashboard/home/inspection/preview_and_confirm_step.dart';
 
 class QualityInspectionWizard extends ConsumerStatefulWidget {
   static const String id = 'quality_inspection_wizard';
@@ -29,24 +30,39 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
   @override
   void initState() {
     super.initState();
-    // If editing, use existing IDs. If new, generate new ones.
     _docId = widget.existingInspection?.id ?? IdUtils.generateDocId();
     _customInspectionId = widget.existingInspection?.inspectionId ?? IdUtils.generateInspectionId();
-
-    // Pre-populate form if resuming existing inspection
-    if (widget.existingInspection != null) {
-      // Form will be pre-populated in the individual step widgets
-    }
   }
 
   void _nextStep() {
-    if (_currentStep < 3) {
+    if (_currentStep < 4) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
       _submitInspection();
+    }
+  }
+
+  void _previousStep() {
+    if (_currentStep > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
+  void _jumpToStep(int step) {
+    if (step >= 0 && step <= 4) {
+      _pageController.animateToPage(
+        step,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
     }
   }
 
@@ -60,11 +76,9 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
       return;
     }
 
-    // Check for photos
     final formData = _formKey.currentState!.value;
     final photos = formData['inspection_photos'] as Map<String, File?>?;
 
-    // Explicitly check for each required photo
     if (photos == null || photos['raw_nuts'] == null || photos['packaging'] == null || photos['storage'] == null) {
       CustomSnackBar.error(
         context,
@@ -78,7 +92,6 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
       _isSubmitting = true;
     });
 
-    // Show single loading dialog for the entire process
     if (mounted) {
       AppDialogs.showLoadingDialog(context, message: "Submitting Inspection...");
     }
@@ -93,7 +106,6 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
       final cloudinary = ref.read(cloudinaryServiceProvider);
       List<String> uploadedImageUrls = [];
 
-      // Helper function to handle online/offline image gathering
       Future<String> processPhoto(File file, String label) async {
         if (hasInternet) {
           final url = await cloudinary.uploadInspectionPhoto(file);
@@ -102,20 +114,14 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
           }
           return url;
         } else {
-          return file.path; // Store the local file path to sync later
+          return file.path;
         }
       }
 
-      // Process Raw Nuts
       uploadedImageUrls.add(await processPhoto(photos['raw_nuts']!, "Raw Nuts"));
-
-      // Process Packaging
       uploadedImageUrls.add(await processPhoto(photos['packaging']!, "Packaging"));
-
-      // Process Storage
       uploadedImageUrls.add(await processPhoto(photos['storage']!, "Storage"));
 
-      // Safe Parsing Helpers
       double parseDouble(dynamic value) {
         if (value is String) {
           return double.tryParse(value) ?? 0.0;
@@ -134,9 +140,6 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         return 0;
       }
 
-      // Collect the cut tests that were actually filled in. Blank ones are
-      // dropped so an untouched "3rd Cutting" card cannot drag the average
-      // toward zero.
       final cutTests = <CutTest>[];
       for (var cutting = 1; cutting <= kMaxCutTests; cutting++) {
         final label = formData[cutTestField(cutting, 'label')] as String?;
@@ -162,7 +165,6 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         throw Exception('Enter the measurements for at least one cut test.');
       }
 
-      // Create inspection object from form data
       final inspection = Inspection(
         id: _docId,
         inspectionId: _customInspectionId,
@@ -185,8 +187,6 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
 
         cutTests: cutTests,
 
-        // The flat fields carry the average across the cut tests, which is what
-        // the report's AVERAGE column and the rest of the app already read.
         moistureContent: cutTests.averageMoisture,
         nutCount: cutTests.averageNutCount.round(),
         kor: cutTests.averageKor,
@@ -206,15 +206,13 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         status: hasInternet ? InspectionStatus.completed : InspectionStatus.pendingSync,
         createdAt: widget.existingInspection?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
-        completedAt: hasInternet ? DateTime.now() : null, // Only completed if synced
+        completedAt: hasInternet ? DateTime.now() : null,
       );
 
-      // Check if widget is still mounted before using it
       if (!mounted) {
         throw Exception('Widget was disposed during inspection save');
       }
 
-      // Save to Firebase
       final controller = ref.read(inspectionControllerProvider.notifier);
       if (widget.existingInspection != null) {
         await controller.updateInspection(inspection);
@@ -224,17 +222,14 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
 
       if (!mounted) return;
 
-      // Hide loading dialog
       Navigator.of(context, rootNavigator: true).pop();
 
-      // Show success SnackBar
       CustomSnackBar.success(
         context,
         message: 'Inspection completed and saved successfully!',
         title: 'Success',
       );
 
-      // Navigate to Quality Result Screen (Replacement to avoid going back to wizard)
       context.pushReplacementNamed(
         QualityResultScreen.id,
         extra: inspection,
@@ -242,14 +237,12 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
     } catch (e) {
       if (!mounted) return;
 
-      // Close loading dialog if open
       try {
         Navigator.of(context, rootNavigator: true).pop();
       } catch (_) {}
 
       debugPrint('Error saving inspection: $e');
 
-      // Show error snackBar
       CustomSnackBar.error(
         context,
         message: 'Failed to save inspection: ${e.toString()}',
@@ -267,7 +260,6 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    // Keep the controller alive while this screen is active to prevent disposal during async operations
     ref.watch(inspectionControllerProvider);
 
     return GestureDetector(
@@ -285,12 +277,12 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
                 Expanded(
                   child: PageView(
                     controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(), // Force button navigation
+                    physics: const NeverScrollableScrollPhysics(),
                     onPageChanged: (int index) => setState(() => _currentStep = index),
                     children: <Widget>[
                       BasicInfoStep(
                         key: ValueKey('step_0_$_docId'),
-                        inspectionId: _customInspectionId, // Pass custom ID for display
+                        inspectionId: _customInspectionId,
                         footer: _buildBottomAction(colorScheme),
                       ).fadeInSlideUp(),
                       FarmLocationStep(
@@ -306,6 +298,12 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
                         key: ValueKey('step_3_$_docId'),
                         footer: _buildBottomAction(colorScheme),
                       ).fadeInSlideUp(),
+                      PreviewAndConfirmStep(
+                        key: ValueKey('step_4_$_docId'),
+                        formKey: _formKey,
+                        onJumpToStep: _jumpToStep,
+                        footer: _buildBottomAction(colorScheme),
+                      ).fadeInSlideUp(),
                     ],
                   ),
                 ),
@@ -319,20 +317,15 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
 
   PreferredSizeWidget _buildWizardAppBar(ColorScheme colorScheme) {
     return AppBar(
-      backgroundColor: colorScheme.onSurface, // darkRed
+      backgroundColor: colorScheme.onSurface,
       elevation: 0,
       leading: IconButton(
         icon: Container(
           padding: EdgeInsets.all(8.r),
-          decoration: BoxDecoration(color: Colors.white10, shape: BoxShape.circle),
+          decoration: const BoxDecoration(color: Colors.white10, shape: BoxShape.circle),
           child: Icon(Icons.chevron_left, color: Colors.white, size: 20.r),
         ),
-        onPressed: () => _currentStep == 0
-            ? Navigator.pop(context)
-            : _pageController.previousPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              ),
+        onPressed: _previousStep,
       ),
       centerTitle: true,
       title: Column(
@@ -343,7 +336,7 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
             color: Colors.white,
           ),
           CustomText(
-            "Step ${_currentStep + 1} of 4",
+            "Step ${_currentStep + 1} of 5",
             variant: TextVariant.bodySmall,
             color: Colors.white70,
           ),
@@ -355,7 +348,7 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
   Widget _buildProgressBar(ColorScheme colorScheme) {
     return Container(
       color: colorScheme.onSurface,
-      padding: EdgeInsets.only(bottom: 20.h),
+      padding: EdgeInsets.only(bottom: 16.h),
       child: Column(
         children: <Widget>[
           Stack(
@@ -364,20 +357,22 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
               AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
                 height: 4.h,
-                width: (MediaQuery.of(context).size.width / 4) * (_currentStep + 1),
-                color: colorScheme.primary, // darkBrown
+                width: (MediaQuery.of(context).size.width / 5) * (_currentStep + 1),
+                color: colorScheme.primary,
               ),
             ],
           ),
-          Gap(12.h),
+          Gap(10.h),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.w),
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
-                _buildStepLabel("Location", 0),
-                _buildStepLabel("Metrics", 1, 2), // Spans steps
+                _buildStepLabel("Basic", 0),
+                _buildStepLabel("Location", 1),
+                _buildStepLabel("Metrics", 2),
                 _buildStepLabel("Photos", 3),
+                _buildStepLabel("Preview", 4),
               ],
             ),
           ),
@@ -386,21 +381,52 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
     );
   }
 
-  Widget _buildStepLabel(String text, int stepIndex, [int? endStep]) {
-    bool isActive = endStep != null ? (_currentStep >= stepIndex && _currentStep <= endStep) : _currentStep == stepIndex;
-    return CustomText(text, variant: TextVariant.bodySmall, color: isActive ? Colors.white : Colors.white24);
+  Widget _buildStepLabel(String text, int stepIndex) {
+    bool isActive = _currentStep == stepIndex;
+    return GestureDetector(
+      onTap: () => _jumpToStep(stepIndex),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+        decoration: BoxDecoration(
+          border: isActive ? const Border(bottom: BorderSide(color: Colors.white, width: 2)) : null,
+        ),
+        child: CustomText(
+          text,
+          variant: TextVariant.bodySmall,
+          color: isActive ? Colors.white : Colors.white54,
+          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+    );
   }
 
   Widget _buildBottomAction(ColorScheme colorScheme) {
+    final isPreviewStep = _currentStep == 4;
+
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 24.0.h),
-      decoration: const BoxDecoration(
-        color: Colors.transparent,
-      ),
-      child: CustomButton(
-        text: _isSubmitting ? "Saving..." : (_currentStep == 3 ? "Complete Inspection" : "Continue"),
-        leadingIcon: _currentStep == 3 && !_isSubmitting ? const Icon(Icons.check, color: Colors.white) : null,
-        onPressed: _isSubmitting ? () {} : _nextStep,
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
+      child: Row(
+        children: [
+          if (_currentStep > 0) ...[
+            Expanded(
+              child: CustomButton(
+                text: "Back",
+                variant: ButtonVariant.outlined,
+                onPressed: _isSubmitting ? () {} : _previousStep,
+              ),
+            ),
+            Gap(12.w),
+          ],
+          Expanded(
+            child: CustomButton(
+              text: _isSubmitting
+                  ? "Submitting..."
+                  : (isPreviewStep ? "Submit Inspection" : "Continue"),
+              leadingIcon: isPreviewStep && !_isSubmitting ? const Icon(Icons.check, color: Colors.white) : null,
+              onPressed: _isSubmitting ? () {} : _nextStep,
+            ),
+          ),
+        ],
       ).fadeInScale(duration: const Duration(milliseconds: 300)),
     );
   }

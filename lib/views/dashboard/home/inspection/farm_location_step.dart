@@ -330,28 +330,27 @@ class _FarmLocationStepState extends ConsumerState<FarmLocationStep> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const CustomText(
+        title: const Text(
           "Location Services Disabled",
-          variant: TextVariant.headlineSmall,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        content: const CustomText(
+        content: const Text(
           "Please enable location services in your device settings to capture GPS coordinates.",
-          variant: TextVariant.bodyMedium,
+          style: TextStyle(fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const CustomText("Cancel", variant: TextVariant.bodyMedium),
+            child: const Text("Cancel"),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               await ref.read(locationServiceProvider).openLocationSettings();
             },
-            child: const CustomText(
+            child: const Text(
               "Open Settings",
-              variant: TextVariant.bodyMedium,
-              fontWeight: FontWeight.bold,
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -363,28 +362,27 @@ class _FarmLocationStepState extends ConsumerState<FarmLocationStep> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const CustomText(
+        title: const Text(
           "Location Permission Required",
-          variant: TextVariant.headlineSmall,
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        content: const CustomText(
+        content: const Text(
           "This app needs location permission to capture GPS coordinates for inspection reports. Please grant location access in app settings.",
-          variant: TextVariant.bodyMedium,
+          style: TextStyle(fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const CustomText("Cancel", variant: TextVariant.bodyMedium),
+            child: const Text("Cancel"),
           ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
               await ref.read(locationServiceProvider).openAppSettings();
             },
-            child: const CustomText(
+            child: const Text(
               "Open Settings",
-              variant: TextVariant.bodyMedium,
-              fontWeight: FontWeight.bold,
+              style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],

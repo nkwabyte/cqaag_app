@@ -30,6 +30,8 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final controller = ref.read(userControllerProvider.notifier);
+    final currentUser = ref.watch(currentUserProfileProvider).value;
+    final isCallerAdmin = currentUser?.isAdmin ?? false;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -50,11 +52,11 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
             Center(
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 50.r,
-                    backgroundImage: CachedNetworkImageProvider(_user.profilePicture),
-                    onBackgroundImageError: (ctx, err) {},
-                    child: CustomText(_user.firstName[0], variant: TextVariant.headlineMedium),
+                  AppAvatar(
+                    profilePicture: _user.profilePicture,
+                    selfieUrl: _user.verification?.selfieUrl,
+                    name: _user.firstName,
+                    radius: 50,
                   ),
                   Gap(16.h),
                   CustomText(
@@ -135,7 +137,7 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
                   ),
                 ],
               ),
-              if (_user.verificationStatus != VerificationStatus.verified && _user.verification != null) ...[
+              if (isCallerAdmin && _user.verificationStatus != VerificationStatus.verified && _user.verification != null) ...[
                 Gap(18.h),
                 SizedBox(
                   width: double.infinity,
@@ -148,15 +150,16 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
               ],
             ],
 
-            Gap(40.h),
+            if (isCallerAdmin) ...[
+              Gap(40.h),
 
-            // Admin Actions
-            CustomText(
-              "Admin Actions",
-              variant: TextVariant.headlineMedium,
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onSurface,
-            ),
+              // Admin Actions
+              CustomText(
+                "Admin Actions",
+                variant: TextVariant.headlineMedium,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
             Gap(16.h),
 
             Row(
@@ -214,10 +217,11 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
               ],
             ),
           ],
-        ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildStatusBadge(AppUserStatus status, ColorScheme colorScheme) {
     Color color;
