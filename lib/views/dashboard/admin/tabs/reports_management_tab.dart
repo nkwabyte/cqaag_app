@@ -4,6 +4,9 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gap/gap.dart';
 import 'package:cqaag_app/index.dart';
+import 'package:cqaag_app/models/inspection/report_filter.dart';
+import 'package:cqaag_app/views/components/report_filter_modal.dart';
+import 'package:cqaag_app/services/export/excel_export_service.dart';
 
 class ReportsManagementTab extends ConsumerStatefulWidget {
   const ReportsManagementTab({super.key});
@@ -13,165 +16,63 @@ class ReportsManagementTab extends ConsumerStatefulWidget {
 }
 
 class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
-  String _searchQuery = '';
-  DateTime? _startDate;
-  DateTime? _endDate;
-  double? _minKOR;
-  double? _maxKOR;
+  ReportFilterCriteria _filterCriteria = const ReportFilterCriteria();
 
   List<Inspection> get _filteredInspections {
     final inspectionState = ref.watch(inspectionControllerProvider).value;
     if (inspectionState == null) return [];
 
-    var inspections = inspectionState.allCompletedInspections;
-
-    // Apply search filter
-    if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
-      inspections = inspections.where((inspection) {
-        final batchId = inspection.batchId?.toLowerCase() ?? '';
-        final farmerName = inspection.farmerName?.toLowerCase() ?? '';
-        final location = inspection.location?.toLowerCase() ?? '';
-        final inspectorId = inspection.inspectorId.toLowerCase();
-
-        return batchId.contains(query) || farmerName.contains(query) || location.contains(query) || inspectorId.contains(query);
-      }).toList();
-    }
-
-    // Apply date range filter
-    if (_startDate != null || _endDate != null) {
-      inspections = inspections.where((inspection) {
-        if (inspection.completedAt == null) return false;
-        final completedDate = inspection.completedAt!;
-
-        if (_startDate != null && completedDate.isBefore(_startDate!)) {
-          return false;
-        }
-        if (_endDate != null && completedDate.isAfter(_endDate!.add(const Duration(days: 1)))) {
-          return false;
-        }
-        return true;
-      }).toList();
-    }
-
-    // Apply KOR range filter
-    if (_minKOR != null || _maxKOR != null) {
-      inspections = inspections.where((inspection) {
-        if (_minKOR != null && inspection.kor < _minKOR!) return false;
-        if (_maxKOR != null && inspection.kor > _maxKOR!) return false;
-        return true;
-      }).toList();
-    }
-
-    return inspections;
+    final allInspections = inspectionState.allCompletedInspections;
+    return _filterCriteria.apply(allInspections);
   }
 
-  void _showFilterDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Filter Reports'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Date Range', style: TextStyle(fontWeight: FontWeight.bold)),
-              Gap(8.h),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: _startDate ?? DateTime.now(),
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime.now(),
-                        );
-                        if (date != null) {
-                          setState(() => _startDate = date);
-                        }
-                      },
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(_startDate != null ? '${_startDate!.year}-${_startDate!.month}-${_startDate!.day}' : 'Start Date'),
-                    ),
-                  ),
-                  Gap(8.w),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: _endDate ?? DateTime.now(),
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime.now(),
-                        );
-                        if (date != null) {
-                          setState(() => _endDate = date);
-                        }
-                      },
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(_endDate != null ? '${_endDate!.year}-${_endDate!.month}-${_endDate!.day}' : 'End Date'),
-                    ),
-                  ),
-                ],
-              ),
-              Gap(16.h),
-              const Text('KOR Range', style: TextStyle(fontWeight: FontWeight.bold)),
-              Gap(8.h),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'Min KOR',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                      onChanged: (value) {
-                        setState(() => _minKOR = double.tryParse(value));
-                      },
-                    ),
-                  ),
-                  Gap(8.w),
-                  Expanded(
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        labelText: 'Max KOR',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                      onChanged: (value) {
-                        setState(() => _maxKOR = double.tryParse(value));
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _startDate = null;
-                _endDate = null;
-                _minKOR = null;
-                _maxKOR = null;
-              });
-              Navigator.pop(context);
-            },
-            child: const Text('Clear'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Apply'),
-          ),
-        ],
-      ),
+  void _showFilterDialog() async {
+    final newCriteria = await ReportFilterModal.show(
+      context,
+      initialCriteria: _filterCriteria,
+      onApply: (criteria) {
+        setState(() {
+          _filterCriteria = criteria;
+        });
+      },
     );
+
+    if (newCriteria != null && mounted) {
+      setState(() {
+        _filterCriteria = newCriteria;
+      });
+    }
+  }
+
+  Future<void> _exportToExcel() async {
+    final currentUser = ref.read(currentUserProfileProvider).value;
+    if (currentUser == null) {
+      CustomSnackBar.error(context, message: 'User not authenticated');
+      return;
+    }
+
+    final inspectionsToExport = _filteredInspections;
+    if (inspectionsToExport.isEmpty) {
+      CustomSnackBar.warning(context, message: 'No inspection reports available to export.');
+      return;
+    }
+
+    AppDialogs.showLoadingDialog(context, message: 'Exporting to Excel...');
+    try {
+      await ExcelExportService.exportInspections(
+        inspections: inspectionsToExport,
+        currentUser: currentUser,
+      );
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop(); // Dismiss loading
+        CustomSnackBar.success(context, message: 'Excel export ready!');
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        CustomSnackBar.error(context, message: 'Export failed: ${e.toString()}');
+      }
+    }
   }
 
   void _scanQRCode() async {
@@ -183,14 +84,14 @@ class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
     );
 
     if (result != null && mounted) {
-      // Parse QR code result
       if (result.startsWith('inspection:')) {
         final inspectionId = result.substring('inspection:'.length);
 
-        // Find inspection by ID
         final inspectionState = ref.read(inspectionControllerProvider).value;
         if (inspectionState != null) {
-          final inspection = inspectionState.allCompletedInspections.where((i) => i.id == inspectionId || i.inspectionId == inspectionId).firstOrNull;
+          final inspection = inspectionState.allCompletedInspections
+              .where((i) => i.id == inspectionId || i.inspectionId == inspectionId)
+              .firstOrNull;
 
           if (inspection != null) {
             context.pushNamed(QualityResultScreen.id, extra: inspection);
@@ -213,43 +114,125 @@ class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final filteredInspections = _filteredInspections;
+    final currentUser = ref.watch(currentUserProfileProvider).value;
 
     return Scaffold(
       body: Column(
         children: [
-          // Search & Filter Bar
+          // Search, Filter & Excel Export Bar
           Container(
             padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
-                  child: CustomTextField(
-                    name: 'search_reports',
-                    label: 'Search Reports',
-                    hint: "Search by batch, farmer, location...",
-                    prefixIcon: Icons.search,
-                    onChanged: (value) {
-                      setState(() {
-                        _searchQuery = value ?? '';
-                      });
-                    },
-                  ),
-                ),
-                Gap(10.w),
-                InkWell(
-                  onTap: _showFilterDialog,
-                  child: Container(
-                    padding: EdgeInsets.all(16.0.w),
-                    decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.1),
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomTextField(
+                        name: 'search_reports',
+                        label: 'Search Reports',
+                        hint: "Search by batch, farmer, location...",
+                        prefixIcon: Icons.search,
+                        onChanged: (value) {
+                          setState(() {
+                            _filterCriteria = _filterCriteria.copyWith(searchQuery: value ?? '');
+                          });
+                        },
+                      ),
+                    ),
+                    Gap(8.w),
+                    // Filter Modal Button
+                    Stack(
+                      children: [
+                        InkWell(
+                          onTap: _showFilterDialog,
+                          borderRadius: BorderRadius.circular(12.r),
+                          child: Container(
+                            padding: EdgeInsets.all(14.r),
+                            decoration: BoxDecoration(
+                              color: _filterCriteria.isNotEmpty
+                                  ? colorScheme.primary
+                                  : colorScheme.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: Icon(
+                              Icons.filter_list,
+                              color: _filterCriteria.isNotEmpty ? Colors.white : colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                        if (_filterCriteria.activeFilterCount > 0)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Container(
+                              padding: EdgeInsets.all(4.r),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              constraints: BoxConstraints(minWidth: 16.w, minHeight: 16.h),
+                              child: Text(
+                                '${_filterCriteria.activeFilterCount}',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    Gap(8.w),
+                    // Export to Excel Button
+                    InkWell(
+                      onTap: _exportToExcel,
                       borderRadius: BorderRadius.circular(12.r),
+                      child: Container(
+                        padding: EdgeInsets.all(14.r),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                        ),
+                        child: Tooltip(
+                          message: currentUser?.isAdmin == true ? 'Export All Data to Excel' : 'Export My Data to Excel',
+                          child: Icon(
+                            Icons.explicit_outlined,
+                            color: Colors.green[800],
+                          ),
+                        ),
+                      ),
                     ),
-                    child: Icon(
-                      Icons.filter_list,
-                      color: colorScheme.primary,
+                  ],
+                ),
+
+                if (_filterCriteria.isNotEmpty) ...[
+                  Gap(8.h),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        CustomText(
+                          'Active Filters (${_filterCriteria.activeFilterCount}):',
+                          variant: TextVariant.bodySmall,
+                          color: colorScheme.secondary,
+                        ),
+                        Gap(8.w),
+                        InputChip(
+                          label: const Text('Clear All'),
+                          onPressed: () {
+                            setState(() {
+                              _filterCriteria = const ReportFilterCriteria();
+                            });
+                          },
+                          deleteIcon: const Icon(Icons.close, size: 14),
+                        ),
+                      ],
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -264,7 +247,7 @@ class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
                         Icon(Icons.assignment_outlined, size: 48.r, color: colorScheme.secondary),
                         Gap(10.h),
                         CustomText(
-                          "No reports found",
+                          "No reports found matching criteria",
                           variant: TextVariant.bodyMedium,
                           color: colorScheme.secondary,
                         ),
@@ -299,8 +282,8 @@ class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
                             );
 
                             return InspectionCard(
-                              status: "Completed",
-                              statusColor: Colors.green,
+                              status: inspection.status.name.toUpperCase(),
+                              statusColor: inspection.status == InspectionStatus.completed ? Colors.green : Colors.orange,
                               batchId: inspection.batchId ?? "N/A",
                               name: inspectorName,
                               location: inspection.location ?? "Unknown",

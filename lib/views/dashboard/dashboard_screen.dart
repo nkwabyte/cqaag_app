@@ -38,13 +38,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final user = ref.read(currentUserProfileProvider).value;
     final guestMode = ref.read(guestModeProvider);
 
-    // Check if user is null (guest) or explicitly in guest mode
-    if (user == null || guestMode == AuthMode.guest) {
+    // If user is logged in, force disable guest mode if it was left active
+    if (user != null && guestMode == AuthMode.guest) {
+      ref.read(guestModeProvider.notifier).disableGuestMode();
+    }
+
+    final isGuest = (user == null || guestMode == AuthMode.guest);
+
+    if (isGuest) {
       navItems = [];
       pages = <Widget>[
         const GuestHomeScreen(),
       ];
     } else {
+      _isAdmin = user.isAdmin;
       navItems = [
         CustomNavItem(icon: Icons.home_filled, label: "Home"),
         CustomNavItem(icon: Icons.assignment_outlined, label: "History"),
@@ -61,35 +68,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     }
   }
 
-  void _updateAdminStatus(bool isAdmin) {
-    if (_isAdmin != isAdmin) {
-      setState(() {
-        _isAdmin = isAdmin;
-        _initializeLayout();
-        // Reset index if out of bounds after removing admin tab
-        if (_selectedIndex >= pages.length) {
-          _selectedIndex = 0;
-        }
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     // Listen for user profile changes
     ref.listen(currentUserProfileProvider, (previous, next) {
       next.whenData((user) {
-        if (user != null) {
-          // Update admin status if changed
-          _updateAdminStatus(user.isAdmin);
+        if (mounted) {
+          setState(() {
+            _initializeLayout();
+            if (_selectedIndex >= pages.length) {
+              _selectedIndex = 0;
+            }
+          });
         }
       });
     });
 
     // Listen for guest mode changes
     ref.listen(guestModeProvider, (previous, next) {
-      _initializeLayout();
-      setState(() {});
+      if (mounted) {
+        setState(() {
+          _initializeLayout();
+          if (_selectedIndex >= pages.length) {
+            _selectedIndex = 0;
+          }
+        });
+      }
     });
 
     final colorScheme = Theme.of(context).colorScheme;

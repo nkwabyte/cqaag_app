@@ -203,6 +203,8 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final currentUser = ref.watch(currentUserProfileProvider).value;
+    final isCallerAdmin = currentUser?.isAdmin ?? false;
     final isReviewed =
         widget.application.status == ApplicationStatus.approved ||
         widget.application.status == ApplicationStatus.rejected;
@@ -361,8 +363,8 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
                 Gap(40.h),
 
                 // Admin Actions
-                if (widget.application.status == ApplicationStatus.submitted ||
-                    widget.application.status == ApplicationStatus.underReview) ...[
+                if (isCallerAdmin && (widget.application.status == ApplicationStatus.submitted ||
+                    widget.application.status == ApplicationStatus.underReview)) ...[
                   CustomText(
                     "Review Actions",
                     variant: TextVariant.headlineMedium,
@@ -500,7 +502,7 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
             ),
           ],
 
-          if (status == PaymentStatus.pendingVerification) ...[
+          if ((ref.watch(currentUserProfileProvider).value?.isAdmin == true) && status == PaymentStatus.pendingVerification) ...[
             Gap(16.h),
             Row(
               children: [

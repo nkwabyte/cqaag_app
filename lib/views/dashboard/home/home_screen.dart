@@ -150,6 +150,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   padding: EdgeInsets.all(24.r),
                   child: Column(
                     children: <Widget>[
+                      // Pending Approval Warning Banner
+                      if (user != null && !user.isApproved) ...[
+                        Container(
+                          padding: EdgeInsets.all(14.r),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade100,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(color: Colors.amber.shade400),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.warning_amber_rounded, color: Colors.amber.shade900),
+                              Gap(10.w),
+                              Expanded(
+                                child: Text(
+                                  'Your account is pending Admin approval. Creating inspections and accessing report exports will be unlocked upon approval.',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: Colors.amber.shade900,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Gap(16.h),
+                      ],
+
                       // 2. Action Bar
                       Row(
                         children: <Widget>[
@@ -158,6 +187,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               text: "New Inspection",
                               leadingIcon: const Icon(Icons.add, color: Colors.white),
                               onPressed: () {
+                                if (user != null && !user.isApproved) {
+                                  CustomSnackBar.warning(
+                                    context,
+                                    message: 'Only approved members can start a new inspection. Please await Admin approval.',
+                                    title: 'Approval Required',
+                                  );
+                                  return;
+                                }
                                 context.pushNamed(QualityInspectionWizard.id);
                               },
                             ).fadeInScale(delay: const Duration(milliseconds: 500)).pulse(delay: const Duration(seconds: 2)),

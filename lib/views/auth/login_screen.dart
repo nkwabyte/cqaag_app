@@ -158,6 +158,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ref.read(authControllerProvider.notifier).signIn(email, password).then((_) {
                                 // Check if sign in was successful
                                 if (context.mounted && !ref.read(authControllerProvider).hasError) {
+                                  ref.read(guestModeProvider.notifier).disableGuestMode();
+                                  ref.invalidate(currentUserProfileProvider);
                                   CustomSnackBar.success(
                                     context,
                                     message: "Welcome back!",

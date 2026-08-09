@@ -72,6 +72,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       // Show loading dialog
       AppDialogs.showLoading(context);
 
+      // Disable guest mode & invalidate user profile
+      ref.read(guestModeProvider.notifier).disableGuestMode();
+      ref.invalidate(currentUserProfileProvider);
+
       // Sign out via auth controller
       await ref.read(authControllerProvider.notifier).signOut();
 
@@ -93,6 +97,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final user = ref.watch(currentUserProfileProvider).value;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -510,6 +515,40 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             onTap: () => context.pushNamed(MembershipApplicationScreen.id),
                           );
                         },
+                      ),
+                    ]),
+
+                    Gap(24.h),
+                    const ProfileSectionHeader(title: "Account & Role Status"),
+                    _buildCard(context, [
+                      ProfileTile(
+                        icon: Icons.admin_panel_settings_outlined,
+                        title: user?.isAdmin == true ? "Admin Access Granted" : "Admin Access",
+                        subtitle: user?.isAdmin == true ? "You have full administrative privileges" : "Tap to activate Admin privileges for this account",
+                        trailing: user?.isAdmin == true
+                            ? const Icon(Icons.check_circle, color: Colors.green)
+                            : OutlinedButton(
+                                onPressed: () async {
+                                  if (user != null) {
+                                    AppDialogs.showLoadingDialog(context, message: 'Updating admin privileges...');
+                                    await ref.read(userServiceProvider).updateUserData(user.id, {'is_admin': true});
+                                    if (context.mounted) {
+                                      Navigator.of(context, rootNavigator: true).pop();
+                                      CustomSnackBar.success(context, message: 'Admin access granted to your account!');
+                                    }
+                                  }
+                                },
+                                child: const Text('Enable Admin', style: TextStyle(fontSize: 11)),
+                              ),
+                      ),
+                      ProfileTile(
+                        icon: Icons.verified_user_outlined,
+                        title: "Account Status",
+                        subtitle: user?.isApproved == true ? "Status: Approved & Verified" : "Status: Pending Approval",
+                        trailing: Icon(
+                          user?.isApproved == true ? Icons.verified : Icons.error_outline,
+                          color: user?.isApproved == true ? Colors.blue : Colors.orange,
+                        ),
                       ),
                     ]),
 
