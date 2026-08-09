@@ -26,18 +26,13 @@ class PartnersScreen extends StatelessWidget {
             // Header Section with Background
             Container(
               width: double.infinity,
-              height: 250.h,
+              constraints: BoxConstraints(minHeight: 220.h),
               decoration: const BoxDecoration(
                 color: AppColors.darkRed,
-                // image: DecorationImage(
-                //   image: AssetImage('assets/images/cashew-bg.jpg'), // Assuming this exists or similar
-                //   fit: BoxFit.cover,
-                //   colorFilter: ColorFilter.mode(Colors.black54, BlendMode.darken),
-                // ),
               ),
               child: Container(
                 color: Colors.black.withValues(alpha: 0.6), // Overlay
-                padding: EdgeInsets.all(24.r),
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
