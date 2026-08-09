@@ -864,136 +864,184 @@ class _InteractiveKorCalculatorCardState extends State<_InteractiveKorCalculator
           ),
           Gap(20.h),
 
-          // Results Output Card
+          // Results Output Box
           Container(
             padding: EdgeInsets.all(16.r),
             decoration: BoxDecoration(
               color: AppColors.beigeBackground,
-              borderRadius: BorderRadius.circular(12.r),
-              border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.12)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CustomText(
-                          'CALCULATED OUTTURN RATIO',
-                          variant: TextVariant.bodySmall,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade700,
-                        ),
-                        Gap(2.h),
-                        CustomText(
-                          '${_korLbs.toStringAsFixed(2)} lbs',
-                          variant: TextVariant.displaySmall,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.darkBrown,
-                        ),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                          decoration: BoxDecoration(
-                            color: _gradeBg,
-                            borderRadius: BorderRadius.circular(99.r),
-                          ),
-                          child: CustomText(
-                            _gradeLabel,
-                            variant: TextVariant.bodySmall,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        Gap(4.h),
-                        CustomText(
-                          'Useful: ${_usefulKernel.toStringAsFixed(1)}g',
-                          variant: TextVariant.bodySmall,
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                Gap(16.h),
-
-                // Visual Gauge Progress Meter
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CustomText('0 lbs', variant: TextVariant.bodySmall, color: Colors.grey.shade600),
-                        CustomText('40 lbs', variant: TextVariant.bodySmall, color: Colors.grey.shade600),
-                        CustomText('45 lbs', variant: TextVariant.bodySmall, color: Colors.grey.shade600),
-                        CustomText('48+ lbs', variant: TextVariant.bodySmall, color: Colors.grey.shade600),
-                      ],
-                    ),
-                    Gap(4.h),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(99.r),
-                      child: LinearProgressIndicator(
-                        value: _meterPercent,
-                        minHeight: 10.h,
-                        backgroundColor: Colors.grey.shade300,
-                        valueColor: AlwaysStoppedAnimation<Color>(_gradeBg),
-                      ),
-                    ),
-                  ],
-                ),
-                Gap(16.h),
-
-                // Detail Matrix Chips
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: EdgeInsets.all(10.r),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
+                // Hero Header Card
+                Container(
+                  padding: EdgeInsets.all(16.r),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            CustomText('Nut Size', variant: TextVariant.bodySmall, color: Colors.grey.shade600),
-                            Gap(2.h),
+                            CustomText(
+                              'CALCULATED OUTTURN RATIO',
+                              variant: TextVariant.bodySmall,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.grey.shade700,
+                            ),
+                            Gap(4.h),
+                            CustomText(
+                              '${_korLbs.toStringAsFixed(2)} lbs',
+                              variant: TextVariant.displaySmall,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.darkBrown,
+                            ),
+                            Gap(6.h),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 3.h),
+                              decoration: BoxDecoration(
+                                color: AppColors.beigeBackground,
+                                borderRadius: BorderRadius.circular(99.r),
+                                border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                              ),
+                              child: CustomText(
+                                'Useful: ${_usefulKernel.toStringAsFixed(1)}g (${((_usefulKernel / (double.tryParse(_sampleWeightController.text) ?? 1000)) * 100).toStringAsFixed(1)}%)',
+                                variant: TextVariant.bodySmall,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Gap(8.w),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 6.h),
+                        decoration: BoxDecoration(
+                          color: _gradeBg,
+                          borderRadius: BorderRadius.circular(99.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: CustomText(
+                          _gradeLabel,
+                          variant: TextVariant.bodySmall,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Gap(12.h),
+
+                // Visual KOR Scale Meter Bar Card
+                Container(
+                  padding: EdgeInsets.all(14.r),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          CustomText('0 lbs (Reject)', variant: TextVariant.bodySmall, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                          CustomText('40 lbs', variant: TextVariant.bodySmall, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                          CustomText('45 lbs', variant: TextVariant.bodySmall, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                          CustomText('48+ lbs (First Class)', variant: TextVariant.bodySmall, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
+                        ],
+                      ),
+                      Gap(6.h),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(99.r),
+                        child: LinearProgressIndicator(
+                          value: _meterPercent,
+                          minHeight: 10.h,
+                          backgroundColor: Colors.grey.shade200,
+                          valueColor: AlwaysStoppedAnimation<Color>(_gradeBg),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Gap(12.h),
+
+                // Symmetrical Detail Matrix Cards
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: EdgeInsets.all(12.r),
+                        constraints: BoxConstraints(minHeight: 72.h),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            CustomText(
+                              'NUT SIZE CLASSIFICATION',
+                              variant: TextVariant.bodySmall,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600,
+                            ),
+                            Gap(4.h),
                             CustomText(
                               _nutSizeLabel,
                               variant: TextVariant.bodySmall,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w900,
                               color: AppColors.darkBrown,
                             ),
                           ],
                         ),
                       ),
                     ),
-                    Gap(8.w),
+                    Gap(10.w),
                     Expanded(
                       child: Container(
-                        padding: EdgeInsets.all(10.r),
+                        padding: EdgeInsets.all(12.r),
+                        constraints: BoxConstraints(minHeight: 72.h),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(8.r),
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.1)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            CustomText('Moisture', variant: TextVariant.bodySmall, color: Colors.grey.shade600),
-                            Gap(2.h),
+                            CustomText(
+                              'MOISTURE SAFETY RATING',
+                              variant: TextVariant.bodySmall,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade600,
+                            ),
+                            Gap(4.h),
                             CustomText(
                               _moistureLabel,
                               variant: TextVariant.bodySmall,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w900,
                               color: AppColors.darkBrown,
                             ),
                           ],
@@ -1004,13 +1052,18 @@ class _InteractiveKorCalculatorCardState extends State<_InteractiveKorCalculator
                 ),
                 Gap(12.h),
 
-                // Recommendation Note
+                // Commercial Trade Recommendation Card
                 Container(
-                  padding: EdgeInsets.all(10.r),
+                  padding: EdgeInsets.all(14.r),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(8.r),
-                    border: Border(left: BorderSide(color: _gradeBg, width: 4.w)),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border(
+                      top: BorderSide(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                      right: BorderSide(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                      bottom: BorderSide(color: AppColors.darkBrown.withValues(alpha: 0.1)),
+                      left: BorderSide(color: _gradeBg, width: 5.w),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1018,10 +1071,10 @@ class _InteractiveKorCalculatorCardState extends State<_InteractiveKorCalculator
                       CustomText(
                         'COMMERCIAL TRADE RECOMMENDATION',
                         variant: TextVariant.bodySmall,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w800,
                         color: AppColors.darkBrown,
                       ),
-                      Gap(2.h),
+                      Gap(4.h),
                       CustomText(
                         _tradeDesc,
                         variant: TextVariant.bodySmall,
