@@ -192,16 +192,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Consumer(
                       builder: (context, ref, child) {
                         final user = ref.watch(currentUserProfileProvider).value;
+                        final membershipState = ref.watch(membershipControllerProvider).value;
+                        final memberApp = membershipState?.myApplication;
+                        final displayMemberId = memberApp?.id ?? (user != null ? (user.id.length > 8 ? user.id.substring(0, 8).toUpperCase() : user.id) : "...");
+
                         return Container(
                           padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                          constraints: BoxConstraints(maxWidth: 280.w),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20.r),
                           ),
                           child: CustomText(
-                            user != null ? "ID: ${user.id.substring(0, 8).toUpperCase()}" : "ID: ...",
+                            "ID: $displayMemberId",
                             variant: TextVariant.bodySmall,
                             color: Colors.white,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                         );
                       },

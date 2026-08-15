@@ -39,7 +39,7 @@ class AppDrawer extends ConsumerWidget {
               right: false,
               child: Padding(
                 padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 24.h),
-                child: isAuthenticated ? _buildAuthHeader(user) : _buildGuestHeader(),
+                child: isAuthenticated ? _buildAuthHeader(user, ref) : _buildGuestHeader(),
               ),
             ),
           ),
@@ -255,7 +255,11 @@ class AppDrawer extends ConsumerWidget {
     );
   }
 
-  Widget _buildAuthHeader(AppUser user) {
+  Widget _buildAuthHeader(AppUser user, WidgetRef ref) {
+    final membershipState = ref.watch(membershipControllerProvider).value;
+    final memberApp = membershipState?.myApplication;
+    final displayMemberId = memberApp?.id ?? (user.id.length > 8 ? user.id.substring(0, 8).toUpperCase() : user.id);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -288,9 +292,11 @@ class AppDrawer extends ConsumerWidget {
         ),
         Gap(4.h),
         CustomText(
-          "${user.role ?? "User"} • ID: ${user.id.substring(0, 8).toUpperCase()}",
+          "${user.role ?? "User"} • ID: $displayMemberId",
           variant: TextVariant.bodySmall,
           color: Colors.white70,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
       ],
     );
@@ -330,6 +336,10 @@ class AppDrawer extends ConsumerWidget {
   }
 
   Widget _buildAuthFooter(BuildContext context, ColorScheme colorScheme, AppUser user, WidgetRef ref) {
+    final membershipState = ref.watch(membershipControllerProvider).value;
+    final memberApp = membershipState?.myApplication;
+    final displayMemberId = memberApp?.id ?? (user.id.length > 8 ? user.id.substring(0, 8).toUpperCase() : user.id);
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 20.h),
       decoration: BoxDecoration(
@@ -370,10 +380,14 @@ class AppDrawer extends ConsumerWidget {
                       variant: TextVariant.bodySmall,
                       color: colorScheme.secondary,
                     ),
-                    CustomText(
-                      user.id.substring(0, 8).toUpperCase(),
-                      variant: TextVariant.bodySmall,
-                      color: colorScheme.secondary,
+                    Expanded(
+                      child: CustomText(
+                        displayMemberId,
+                        variant: TextVariant.bodySmall,
+                        color: colorScheme.secondary,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     ),
                   ],
                 ),

@@ -247,7 +247,7 @@ class ChaptersScreen extends StatelessWidget {
                   _buildChapter(
                     number: '2',
                     name: 'Drobo-Dormaa Chapter',
-                    coverage: 'Jaman South, Dormaa (Central, East, West), Western North Region, Ahafo Region.',
+                    coverage: 'Drobo, Dormaa districts (Dormaa Central, East, West), Jaman South, Western & Western North Regions, Ahafo Region.',
                     executiveOfficers: [
                       {'role': 'Chair', 'name': 'Mr. Kwame Asante', 'email': 'Email'},
                       {'role': 'Vice-Chair', 'name': '[Name]', 'email': 'Email'},
@@ -264,11 +264,11 @@ class ChaptersScreen extends StatelessWidget {
                   ),
                   Gap(48.h),
 
-                  // 3. Techiman-Bole
+                  // 3. Techiman-Wenchi-Bole
                   _buildChapter(
                     number: '3',
-                    name: 'Techiman-Bole Chapter (HQ)',
-                    coverage: 'Wenchi, Bono East, Savanna Region, Northern Regions (North East, Upper East, Upper West).',
+                    name: 'Techiman-Wenchi-Bole Chapter (HQ)',
+                    coverage: 'Wenchi (National HQ), Techiman, Bono East, Savannah Region, Northern Regions (Northern, North East, Upper East, Upper West).',
                     executiveOfficers: [
                       {'role': 'Chair', 'name': 'Mr. Kwame Asante', 'email': 'Email'},
                       {'role': 'Vice-Chair', 'name': '[Name]', 'email': 'Email'},
@@ -286,11 +286,11 @@ class ChaptersScreen extends StatelessWidget {
 
                   Gap(48.h),
 
-                  // 4. Tema-Port
+                  // 4. Tema Port
                   _buildChapter(
                     number: '4',
-                    name: 'Tema-Port Chapter',
-                    coverage: 'Volta to Eastern Region, Ashanti to Western Region, Greater Accra Region (Export Hubs).',
+                    name: 'Tema Port Chapter',
+                    coverage: 'Tema & Takoradi Ports, Coastal Regions (Greater Accra, Central, Western, Volta), Ashanti, Eastern, and Oti Regions.',
                     executiveOfficers: [
                       {'role': 'Chair', 'name': 'Mr. Kwame Asante', 'email': 'Email'},
                       {'role': 'Vice-Chair', 'name': '[Name]', 'email': 'Email'},

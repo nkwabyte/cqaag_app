@@ -82,7 +82,7 @@ class _ConstitutionScreenState extends State<ConstitutionScreen> {
                   ), // [cite: 433-435]
                   _buildSubSection(
                     "Chapters",
-                    "Regional units (Sampa, Drobo-Dormaa, Techiman-Bole, Tema-Port) facilitating localized member engagement.",
+                    "Regional units (Sampa, Drobo-Dormaa, Techiman-Wenchi-Bole, Tema Port) facilitating localized member engagement.",
                   ), // [cite: 547-548]
                   Gap(24.h),
 

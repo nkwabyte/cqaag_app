@@ -34,6 +34,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final readIds = ref.watch(readNotificationIdsProvider);
     final unreadCount = notificationsAsync.asData?.value.where((n) => !readIds.contains(n.id)).length ?? 0;
 
+    final membershipState = ref.watch(membershipControllerProvider).value;
+    final memberApp = membershipState?.myApplication;
+    final displayMemberId = memberApp?.id ?? (user != null ? (user.id.length > 8 ? user.id.substring(0, 8).toUpperCase() : user.id) : "...");
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
@@ -57,29 +61,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Row(
-                            children: <Widget>[
-                              CustomText(
-                                user?.firstName ?? 'User',
-                                variant: TextVariant.displaySmall,
-                                color: Colors.white,
-                              ),
-                              if (user?.verificationStatus == VerificationStatus.verified) ...[
-                                Gap(8.w),
-                                Icon(Icons.verified, color: Colors.blue, size: 24.r).shimmer(),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Row(
+                              children: <Widget>[
+                                Flexible(
+                                  child: CustomText(
+                                    user?.firstName ?? 'User',
+                                    variant: TextVariant.displaySmall,
+                                    color: Colors.white,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (user?.verificationStatus == VerificationStatus.verified) ...[
+                                  Gap(8.w),
+                                  Icon(Icons.verified, color: Colors.blue, size: 24.r).shimmer(),
+                                ],
                               ],
-                            ],
-                          ),
-                          CustomText(
-                            "${user?.role ?? "User"} • ID: ${user?.id.substring(0, 8).toUpperCase() ?? "..."}",
-                            variant: TextVariant.bodySmall,
-                            color: Colors.white70,
-                          ),
-                        ],
+                            ),
+                            CustomText(
+                              "${user?.role ?? "User"} • ID: $displayMemberId",
+                              variant: TextVariant.bodySmall,
+                              color: Colors.white70,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
                       ),
+                      Gap(12.w),
                       InkWell(
                         onTap: () {
                           context.pushNamed(NotificationsScreen.id);
