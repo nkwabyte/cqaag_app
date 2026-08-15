@@ -304,7 +304,7 @@ class GuestHomeScreen extends StatelessWidget {
             icon: Icons.shield_outlined,
             title: 'Our Vision',
             content:
-                'To be the leading authority in cashew quality assurance in West Africa, setting the gold standard for excellence, innovation, and integrity in agricultural quality inspection.',
+                'To be the leading professional body in cashew quality assurance in West Africa, setting the gold standard for excellence, innovation, and integrity in agricultural quality inspection.',
           ),
           Gap(16.h),
           _buildInfoCard(

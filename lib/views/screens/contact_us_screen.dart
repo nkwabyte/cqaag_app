@@ -257,7 +257,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
                   ),
                   Gap(12.h),
                   const CustomText(
-                    'As the leading authority in cashew quality assurance in Ghana, we are committed to providing exceptional service to farmers, processors, exporters, and all stakeholders in the cashew value chain.',
+                    'As the leading professional body in cashew quality assurance in Ghana, we are committed to providing exceptional service to farmers, processors, exporters, and all stakeholders in the cashew value chain.',
                     variant: TextVariant.bodyMedium,
                   ),
                   Gap(12.h),

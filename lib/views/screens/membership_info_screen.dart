@@ -338,7 +338,7 @@ class MembershipInfoScreen extends StatelessWidget {
                   _buildSubHeader('Regional Chapters', color: AppColors.darkBrown),
                   Gap(4.h),
                   const CustomText(
-                    'Four semi-autonomous chapters (Sampa, Drobo-Dormaa, Techiman-Bole, Tema-Port) manage localized activities and welfare.',
+                    'Four semi-autonomous chapters (Sampa, Drobo-Dormaa, Techiman-Wenchi-Bole, Tema Port) manage localized activities and welfare.',
                     variant: TextVariant.bodyMedium,
                   ),
                   Gap(24.h),
