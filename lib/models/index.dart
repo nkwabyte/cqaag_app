@@ -26,4 +26,5 @@ export 'membership/index.dart';
 export 'subscription/index.dart';
 export 'payment/index.dart';
 export 'notification/index.dart';
+export 'ticket/index.dart';
 

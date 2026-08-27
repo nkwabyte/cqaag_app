@@ -74,6 +74,29 @@ abstract class Inspection with _$Inspection {
 
     String? notes,
 
+    // Persistent QC-Code for this inspection
+    String? qcCode,
+
+    // Export Specific RCN Quality Report Fields
+    String? blNumber,
+    String? shipperDetails,
+    String? consigneeDetails,
+    @Default('GHANA') String originCountry,
+    String? destinationCountry,
+    String? transportDescription,
+    String? pod, // Port of Destination
+    String? pol, // Port of Loading
+    String? containerCountAndSizes,
+    double? grossWeight,
+    double? netWeight,
+    String? packageDescription,
+    String? samplePlaceAndDate,
+    String? cuttingTestPlaceAndDate,
+    @Default(false) bool isAuthorized,
+    String? authorizedSignature,
+    String? authorizedBy,
+    @Default([]) List<String> cuttingImageUrls,
+
     // Timestamps
     DateTime? createdAt,
     DateTime? updatedAt,

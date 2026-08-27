@@ -487,7 +487,7 @@ class GuestHomeScreen extends StatelessWidget {
                 backgroundColor: const Color(0xFF90C695),
                 fullWidth: false,
                 onPressed: () {
-                  context.pushNamed(RegisterScreen.id);
+                  context.pushNamed(MembershipApplicationScreen.id);
                 },
               ),
               CustomButton(

@@ -421,11 +421,51 @@ class MembershipInfoScreen extends StatelessWidget {
                   _buildNumberedItem('4. Hearing: Member presents defense and calls witnesses.'),
                   _buildNumberedItem('5. Decision: Board votes based on Committee recommendations (Dismissal, Warning, Suspension, or Termination).'),
                   _buildNumberedItem('6. Notification: Member informed within 14 days. TCDA notified within 30 days if terminated.'),
-                  Gap(16.h),
-                  _buildSubHeader('Appeals & Reinstatement'),
-                  Gap(8.h),
-                  _buildBulletPoint('Appeal: Submit to General Assembly within 30 days of notice.', boldPrefix: true),
-                  _buildBulletPoint('Reinstatement: Submit new application, pay outstanding dues, and demonstrate remediation.', boldPrefix: true),
+                  Gap(24.h),
+                  const Divider(),
+                  Gap(24.h),
+
+                  // Call to Action
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(24.r),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF2D5F2E), Color(0xFF3A7A3C)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16.r),
+                    ),
+                    child: Column(
+                      children: [
+                        const CustomText(
+                          'Ready to Join C.Q.A.A.G?',
+                          variant: TextVariant.headlineMedium,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          textAlign: TextAlign.center,
+                        ),
+                        Gap(8.h),
+                        const CustomText(
+                          'Complete your membership application form, submit verification documents and payment to be accredited.',
+                          variant: TextVariant.bodyMedium,
+                          color: Colors.white,
+                          textAlign: TextAlign.center,
+                        ),
+                        Gap(20.h),
+                        CustomButton(
+                          text: 'Apply for Membership',
+                          backgroundColor: const Color(0xFF90C695),
+                          textColor: AppColors.darkBrown,
+                          fullWidth: false,
+                          onPressed: () {
+                            context.pushNamed(MembershipApplicationScreen.id);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
 
                   Gap(60.h),
                 ],

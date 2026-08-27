@@ -61,6 +61,22 @@ class MembershipService {
     return MembershipApplication.fromJson(data);
   }
 
+  /// Get application by email or phone to check verification status for account registration
+  Future<MembershipApplication?> getApplicationByEmailOrPhone(String identifier) async {
+    final clean = identifier.trim().toLowerCase();
+    final emailQuery = await _applicationsCollection.where('email_address', isEqualTo: clean).limit(1).get();
+    if (emailQuery.docs.isNotEmpty) {
+      return MembershipApplication.fromJson(emailQuery.docs.first.data());
+    }
+
+    final phoneQuery = await _applicationsCollection.where('phone_number_primary', isEqualTo: identifier.trim()).limit(1).get();
+    if (phoneQuery.docs.isNotEmpty) {
+      return MembershipApplication.fromJson(phoneQuery.docs.first.data());
+    }
+
+    return null;
+  }
+
   /// Get application by ID
   Future<MembershipApplication?> getApplicationById(String applicationId) async {
     final docSnapshot = await _applicationsCollection.doc(applicationId).get();

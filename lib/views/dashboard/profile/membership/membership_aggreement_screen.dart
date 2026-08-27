@@ -218,14 +218,20 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
   }
 
   Future<void> _handleAcceptAndRegister() async {
+    final user = ref.read(authServiceProvider).currentUser;
+
+    // If guest applicant, proceed directly to Payment screen with full data
+    if (user == null) {
+      context.pushNamed(
+        MembershipPaymentScreen.id,
+        extra: widget.applicationData,
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
-      final user = ref.read(authServiceProvider).currentUser;
-      if (user == null) {
-        throw Exception('User not authenticated');
-      }
-
       final settings = await ref.read(paymentSettingsServiceProvider).getSettings();
 
       final application = _buildApplication(

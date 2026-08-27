@@ -103,6 +103,7 @@ abstract class AppUser with _$AppUser {
     @Default(MembershipStatus.notAMember) MembershipStatus membershipStatus,
     @Default(false) bool hasAcceptedTerms,
     @Default(false) bool isAdmin,
+    String? qcCode,
   }) = _AppUser;
 
   factory AppUser.fromJson(Map<String, dynamic> json) => _$AppUserFromJson(json);
@@ -111,4 +112,13 @@ abstract class AppUser with _$AppUser {
 extension AppUserX on AppUser {
   /// Check if user is approved to perform inspections and access reports
   bool get isApproved => isAdmin || (verificationStatus == VerificationStatus.verified && status == AppUserStatus.active);
+
+  /// Get the permanent, unique QC Code for this analyst
+  String get effectiveQcCode {
+    if (qcCode != null && qcCode!.trim().isNotEmpty) {
+      return qcCode!.trim().toUpperCase();
+    }
+    final shortId = id.length >= 6 ? id.substring(0, 6).toUpperCase() : id.toUpperCase();
+    return 'CQAAG-QC-$shortId';
+  }
 }

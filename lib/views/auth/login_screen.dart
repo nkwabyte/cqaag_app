@@ -231,7 +231,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
 
-                            Gap(24.h),
+                            Gap(16.h),
+
+                            // Apply for Membership Button
+                            CustomButton(
+                              text: "Apply for Membership",
+                              backgroundColor: Colors.green.shade800,
+                              onPressed: () {
+                                context.pushNamed(MembershipApplicationScreen.id);
+                              },
+                            ),
+
+                            Gap(16.h),
 
                             // Guest Mode Button
                             CustomButton(

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AppUser {
 
- String get id; String get firstName; String get lastName; String get email; String get profilePicture; AppUserStatus get status; String? get address; String? get district; String? get region; String? get phoneNumber; String? get role; VerificationData? get verification; VerificationStatus get verificationStatus; MembershipStatus get membershipStatus; bool get hasAcceptedTerms; bool get isAdmin;
+ String get id; String get firstName; String get lastName; String get email; String get profilePicture; AppUserStatus get status; String? get address; String? get district; String? get region; String? get phoneNumber; String? get role; VerificationData? get verification; VerificationStatus get verificationStatus; MembershipStatus get membershipStatus; bool get hasAcceptedTerms; bool get isAdmin; String? get qcCode;
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $AppUserCopyWith<AppUser> get copyWith => _$AppUserCopyWithImpl<AppUser>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppUser&&(identical(other.id, id) || other.id == id)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.profilePicture, profilePicture) || other.profilePicture == profilePicture)&&(identical(other.status, status) || other.status == status)&&(identical(other.address, address) || other.address == address)&&(identical(other.district, district) || other.district == district)&&(identical(other.region, region) || other.region == region)&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.role, role) || other.role == role)&&(identical(other.verification, verification) || other.verification == verification)&&(identical(other.verificationStatus, verificationStatus) || other.verificationStatus == verificationStatus)&&(identical(other.membershipStatus, membershipStatus) || other.membershipStatus == membershipStatus)&&(identical(other.hasAcceptedTerms, hasAcceptedTerms) || other.hasAcceptedTerms == hasAcceptedTerms)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppUser&&(identical(other.id, id) || other.id == id)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.profilePicture, profilePicture) || other.profilePicture == profilePicture)&&(identical(other.status, status) || other.status == status)&&(identical(other.address, address) || other.address == address)&&(identical(other.district, district) || other.district == district)&&(identical(other.region, region) || other.region == region)&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.role, role) || other.role == role)&&(identical(other.verification, verification) || other.verification == verification)&&(identical(other.verificationStatus, verificationStatus) || other.verificationStatus == verificationStatus)&&(identical(other.membershipStatus, membershipStatus) || other.membershipStatus == membershipStatus)&&(identical(other.hasAcceptedTerms, hasAcceptedTerms) || other.hasAcceptedTerms == hasAcceptedTerms)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin)&&(identical(other.qcCode, qcCode) || other.qcCode == qcCode));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,firstName,lastName,email,profilePicture,status,address,district,region,phoneNumber,role,verification,verificationStatus,membershipStatus,hasAcceptedTerms,isAdmin);
+int get hashCode => Object.hash(runtimeType,id,firstName,lastName,email,profilePicture,status,address,district,region,phoneNumber,role,verification,verificationStatus,membershipStatus,hasAcceptedTerms,isAdmin,qcCode);
 
 @override
 String toString() {
-  return 'AppUser(id: $id, firstName: $firstName, lastName: $lastName, email: $email, profilePicture: $profilePicture, status: $status, address: $address, district: $district, region: $region, phoneNumber: $phoneNumber, role: $role, verification: $verification, verificationStatus: $verificationStatus, membershipStatus: $membershipStatus, hasAcceptedTerms: $hasAcceptedTerms, isAdmin: $isAdmin)';
+  return 'AppUser(id: $id, firstName: $firstName, lastName: $lastName, email: $email, profilePicture: $profilePicture, status: $status, address: $address, district: $district, region: $region, phoneNumber: $phoneNumber, role: $role, verification: $verification, verificationStatus: $verificationStatus, membershipStatus: $membershipStatus, hasAcceptedTerms: $hasAcceptedTerms, isAdmin: $isAdmin, qcCode: $qcCode)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $AppUserCopyWith<$Res>  {
   factory $AppUserCopyWith(AppUser value, $Res Function(AppUser) _then) = _$AppUserCopyWithImpl;
 @useResult
 $Res call({
- String id, String firstName, String lastName, String email, String profilePicture, AppUserStatus status, String? address, String? district, String? region, String? phoneNumber, String? role, VerificationData? verification, VerificationStatus verificationStatus, MembershipStatus membershipStatus, bool hasAcceptedTerms, bool isAdmin
+ String id, String firstName, String lastName, String email, String profilePicture, AppUserStatus status, String? address, String? district, String? region, String? phoneNumber, String? role, VerificationData? verification, VerificationStatus verificationStatus, MembershipStatus membershipStatus, bool hasAcceptedTerms, bool isAdmin, String? qcCode
 });
 
 
@@ -65,7 +65,7 @@ class _$AppUserCopyWithImpl<$Res>
 
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = null,Object? profilePicture = null,Object? status = null,Object? address = freezed,Object? district = freezed,Object? region = freezed,Object? phoneNumber = freezed,Object? role = freezed,Object? verification = freezed,Object? verificationStatus = null,Object? membershipStatus = null,Object? hasAcceptedTerms = null,Object? isAdmin = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = null,Object? profilePicture = null,Object? status = null,Object? address = freezed,Object? district = freezed,Object? region = freezed,Object? phoneNumber = freezed,Object? role = freezed,Object? verification = freezed,Object? verificationStatus = null,Object? membershipStatus = null,Object? hasAcceptedTerms = null,Object? isAdmin = null,Object? qcCode = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,firstName: null == firstName ? _self.firstName : firstName // ignore: cast_nullable_to_non_nullable
@@ -83,7 +83,8 @@ as VerificationData?,verificationStatus: null == verificationStatus ? _self.veri
 as VerificationStatus,membershipStatus: null == membershipStatus ? _self.membershipStatus : membershipStatus // ignore: cast_nullable_to_non_nullable
 as MembershipStatus,hasAcceptedTerms: null == hasAcceptedTerms ? _self.hasAcceptedTerms : hasAcceptedTerms // ignore: cast_nullable_to_non_nullable
 as bool,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,qcCode: freezed == qcCode ? _self.qcCode : qcCode // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of AppUser
@@ -180,10 +181,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String email,  String profilePicture,  AppUserStatus status,  String? address,  String? district,  String? region,  String? phoneNumber,  String? role,  VerificationData? verification,  VerificationStatus verificationStatus,  MembershipStatus membershipStatus,  bool hasAcceptedTerms,  bool isAdmin)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String email,  String profilePicture,  AppUserStatus status,  String? address,  String? district,  String? region,  String? phoneNumber,  String? role,  VerificationData? verification,  VerificationStatus verificationStatus,  MembershipStatus membershipStatus,  bool hasAcceptedTerms,  bool isAdmin,  String? qcCode)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppUser() when $default != null:
-return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.profilePicture,_that.status,_that.address,_that.district,_that.region,_that.phoneNumber,_that.role,_that.verification,_that.verificationStatus,_that.membershipStatus,_that.hasAcceptedTerms,_that.isAdmin);case _:
+return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.profilePicture,_that.status,_that.address,_that.district,_that.region,_that.phoneNumber,_that.role,_that.verification,_that.verificationStatus,_that.membershipStatus,_that.hasAcceptedTerms,_that.isAdmin,_that.qcCode);case _:
   return orElse();
 
 }
@@ -201,10 +202,10 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.profil
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String email,  String profilePicture,  AppUserStatus status,  String? address,  String? district,  String? region,  String? phoneNumber,  String? role,  VerificationData? verification,  VerificationStatus verificationStatus,  MembershipStatus membershipStatus,  bool hasAcceptedTerms,  bool isAdmin)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String firstName,  String lastName,  String email,  String profilePicture,  AppUserStatus status,  String? address,  String? district,  String? region,  String? phoneNumber,  String? role,  VerificationData? verification,  VerificationStatus verificationStatus,  MembershipStatus membershipStatus,  bool hasAcceptedTerms,  bool isAdmin,  String? qcCode)  $default,) {final _that = this;
 switch (_that) {
 case _AppUser():
-return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.profilePicture,_that.status,_that.address,_that.district,_that.region,_that.phoneNumber,_that.role,_that.verification,_that.verificationStatus,_that.membershipStatus,_that.hasAcceptedTerms,_that.isAdmin);case _:
+return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.profilePicture,_that.status,_that.address,_that.district,_that.region,_that.phoneNumber,_that.role,_that.verification,_that.verificationStatus,_that.membershipStatus,_that.hasAcceptedTerms,_that.isAdmin,_that.qcCode);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -221,10 +222,10 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.profil
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String firstName,  String lastName,  String email,  String profilePicture,  AppUserStatus status,  String? address,  String? district,  String? region,  String? phoneNumber,  String? role,  VerificationData? verification,  VerificationStatus verificationStatus,  MembershipStatus membershipStatus,  bool hasAcceptedTerms,  bool isAdmin)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String firstName,  String lastName,  String email,  String profilePicture,  AppUserStatus status,  String? address,  String? district,  String? region,  String? phoneNumber,  String? role,  VerificationData? verification,  VerificationStatus verificationStatus,  MembershipStatus membershipStatus,  bool hasAcceptedTerms,  bool isAdmin,  String? qcCode)?  $default,) {final _that = this;
 switch (_that) {
 case _AppUser() when $default != null:
-return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.profilePicture,_that.status,_that.address,_that.district,_that.region,_that.phoneNumber,_that.role,_that.verification,_that.verificationStatus,_that.membershipStatus,_that.hasAcceptedTerms,_that.isAdmin);case _:
+return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.profilePicture,_that.status,_that.address,_that.district,_that.region,_that.phoneNumber,_that.role,_that.verification,_that.verificationStatus,_that.membershipStatus,_that.hasAcceptedTerms,_that.isAdmin,_that.qcCode);case _:
   return null;
 
 }
@@ -236,7 +237,7 @@ return $default(_that.id,_that.firstName,_that.lastName,_that.email,_that.profil
 
 @JsonSerializable(fieldRename: FieldRename.snake)
 class _AppUser implements AppUser {
-  const _AppUser({required this.id, required this.firstName, required this.lastName, required this.email, this.profilePicture = 'https://www.gravatar.com/avatar/?d=identicon', this.status = AppUserStatus.active, this.address, this.district, this.region, this.phoneNumber, this.role, this.verification, this.verificationStatus = VerificationStatus.unverified, this.membershipStatus = MembershipStatus.notAMember, this.hasAcceptedTerms = false, this.isAdmin = false});
+  const _AppUser({required this.id, required this.firstName, required this.lastName, required this.email, this.profilePicture = 'https://www.gravatar.com/avatar/?d=identicon', this.status = AppUserStatus.active, this.address, this.district, this.region, this.phoneNumber, this.role, this.verification, this.verificationStatus = VerificationStatus.unverified, this.membershipStatus = MembershipStatus.notAMember, this.hasAcceptedTerms = false, this.isAdmin = false, this.qcCode});
   factory _AppUser.fromJson(Map<String, dynamic> json) => _$AppUserFromJson(json);
 
 @override final  String id;
@@ -255,6 +256,7 @@ class _AppUser implements AppUser {
 @override@JsonKey() final  MembershipStatus membershipStatus;
 @override@JsonKey() final  bool hasAcceptedTerms;
 @override@JsonKey() final  bool isAdmin;
+@override final  String? qcCode;
 
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
@@ -269,16 +271,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppUser&&(identical(other.id, id) || other.id == id)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.profilePicture, profilePicture) || other.profilePicture == profilePicture)&&(identical(other.status, status) || other.status == status)&&(identical(other.address, address) || other.address == address)&&(identical(other.district, district) || other.district == district)&&(identical(other.region, region) || other.region == region)&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.role, role) || other.role == role)&&(identical(other.verification, verification) || other.verification == verification)&&(identical(other.verificationStatus, verificationStatus) || other.verificationStatus == verificationStatus)&&(identical(other.membershipStatus, membershipStatus) || other.membershipStatus == membershipStatus)&&(identical(other.hasAcceptedTerms, hasAcceptedTerms) || other.hasAcceptedTerms == hasAcceptedTerms)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppUser&&(identical(other.id, id) || other.id == id)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.email, email) || other.email == email)&&(identical(other.profilePicture, profilePicture) || other.profilePicture == profilePicture)&&(identical(other.status, status) || other.status == status)&&(identical(other.address, address) || other.address == address)&&(identical(other.district, district) || other.district == district)&&(identical(other.region, region) || other.region == region)&&(identical(other.phoneNumber, phoneNumber) || other.phoneNumber == phoneNumber)&&(identical(other.role, role) || other.role == role)&&(identical(other.verification, verification) || other.verification == verification)&&(identical(other.verificationStatus, verificationStatus) || other.verificationStatus == verificationStatus)&&(identical(other.membershipStatus, membershipStatus) || other.membershipStatus == membershipStatus)&&(identical(other.hasAcceptedTerms, hasAcceptedTerms) || other.hasAcceptedTerms == hasAcceptedTerms)&&(identical(other.isAdmin, isAdmin) || other.isAdmin == isAdmin)&&(identical(other.qcCode, qcCode) || other.qcCode == qcCode));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,firstName,lastName,email,profilePicture,status,address,district,region,phoneNumber,role,verification,verificationStatus,membershipStatus,hasAcceptedTerms,isAdmin);
+int get hashCode => Object.hash(runtimeType,id,firstName,lastName,email,profilePicture,status,address,district,region,phoneNumber,role,verification,verificationStatus,membershipStatus,hasAcceptedTerms,isAdmin,qcCode);
 
 @override
 String toString() {
-  return 'AppUser(id: $id, firstName: $firstName, lastName: $lastName, email: $email, profilePicture: $profilePicture, status: $status, address: $address, district: $district, region: $region, phoneNumber: $phoneNumber, role: $role, verification: $verification, verificationStatus: $verificationStatus, membershipStatus: $membershipStatus, hasAcceptedTerms: $hasAcceptedTerms, isAdmin: $isAdmin)';
+  return 'AppUser(id: $id, firstName: $firstName, lastName: $lastName, email: $email, profilePicture: $profilePicture, status: $status, address: $address, district: $district, region: $region, phoneNumber: $phoneNumber, role: $role, verification: $verification, verificationStatus: $verificationStatus, membershipStatus: $membershipStatus, hasAcceptedTerms: $hasAcceptedTerms, isAdmin: $isAdmin, qcCode: $qcCode)';
 }
 
 
@@ -289,7 +291,7 @@ abstract mixin class _$AppUserCopyWith<$Res> implements $AppUserCopyWith<$Res> {
   factory _$AppUserCopyWith(_AppUser value, $Res Function(_AppUser) _then) = __$AppUserCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String firstName, String lastName, String email, String profilePicture, AppUserStatus status, String? address, String? district, String? region, String? phoneNumber, String? role, VerificationData? verification, VerificationStatus verificationStatus, MembershipStatus membershipStatus, bool hasAcceptedTerms, bool isAdmin
+ String id, String firstName, String lastName, String email, String profilePicture, AppUserStatus status, String? address, String? district, String? region, String? phoneNumber, String? role, VerificationData? verification, VerificationStatus verificationStatus, MembershipStatus membershipStatus, bool hasAcceptedTerms, bool isAdmin, String? qcCode
 });
 
 
@@ -306,7 +308,7 @@ class __$AppUserCopyWithImpl<$Res>
 
 /// Create a copy of AppUser
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = null,Object? profilePicture = null,Object? status = null,Object? address = freezed,Object? district = freezed,Object? region = freezed,Object? phoneNumber = freezed,Object? role = freezed,Object? verification = freezed,Object? verificationStatus = null,Object? membershipStatus = null,Object? hasAcceptedTerms = null,Object? isAdmin = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? firstName = null,Object? lastName = null,Object? email = null,Object? profilePicture = null,Object? status = null,Object? address = freezed,Object? district = freezed,Object? region = freezed,Object? phoneNumber = freezed,Object? role = freezed,Object? verification = freezed,Object? verificationStatus = null,Object? membershipStatus = null,Object? hasAcceptedTerms = null,Object? isAdmin = null,Object? qcCode = freezed,}) {
   return _then(_AppUser(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,firstName: null == firstName ? _self.firstName : firstName // ignore: cast_nullable_to_non_nullable
@@ -324,7 +326,8 @@ as VerificationData?,verificationStatus: null == verificationStatus ? _self.veri
 as VerificationStatus,membershipStatus: null == membershipStatus ? _self.membershipStatus : membershipStatus // ignore: cast_nullable_to_non_nullable
 as MembershipStatus,hasAcceptedTerms: null == hasAcceptedTerms ? _self.hasAcceptedTerms : hasAcceptedTerms // ignore: cast_nullable_to_non_nullable
 as bool,isAdmin: null == isAdmin ? _self.isAdmin : isAdmin // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,qcCode: freezed == qcCode ? _self.qcCode : qcCode // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

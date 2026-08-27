@@ -6,7 +6,6 @@ import 'package:gap/gap.dart';
 import 'package:cqaag_app/index.dart';
 import 'package:cqaag_app/models/inspection/report_filter.dart';
 import 'package:cqaag_app/views/components/report_filter_modal.dart';
-import 'package:cqaag_app/services/export/excel_export_service.dart';
 
 class ReportsManagementTab extends ConsumerStatefulWidget {
   const ReportsManagementTab({super.key});

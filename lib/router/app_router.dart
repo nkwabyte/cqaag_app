@@ -59,11 +59,15 @@ GoRouter goRouter(Ref ref) {
         '/${ServicesScreen.id}',
         '/${ChaptersScreen.id}',
         '/${MembershipInfoScreen.id}',
+        '/${MembershipApplicationScreen.id}',
+        '/${MembershipAgreementScreen.id}',
+        '/${MembershipPaymentScreen.id}',
+        '/${VerificationUploadScreen.id}',
         '/${PartnersScreen.id}',
       ];
       final isGuestAccessible = guestAccessibleRoutes.contains(state.uri.path);
 
-      final isPublicRoute = isSplash || isBoarding || isLogin || isRegister || isForgotPassword;
+      final isPublicRoute = isSplash || isBoarding || isLogin || isRegister || isForgotPassword || isGuestAccessible;
 
       if (isLoading || hasError) return null;
 
