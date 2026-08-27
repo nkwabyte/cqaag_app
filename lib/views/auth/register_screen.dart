@@ -147,7 +147,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                       Gap(30.h),
                       CustomButton(
-                        text: "Continue",
+                        text: "Create Account",
                         onPressed: () async {
                           UIHelpers.dismissKeyboard(context);
                           if (_formKey.currentState?.saveAndValidate() ?? false) {
@@ -164,8 +164,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             final district = values?['district'] as String?;
                             final address = values?['address'] as String?;
 
-                            // Get admin status from state since it's outside the form builder
-
                             if (password != confirmPassword) {
                               CustomSnackBar.warning(
                                 context,
@@ -175,7 +173,47 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             }
 
                             if (email != null && password != null && firstName != null && lastName != null && phone != null) {
+                              AppDialogs.showLoadingDialog(context, message: "Verifying membership approval...");
                               try {
+                                final membershipService = ref.read(membershipServiceProvider);
+                                final application = await membershipService.getApplicationByEmailOrPhone(email);
+
+                                // If non-admin registration, verify that they applied and are approved/verified
+                                if (!_isRegisteringAsAdmin) {
+                                  final isApprovedApplicant = application != null &&
+                                      (application.status == ApplicationStatus.approved ||
+                                          application.isPaymentVerified);
+
+                                  if (!isApprovedApplicant) {
+                                    if (context.mounted) {
+                                      Navigator.of(context, rootNavigator: true).pop();
+                                      showDialog(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          title: const Text("Membership Approval Required"),
+                                          content: const Text(
+                                            "Account creation is available only to verified guests whose membership application and payment have been approved by CQAAG administration.\n\nPlease apply for membership and submit your payment first.",
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(ctx),
+                                              child: const Text("Cancel"),
+                                            ),
+                                            ElevatedButton(
+                                              onPressed: () {
+                                                Navigator.pop(ctx);
+                                                context.pushNamed(MembershipApplicationScreen.id);
+                                              },
+                                              child: const Text("Apply for Membership"),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                    return;
+                                  }
+                                }
+
                                 final authService = ref.read(authServiceProvider);
                                 await authService.signUpWithEmailAndPassword(
                                   email: email,
@@ -190,23 +228,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 );
 
                                 if (context.mounted) {
+                                  Navigator.of(context, rootNavigator: true).pop();
                                   CustomSnackBar.success(
                                     context,
                                     message: "Account created successfully!",
                                   );
-                                  // Navigate to Terms and Conditions before dashboard
                                   context.goNamed(TermsAndConditionsScreen.id, extra: {'fromRegister': true});
                                 }
                               } catch (e) {
                                 if (context.mounted) {
-                                  // Check if it's a connectivity error
+                                  try {
+                                    Navigator.of(context, rootNavigator: true).pop();
+                                  } catch (_) {}
                                   if (e is NoInternetException) {
-                                    CustomSnackBar.info(
-                                      context,
-                                      message: e.message,
-                                    );
+                                    CustomSnackBar.info(context, message: e.message);
                                   } else {
-                                    // Use Firebase error mapper for user-friendly messages
                                     CustomSnackBar.error(
                                       context,
                                       message: FirebaseErrorMapper.getErrorMessage(e),
@@ -218,7 +254,45 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           }
                         },
                       ),
-                      Gap(30.h),
+                      Gap(20.h),
+                      // Apply for Membership Option
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(16.r),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: Colors.green.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            CustomText(
+                              "Not an approved member yet?",
+                              variant: TextVariant.bodyMedium,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green.shade900,
+                            ),
+                            Gap(4.h),
+                            CustomText(
+                              "Apply for CQAAG membership, submit your verification & payment details to get approved.",
+                              variant: TextVariant.bodySmall,
+                              textAlign: TextAlign.center,
+                              color: Colors.green.shade800,
+                            ),
+                            Gap(12.h),
+                            OutlinedButton.icon(
+                              onPressed: () => context.pushNamed(MembershipApplicationScreen.id),
+                              icon: const Icon(Icons.assignment_outlined, size: 18),
+                              label: const Text("Apply for Membership"),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.green.shade900,
+                                side: BorderSide(color: Colors.green.shade800),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Gap(24.h),
                       _buildFooter(colorScheme, context),
                       Gap(20.h),
                     ],

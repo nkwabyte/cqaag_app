@@ -13,7 +13,6 @@ import 'package:open_filex/open_filex.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cqaag_app/services/export/excel_export_service.dart';
 
 class QualityResultScreen extends ConsumerStatefulWidget {
   static const String id = 'quality_result_screen';
@@ -121,13 +120,17 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
               delegate: SliverChildListDelegate([
                 _buildSectionHeader("Report Information"),
                 _buildReportInfoCard(colorScheme, i),
-                Gap(32.h),
+                Gap(24.h),
+
+                // Standalone TCDA Authority Banner
+                _buildTcdaAuthorityCard(colorScheme),
+                Gap(24.h),
 
                 _buildSectionHeader("Quality Parameters"),
                 _buildParametersGrid(i),
-                Gap(32.h),
+                Gap(24.h),
 
-                _buildSectionHeader("Digital Certificate"),
+                _buildSectionHeader("Digital Certificate & CCQ"),
                 _buildCertificateCard(colorScheme, i),
                 Gap(32.h),
 
@@ -175,6 +178,21 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
                     ),
                   ],
                 ),
+                Gap(16.h),
+
+                // Raise Correction Ticket Button
+                CustomButton(
+                  text: "Report Mistake / Raise Ticket",
+                  variant: ButtonVariant.outlined,
+                  borderColor: Colors.redAccent,
+                  textColor: Colors.redAccent,
+                  leadingIcon: const Icon(Icons.support_agent_outlined, color: Colors.redAccent),
+                  onPressed: () => RaiseTicketModal.show(
+                    context,
+                    prefilledInspectionId: i.inspectionId ?? i.id,
+                    prefilledBatchId: i.batchId,
+                  ),
+                ),
                 Gap(40.h),
               ]),
             ),
@@ -186,6 +204,9 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
 
   // --- Helper Build Methods ---
   Widget _buildTopBar(BuildContext context) {
+    final rawType = widget.inspection.analysisType ?? '';
+    final title = rawType.isNotEmpty ? "RCN Quality - ${rawType.toUpperCase()}" : "Quality Result";
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -193,7 +214,16 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        const CustomText("Quality Result", variant: TextVariant.headlineMedium, color: Colors.white),
+        Expanded(
+          child: CustomText(
+            title,
+            variant: TextVariant.headlineMedium,
+            color: Colors.white,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
         IconButton(
           icon: const Icon(Icons.share, color: Colors.white),
           onPressed: () => _shareReport(context, widget.inspection),
@@ -202,46 +232,58 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
     );
   }
 
-  Future<void> _exportSingleExcel(BuildContext context, Inspection inspection) async {
-    final user = ref.read(currentUserProfileProvider).value;
-    if (user == null) {
-      CustomSnackBar.error(context, message: 'User not authenticated');
-      return;
-    }
-
-    final rootNav = Navigator.of(context, rootNavigator: true);
-    AppDialogs.showLoadingDialog(context, message: 'Exporting report to Excel...');
-
-    try {
-      await ExcelExportService.exportInspections(
-        inspections: [inspection],
-        currentUser: user,
-        filenamePrefix: 'inspection_${inspection.inspectionId ?? inspection.id}',
-      );
-      if (mounted) {
-        rootNav.pop();
-        if (context.mounted) {
-          CustomSnackBar.success(context, message: 'Excel report export ready!');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        rootNav.pop();
-        if (context.mounted) {
-          CustomSnackBar.error(context, message: 'Export failed: ${e.toString()}');
-        }
-      }
-    }
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 16.h),
-      child: CustomText(title, variant: TextVariant.headlineMedium, fontWeight: FontWeight.bold),
+  Widget _buildTcdaAuthorityCard(ColorScheme colorScheme) {
+    return Container(
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F8F4),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: const Color(0xFF2D5F2E).withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: EdgeInsets.all(10.r),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2D5F2E),
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            child: const CustomText(
+              "TCDA",
+              variant: TextVariant.bodyMedium,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          Gap(12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomText(
+                  "Tree Crop Development Authority (TCDA)",
+                  variant: TextVariant.bodyMedium,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF2D5F2E),
+                ),
+                Gap(4.h),
+                CustomText(
+                  "Statutory Regulatory Authority for Cashew in Ghana (Act 1010). Certified under official CQAAG & TCDA Quality Regulations.",
+                  variant: TextVariant.bodySmall,
+                  color: Colors.black87,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildReportInfoCard(ColorScheme colorScheme, Inspection i) {
+    final isExport = (i.analysisType ?? '').toLowerCase().contains('export');
+
     return Container(
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
@@ -252,18 +294,55 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
       child: Column(
         children: [
           _InfoRow(
-            label: "Report Type",
+            label: "Analysis Type",
             value: (i.analysisType != null && i.analysisType!.isNotEmpty) ? i.analysisType! : "Arrival",
           ),
           const Divider(),
           _InfoRow(
-            label: i.analysisType == 'Export' ? "Truck/Container Number" : "Truck Number",
-            value: i.truckNumber ?? "N/A",
+            label: "QC-CODE",
+            value: i.qcCode ?? i.inspectorId,
           ),
           const Divider(),
-          _InfoRow(label: "Supplier / Supplying Company", value: i.company ?? "N/A"),
-          const Divider(),
-          _InfoRow(label: "Quantity", value: "${i.quantity} KG"),
+          if (isExport) ...[
+            _InfoRow(label: "B/L No.", value: i.blNumber ?? i.waybillNumber ?? "N/A"),
+            const Divider(),
+            _InfoRow(label: "Shipper Details", value: i.shipperDetails ?? i.company ?? "N/A"),
+            const Divider(),
+            _InfoRow(label: "Consignee Details", value: i.consigneeDetails ?? i.buyerName ?? "N/A"),
+            const Divider(),
+            _InfoRow(label: "Origin", value: i.originCountry),
+            const Divider(),
+            _InfoRow(label: "Destination", value: i.destinationCountry ?? "N/A"),
+            const Divider(),
+            _InfoRow(label: "Transport", value: i.transportDescription ?? i.truckNumber ?? "N/A"),
+            const Divider(),
+            _InfoRow(label: "Port of Loading (POL)", value: i.pol ?? "Port of Tema"),
+            const Divider(),
+            _InfoRow(label: "Port of Destination (POD)", value: i.pod ?? "N/A"),
+            const Divider(),
+            _InfoRow(label: "Containers & Sizes", value: i.containerCountAndSizes ?? "N/A"),
+            const Divider(),
+            _InfoRow(label: "Gross Weight", value: "${i.grossWeight ?? i.quantity} KG"),
+            const Divider(),
+            _InfoRow(label: "Net Weight", value: "${i.netWeight ?? i.quantity} KG"),
+            const Divider(),
+            _InfoRow(label: "Packages", value: i.packageDescription ?? "${i.quantityBags} Bags"),
+            const Divider(),
+            _InfoRow(label: "Authorized", value: i.isAuthorized ? "YES" : "Pending"),
+          ] else ...[
+            _InfoRow(
+              label: "Truck Number",
+              value: i.truckNumber ?? "N/A",
+            ),
+            const Divider(),
+            _InfoRow(label: "Supplier / Supplying Company", value: i.company ?? "N/A"),
+            const Divider(),
+            _InfoRow(label: "Buyer / Company Name", value: i.buyerName ?? "N/A"),
+            const Divider(),
+            _InfoRow(label: "Waybill / B/L No.", value: i.waybillNumber ?? "N/A"),
+            const Divider(),
+            _InfoRow(label: "Quantity", value: "${i.quantity} KG (${i.quantityBags} Bags)"),
+          ],
         ],
       ),
     );
@@ -440,8 +519,25 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
       'town': i.town ?? '',
       'chapter': i.chapter ?? '',
       'inspector': _getInspectorFullName(),
+      'qcCode': i.qcCode ?? (ref.read(currentUserProfileProvider).value?.effectiveQcCode ?? i.inspectorId),
       'inspectionId': i.inspectionId,
       'id': i.id,
+      'blNumber': i.blNumber,
+      'shipperDetails': i.shipperDetails,
+      'consigneeDetails': i.consigneeDetails,
+      'originCountry': i.originCountry,
+      'destinationCountry': i.destinationCountry,
+      'transportDescription': i.transportDescription,
+      'pod': i.pod,
+      'pol': i.pol,
+      'containerCountAndSizes': i.containerCountAndSizes,
+      'grossWeight': i.grossWeight?.toString(),
+      'netWeight': i.netWeight?.toString(),
+      'packageDescription': i.packageDescription,
+      'samplePlaceAndDate': i.samplePlaceAndDate,
+      'cuttingTestPlaceAndDate': i.cuttingTestPlaceAndDate,
+      'isAuthorized': i.isAuthorized,
+      'authorizedSignature': i.authorizedSignature,
       'conclusion': i.kor >= 48.0
           ? 'This batch meets all export quality standards for Grade A raw cashew nuts. Approved for shipment.'
           : 'This batch is below standard for export quality.',
@@ -581,6 +677,37 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
       return '${user.firstName} ${user.lastName}'.trim();
     }
     return widget.inspection.inspectorId;
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: CustomText(
+        title,
+        variant: TextVariant.headlineSmall,
+        fontWeight: FontWeight.bold,
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
+    );
+  }
+
+  Future<void> _exportSingleExcel(BuildContext context, Inspection i) async {
+    try {
+      final user = ref.read(currentUserProfileProvider).value;
+      if (user == null) {
+        CustomSnackBar.error(context, message: 'User profile not found');
+        return;
+      }
+      await ExcelExportService.exportInspections(
+        inspections: [i],
+        currentUser: user,
+        filenamePrefix: 'inspection_${i.batchId ?? i.id}',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        CustomSnackBar.error(context, message: 'Export failed: $e');
+      }
+    }
   }
 
   String _getUserInitials(AppUser? user) {

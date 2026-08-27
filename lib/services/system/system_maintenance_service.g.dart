@@ -8,12 +8,9 @@ part of 'system_maintenance_service.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Provider for [SystemMaintenanceService].
 
 @ProviderFor(systemMaintenanceService)
 final systemMaintenanceServiceProvider = SystemMaintenanceServiceProvider._();
-
-/// Provider for [SystemMaintenanceService].
 
 final class SystemMaintenanceServiceProvider
     extends
@@ -23,7 +20,6 @@ final class SystemMaintenanceServiceProvider
           SystemMaintenanceService
         >
     with $Provider<SystemMaintenanceService> {
-  /// Provider for [SystemMaintenanceService].
   SystemMaintenanceServiceProvider._()
     : super(
         from: null,
@@ -59,4 +55,4 @@ final class SystemMaintenanceServiceProvider
 }
 
 String _$systemMaintenanceServiceHash() =>
-    r'9f81a74281239cba912a764d852109ab77f601b';
+    r'081fd1d195a077c236ce183bb03a20f755ab4e2d';

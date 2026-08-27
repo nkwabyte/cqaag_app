@@ -165,10 +165,37 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         throw Exception('Enter the measurements for at least one cut test.');
       }
 
+      final rawQty = parseDouble(formData['quantity']);
+      final rawGross = parseDouble(formData['gross_weight']);
+      final rawNet = parseDouble(formData['net_weight']);
+      final effectiveVolume = [rawQty, rawGross, rawNet].reduce((max, e) => e > max ? e : max);
+
+      // Enforce Weight Rule: >=10,000kg requires minimum 2 cut tests
+      if (effectiveVolume >= 10000 && cutTests.length < 2) {
+        if (mounted) {
+          try {
+            Navigator.of(context, rootNavigator: true).pop();
+          } catch (_) {}
+          CustomSnackBar.error(
+            context,
+            message: 'For volume of 10,000kg and above, the 2nd cutting test is mandatory before the system can process.',
+            title: '2nd Cutting Required',
+          );
+          _jumpToStep(2);
+        }
+        return;
+      }
+
+      final userProfile = ref.read(currentUserProfileProvider).value;
+      final persistentQcCode = userProfile?.effectiveQcCode ?? IdUtils.getPermanentQcId(userId: user.uid);
+
+      final isExport = (formData['analysis_type'] as String? ?? '').toLowerCase().contains('export');
+
       final inspection = Inspection(
         id: _docId,
         inspectionId: _customInspectionId,
         inspectorId: user.uid,
+        qcCode: persistentQcCode,
         batchId: formData['batch_id'] as String?,
         farmerName: formData['farmer_name'] as String?,
         location: formData['location'] as String?,
@@ -182,7 +209,25 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         waybillNumber: formData['waybill_number'] as String?,
         analysisType: formData['analysis_type'] as String?,
 
-        quantity: parseDouble(formData['quantity']),
+        // Export specifics
+        blNumber: formData['bl_number'] as String?,
+        shipperDetails: formData['shipper_details'] as String?,
+        consigneeDetails: formData['consignee_details'] as String?,
+        originCountry: formData['origin_country'] as String? ?? 'GHANA',
+        destinationCountry: formData['destination_country'] as String?,
+        transportDescription: formData['transport_description'] as String?,
+        pod: formData['pod'] as String?,
+        pol: formData['pol'] as String?,
+        containerCountAndSizes: formData['container_count_and_sizes'] as String?,
+        grossWeight: rawGross > 0 ? rawGross : rawQty,
+        netWeight: rawNet > 0 ? rawNet : rawQty,
+        packageDescription: formData['package_description'] as String?,
+        samplePlaceAndDate: formData['sample_place_and_date'] as String?,
+        cuttingTestPlaceAndDate: formData['cutting_test_place_and_date'] as String?,
+        isAuthorized: formData['is_authorized'] as bool? ?? isExport,
+        authorizedBy: isExport ? (userProfile != null ? '${userProfile.firstName} ${userProfile.lastName}' : user.uid) : null,
+
+        quantity: rawQty > 0 ? rawQty : (rawNet > 0 ? rawNet : rawGross),
         quantityBags: parseInt(formData['quantity_bags']),
 
         cutTests: cutTests,
@@ -202,6 +247,7 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         totalSpotted: cutTests.averageTotalSpotted,
 
         imageUrls: uploadedImageUrls,
+        cuttingImageUrls: uploadedImageUrls,
         notes: formData['notes'] as String?,
         status: hasInternet ? InspectionStatus.completed : InspectionStatus.pendingSync,
         createdAt: widget.existingInspection?.createdAt ?? DateTime.now(),

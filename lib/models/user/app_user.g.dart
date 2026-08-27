@@ -39,6 +39,7 @@ _AppUser _$AppUserFromJson(Map<String, dynamic> json) => _AppUser(
       MembershipStatus.notAMember,
   hasAcceptedTerms: json['has_accepted_terms'] as bool? ?? false,
   isAdmin: json['is_admin'] as bool? ?? false,
+  qcCode: json['qc_code'] as String?,
 );
 
 Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
@@ -59,6 +60,7 @@ Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
   'membership_status': _$MembershipStatusEnumMap[instance.membershipStatus]!,
   'has_accepted_terms': instance.hasAcceptedTerms,
   'is_admin': instance.isAdmin,
+  'qc_code': instance.qcCode,
 };
 
 const _$AppUserStatusEnumMap = {

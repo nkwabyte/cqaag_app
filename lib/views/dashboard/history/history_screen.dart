@@ -6,7 +6,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cqaag_app/index.dart';
 import 'package:cqaag_app/models/inspection/report_filter.dart';
 import 'package:cqaag_app/views/components/report_filter_modal.dart';
-import 'package:cqaag_app/services/export/excel_export_service.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
   static final String id = 'history_screen';
@@ -87,7 +86,12 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final user = ref.watch(currentUserProfileProvider).value;
     final inspectionState = ref.watch(inspectionControllerProvider).value;
 
-    final rawInspections = inspectionState?.allCompletedInspections ?? [];
+    // Scoped Data Access: Admin sees all QCs data, QC only sees own data
+    final allReports = inspectionState?.allCompletedInspections ?? [];
+    final rawInspections = user?.isAdmin == true
+        ? allReports
+        : allReports.where((i) => i.inspectorId == user?.id).toList();
+
     final filteredInspections = _filterCriteria.apply(rawInspections);
 
     final grouped = _groupByDistrict(filteredInspections);
@@ -105,7 +109,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           // Header with data stats
           buildHistoryHeader(
             context,
-            "Districts",
+            user?.isAdmin == true ? "National Inspection Reports" : "My Inspection Reports",
             "${districts.length} districts (${filteredInspections.length} reports)",
             colorScheme,
           ),
@@ -134,40 +138,58 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               ),
             ),
 
-          // Action Toolbar: Filter & Export to Excel Buttons
+          // Action Toolbar: Filter, Ticket & Export to Excel Buttons
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Wrap(
+              spacing: 8.w,
+              runSpacing: 8.h,
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 OutlinedButton.icon(
                   onPressed: _showFilterDialog,
                   icon: Icon(
                     Icons.filter_list,
+                    size: 16,
                     color: _filterCriteria.isNotEmpty ? colorScheme.primary : colorScheme.onSurface,
                   ),
                   label: Text(
                     _filterCriteria.isNotEmpty
                         ? 'Filtered (${_filterCriteria.activeFilterCount})'
-                        : 'Filter Reports',
+                        : 'Filter',
+                    style: TextStyle(fontSize: 12.sp),
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: _filterCriteria.isNotEmpty ? colorScheme.primary : null,
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                   ),
                 ),
                 if (_filterCriteria.isNotEmpty)
                   TextButton(
                     onPressed: () => setState(() => _filterCriteria = const ReportFilterCriteria()),
-                    child: const Text('Clear Filters'),
+                    child: Text('Clear', style: TextStyle(fontSize: 12.sp)),
                   ),
-                const Spacer(),
+                OutlinedButton.icon(
+                  onPressed: () => RaiseTicketModal.show(context),
+                  icon: const Icon(Icons.support_agent_outlined, size: 16, color: Colors.red),
+                  label: Text('Report Issue / Mistake', style: TextStyle(fontSize: 12.sp, color: Colors.red)),
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                    side: const BorderSide(color: Colors.red),
+                  ),
+                ),
                 ElevatedButton.icon(
                   onPressed: filteredInspections.isEmpty ? null : () => _exportToExcel(filteredInspections),
-                  icon: const Icon(Icons.download, size: 18),
-                  label: Text(user?.isAdmin == true ? 'Export All (Excel)' : 'Export My Data'),
+                  icon: const Icon(Icons.download, size: 16),
+                  label: Text(
+                    user?.isAdmin == true ? 'Excel Export (All)' : 'Excel Export (My Data)',
+                    style: TextStyle(fontSize: 12.sp),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
                   ),
                 ),
               ],

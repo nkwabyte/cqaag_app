@@ -37,7 +37,7 @@ final class MembershipControllerProvider
 }
 
 String _$membershipControllerHash() =>
-    r'9491fc173e89b3620acecf01bfc65be06e5597b9';
+    r'70ea33fb7d1f0d8a1edbc1e868e69c78261e7f7c';
 
 /// Controller for managing membership application state
 
@@ -104,4 +104,4 @@ final class AllMembershipApplicationsProvider
 }
 
 String _$allMembershipApplicationsHash() =>
-    r'4ab4cd1e0f01d96e0f7b77b916321d1bb4d3f4ae';
+    r'c073416c06923445b0d0b28758a39b105881e396';

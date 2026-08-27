@@ -1,11 +1,37 @@
 import 'dart:math';
 
 class IdUtils {
-  /// Generate Q.C ID in format: INSP-XXX
-  /// where XXX is the inspection count + 1
+  /// QC ID number should be unique for every QC and MUST NOT change per report.
+  /// Generates or resolves the fixed QC ID from the user's ID or QC Code.
+  static String getPermanentQcId({String? existingQcCode, String? userId}) {
+    if (existingQcCode != null && existingQcCode.trim().isNotEmpty) {
+      return existingQcCode.trim().toUpperCase();
+    }
+    if (userId != null && userId.trim().isNotEmpty) {
+      final shortId = userId.length >= 6 ? userId.substring(0, 6).toUpperCase() : userId.toUpperCase();
+      return 'CQAAG-QC-$shortId';
+    }
+    return 'CQAAG-QC-001';
+  }
+
+  /// Generate unique Ticket Code: TCK-YYYYMMDD-XXXX
+  static String generateTicketCode() {
+    final now = DateTime.now();
+    final year = now.year;
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = Random();
+    final randomStr = List.generate(4, (index) => chars[random.nextInt(chars.length)]).join();
+
+    return 'TCK-$year$month$day-$randomStr';
+  }
+
+  /// Legacy method for backward compatibility
   static String generateQcId(int inspectionCount) {
     final nextNumber = inspectionCount + 1;
-    return 'INSP-$nextNumber';
+    return 'CQAAG-QC-${nextNumber.toString().padLeft(3, '0')}';
   }
 
   /// Generate Batch ID in format: BATCH-GH-{COMPANY_INITIALS}-XXX
@@ -17,10 +43,6 @@ class IdUtils {
   }
 
   /// Extract company initials from company name
-  /// Examples:
-  /// - "Olam Ghana Ltd" -> "OLAM"
-  /// - "Ghana Cashew Board" -> "GCB"
-  /// - "ABC" -> "ABC"
   static String _getCompanyInitials(String company) {
     if (company.isEmpty) return 'UNKNOWN';
 
@@ -34,16 +56,13 @@ class IdUtils {
     // Split by spaces and take first letter of each word
     final words = trimmed.split(RegExp(r'\s+'));
     if (words.length > 1) {
-      // Multi-word company: take first letter of each word (max 4 letters)
       final initials = words.take(4).map((word) => word.isNotEmpty ? word[0].toUpperCase() : '').where((char) => char.isNotEmpty).join();
       return initials.isNotEmpty ? initials : trimmed.substring(0, 3).toUpperCase();
     }
 
-    // Single word company: take first 4 uppercase letters
     return trimmed.substring(0, trimmed.length > 4 ? 4 : trimmed.length).toUpperCase();
   }
 
-  /// Legacy method for backward compatibility
   /// Generates a unique inspection ID with timestamp
   static String generateInspectionId() {
     final now = DateTime.now();
@@ -51,7 +70,6 @@ class IdUtils {
     final month = now.month.toString().padLeft(2, '0');
     final day = now.day.toString().padLeft(2, '0');
 
-    // Generate 4 random uppercase letters/numbers
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final random = Random();
     final randomStr = List.generate(4, (index) => chars[random.nextInt(chars.length)]).join();

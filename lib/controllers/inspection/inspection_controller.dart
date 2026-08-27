@@ -57,22 +57,27 @@ class InspectionController extends _$InspectionController {
     final user = ref.watch(authServiceProvider).currentUser;
     if (user == null) return Stream.value(const InspectionState());
 
+    final userProfile = ref.watch(currentUserProfileProvider).value;
+    final isAdmin = userProfile?.isAdmin == true;
+
     final inspectionService = ref.watch(inspectionServiceProvider);
 
     final userInspectionsStream = inspectionService.streamUserInspections(user.uid);
-    final allCompletedStream = inspectionService.streamAllCompletedInspections();
+    final completedStream = isAdmin
+        ? inspectionService.streamAllCompletedInspections()
+        : inspectionService.streamUserCompletedInspections(user.uid, limit: 100);
 
     return Rx.combineLatest2<List<Inspection>, List<Inspection>, InspectionState>(
       userInspectionsStream,
-      allCompletedStream,
+      completedStream,
       (userInspections, allCompleted) {
-        // Deduplicate allCompletedInspections by ID just in case
+        // Deduplicate completed inspections by ID
         final seenIds = <String>{};
-        final uniqueAllCompleted = allCompleted.where((i) => seenIds.add(i.id)).toList();
+        final uniqueCompleted = allCompleted.where((i) => seenIds.add(i.id)).toList();
 
         return InspectionState(
           allInspections: userInspections,
-          allCompletedInspections: uniqueAllCompleted,
+          allCompletedInspections: uniqueCompleted,
         );
       },
     );

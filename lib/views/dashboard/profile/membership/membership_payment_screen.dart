@@ -287,6 +287,15 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
             variant: TextVariant.bodySmall,
             color: colorScheme.secondary,
           ),
+          Gap(16.h),
+          // Instant MTN MoMo USSD Prompt button
+          CustomButton(
+            text: "Request MTN MoMo Prompt",
+            backgroundColor: Colors.amber.shade700,
+            textColor: Colors.black87,
+            leadingIcon: const Icon(Icons.touch_app_outlined, color: Colors.black87),
+            onPressed: () => _handleMtnMomoPush(settings),
+          ),
         ],
       ),
     );
@@ -403,6 +412,55 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
     }
   }
 
+  Future<void> _handleMtnMomoPush(PaymentSettings settings) async {
+    final phone = widget.applicationData['phone'] as String? ?? '';
+    if (phone.isEmpty) {
+      CustomSnackBar.error(context, message: 'Please provide a valid phone number for MTN MoMo.');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    AppDialogs.showLoadingDialog(context, message: 'Sending MTN MoMo prompt to $phone...');
+
+    try {
+      final momoService = ref.read(mtnMomoServiceProvider);
+      final refId = const uuid_pkg.Uuid().v4();
+
+      final result = await momoService.requestToPay(
+        phoneNumber: phone,
+        amount: settings.registrationFee,
+        currency: settings.currency,
+        referenceId: refId,
+        payerMessage: 'CQAAG Membership Fee',
+      );
+
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        if (result.success) {
+          _referenceController.text = refId;
+          CustomSnackBar.success(
+            context,
+            message: result.message ?? 'Payment prompt sent! Please authorize on your phone.',
+            title: 'MTN MoMo Prompt Sent',
+          );
+        } else {
+          CustomSnackBar.warning(
+            context,
+            message: result.message ?? 'Could not initiate automatic prompt. Please make manual transfer and upload receipt.',
+            title: 'Manual Transfer Required',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        CustomSnackBar.error(context, message: 'MTN MoMo Error: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
   Future<void> _handleSubmit(PaymentSettings settings) async {
     final existingAppId = widget.applicationData['existing_application_id'] as String?;
     final evidence = _evidenceFile;
@@ -416,9 +474,8 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
 
     try {
       final user = ref.read(authServiceProvider).currentUser;
-      if (user == null) {
-        throw Exception('User not authenticated');
-      }
+      final applicantEmail = widget.applicationData['email'] as String? ?? (user?.email ?? '');
+      final applicantUserId = user?.uid ?? 'guest_${const uuid_pkg.Uuid().v4().substring(0, 8)}';
 
       String? evidenceUrl;
       if (evidence != null) {
@@ -444,29 +501,34 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
           message: 'Payment evidence submitted successfully! An administrator will verify it shortly.',
           title: 'Evidence Uploaded',
         );
+        context.goNamed(DashboardScreen.id);
       } else {
-        // Submitting new application (with or without payment evidence)
+        // Submitting new application (guest or logged-in user)
         final application = _buildApplication(
-          userId: user.uid,
-          userEmail: user.email ?? '',
+          userId: applicantUserId,
+          userEmail: applicantEmail,
           settings: settings,
           evidenceUrl: evidenceUrl,
         );
 
-        await ref.read(membershipControllerProvider.notifier).submitApplication(application);
+        await ref.read(membershipServiceProvider).submitApplication(application);
 
         if (!mounted) return;
 
         CustomSnackBar.success(
           context,
-          message: evidenceUrl != null
+          message: user != null
               ? 'Your application and payment were submitted. An administrator will verify them shortly.'
-              : 'Your application has been submitted successfully! You can upload your payment evidence anytime from your profile.',
+              : 'Membership application submitted successfully! Once approved by admin, you can create your account.',
           title: 'Application Submitted',
         );
-      }
 
-      context.goNamed(DashboardScreen.id);
+        if (user != null) {
+          context.goNamed(DashboardScreen.id);
+        } else {
+          context.goNamed(GuestHomeScreen.id);
+        }
+      }
     } catch (e) {
       if (!mounted) return;
       CustomSnackBar.error(
