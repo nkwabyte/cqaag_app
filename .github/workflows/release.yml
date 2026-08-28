@@ -97,12 +97,8 @@ jobs:
           fi
 
           # Write key.properties for Android Gradle
-          cat <<EOF > android/key.properties
-storePassword=$KEYSTORE_PASSWORD
-keyPassword=$KEY_PASSWORD
-keyAlias=$KEY_ALIAS
-storeFile=../secrets/cqaag-keystore.jks
-EOF
+          printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=../secrets/cqaag-keystore.jks\n" \
+            "$KEYSTORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > android/key.properties
           echo "Successfully generated android/key.properties."
 
       - name: Install Dependencies
