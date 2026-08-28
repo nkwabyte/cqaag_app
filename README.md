@@ -273,18 +273,59 @@ The release workflow is configured to run automatically only on the `main` branc
 
 ---
 
-### 📦 Release Assets Published
+### 📦 Release Assets & Download Guide
 
-Each release automatically produces and publishes the following assets along with automated release notes and changelogs:
+When downloading the latest release from the [Releases page](https://github.com/nkwabyte/cqaag_app/releases), choose the asset matching your device:
 
-| Asset Name | Description | Recommended For |
-| :--- | :--- | :--- |
-| `cqaag-app-v<version>.apk` | Universal fat APK containing all CPU architectures | General distribution & manual install |
-| `cqaag-app-universal.apk` | Fixed filename alias for the universal APK | Direct download link integration |
-| `cqaag-app-arm64-v8a.apk` | Optimized 64-bit ARM APK (~40% smaller) | Modern Android devices (Android 8+) |
-| `cqaag-app-armeabi-v7a.apk`| Optimized 32-bit ARM APK | Older Android devices |
-| `cqaag-app-x86_64.apk` | Optimized x86_64 APK | Android emulators / ChromeOS |
-| `SHA256SUMS.txt` | Cryptographic SHA256 checksums | Integrity and authenticity verification |
+| Asset Name | Typical Size | Recommended For | Compatibility |
+| :--- | :--- | :--- | :--- |
+| **`cqaag-app-arm64-v8a.apk`** ⭐ | **~67 MB** | **Recommended for most modern phones** (Samsung, Tecno, Infinix, Pixel, Xiaomi, etc.) | 64-bit ARM (Android 8+) |
+| **`cqaag-app-universal.apk`** | **~122 MB** | **Guaranteed to work on any phone** (if unsure of your phone model) | All CPU Architectures |
+| **`cqaag-app-armeabi-v7a.apk`** | **~64 MB** | Older 32-bit Android smartphones | 32-bit ARM |
+| **`cqaag-app-x86_64.apk`** | **~69 MB** | Android Emulators (PC/Mac) and Chromebooks | Intel/AMD x86_64 |
+| `cqaag-app-v<version>.apk` | ~122 MB | Version-tagged alias of the universal APK | All CPU Architectures |
+| `SHA256SUMS.txt` | < 1 KB | SHA-256 cryptographic checksums for security verification | All Platforms |
+
+---
+
+### 📱 Which File Should I Choose?
+
+> [!TIP]
+> **Quick Recommendation**: Download **`cqaag-app-arm64-v8a.apk`**. It provides the fastest download speed and uses the least storage while running with maximum performance on almost all modern Android devices.
+
+1. **For 95%+ of Android smartphones purchased after 2018**:
+   - Download **`cqaag-app-arm64-v8a.apk`** (~67 MB).
+2. **If the installer says "App not compatible" or you are unsure**:
+   - Download **`cqaag-app-universal.apk`** (~122 MB). It includes native binaries for every CPU architecture and will install on any supported Android device.
+3. **For testing on Android Studio / PC Emulators**:
+   - Download **`cqaag-app-x86_64.apk`** (~69 MB).
+
+---
+
+### 📲 How to Install on Android
+
+1. Download the appropriate `.apk` file directly on your Android phone from [GitHub Releases](https://github.com/nkwabyte/cqaag_app/releases).
+2. Open your phone's **Files** or **Downloads** app and tap the downloaded file.
+3. If prompted with *"For your security, your phone is not allowed to install unknown apps from this source"*:
+   - Tap **Settings** in the popup.
+   - Toggle **Allow from this source** (or *Install unknown apps*).
+   - Return and tap **Install**.
+4. Once installation is complete, open **C.Q.A.A.G** from your home screen or app drawer.
+
+---
+
+### 🔒 Verifying File Integrity (Optional)
+
+To ensure the downloaded APK is authentic and has not been corrupted or tampered with:
+
+```bash
+# Verify checksum on Linux / macOS
+sha256sum -c SHA256SUMS.txt --ignore-missing
+
+# Or calculate single file SHA256
+sha256sum cqaag-app-arm64-v8a.apk
+```
+Match the output hash with the corresponding entry in `SHA256SUMS.txt`.
 
 ---
 
