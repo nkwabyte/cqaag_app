@@ -3,7 +3,7 @@
 [![Flutter](https://img.shields.io/badge/Flutter-%5E3.10.1-02569B?logo=flutter)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-%5E3.10.1-0175C2?logo=dart)](https://dart.dev)
 [![Firebase](https://img.shields.io/badge/Firebase-Auth%20%7C%20Firestore-FFCA28?logo=firebase)](https://firebase.google.com)
-[![License](https://img.shields.io/badge/License-Private-red)](#license)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 The official field inspection and portal mobile application for the **Ghana Cashew Quality Analysts' Association (CQAAG)**. Built with Flutter, Riverpod, and Firebase to empower quality analysts, farmers, inspectors, and administrators across Ghana with real-time cashew nut quality assessment, GPS farm location tagging, PDF certificate generation, QR traceability, and membership management.
 
@@ -321,6 +321,8 @@ echo -n "<KEY_PASSWORD>" | gh secret set KEY_PASSWORD --repo nkwabyte/cqaag_app
 
 ## License & Support
 
-This project is proprietary software belonging to the **Ghana Cashew Quality Analysts' Association (CQAAG)**. Unauthorized distribution or reproduction is strictly prohibited.
+This project is open-source and licensed under the [Apache License 2.0](LICENSE) - see the [LICENSE](LICENSE) file for details.
+
+Copyright © 2026 Ghana Cashew Quality Analysts' Association (CQAAG). All rights reserved.
 
 For technical inquiries or app support, contact the CQAAG IT & Quality Assurance team.
