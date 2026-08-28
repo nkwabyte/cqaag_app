@@ -13,6 +13,8 @@
 migrate_working_dir/
 _pages/
 
+secrets/
+
 
 # IntelliJ related
 *.iml
@@ -24,7 +26,6 @@ _pages/
 .agents/
 .agent/
 .vscode/
-.github/
 .github/skills/
 .github/agents/
 .github/prompts/
@@ -32,6 +33,11 @@ _pages/
 .impeccable/
 .kilo/
 .kimi/
+
+# Keystore & Signing Secrets
+key.properties
+*.keystore
+*.jks
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
