@@ -19,6 +19,7 @@ The official field inspection and portal mobile application for the **Ghana Cash
 - [Setup & Installation](#setup--installation)
 - [Environment Configuration](#environment-configuration)
 - [Code Generation & Build Commands](#code-generation--build-commands)
+- [CI/CD & Automated Releases](#cicd--automated-releases)
 - [License & Support](#license--support)
 
 ---
@@ -248,6 +249,72 @@ flutter build appbundle --release
 
 # Build iOS IPA
 flutter build ipa --release
+```
+
+---
+
+## CI/CD & Automated Releases
+
+The repository is configured with a fully automated GitHub Actions pipeline (`.github/workflows/release.yml`) that builds, cryptographically signs, and publishes Android release APKs directly to GitHub Releases.
+
+### 🚀 Triggering a Release
+
+The release workflow is configured to run automatically only on the `main` branch:
+
+#### Method 1: Merging a Pull Request or Pushing to `main` (Automated)
+- Merging any Pull Request into the `main` branch automatically triggers the release workflow.
+- Directly pushing commits to the `main` branch triggers the release workflow.
+- Pushes to feature branches, `dev`, or other branches will **not** trigger a release build.
+
+#### Method 2: Manual Workflow Dispatch
+1. Navigate to **Actions** in the GitHub repository.
+2. Select **Release Android APK** workflow.
+3. Click **Run workflow** on `main`, specify an optional tag name (or leave blank to use `pubspec.yaml` version), and optionally select *Draft* or *Pre-release*.
+
+---
+
+### 📦 Release Assets Published
+
+Each release automatically produces and publishes the following assets along with automated release notes and changelogs:
+
+| Asset Name | Description | Recommended For |
+| :--- | :--- | :--- |
+| `cqaag-app-v<version>.apk` | Universal fat APK containing all CPU architectures | General distribution & manual install |
+| `cqaag-app-universal.apk` | Fixed filename alias for the universal APK | Direct download link integration |
+| `cqaag-app-arm64-v8a.apk` | Optimized 64-bit ARM APK (~40% smaller) | Modern Android devices (Android 8+) |
+| `cqaag-app-armeabi-v7a.apk`| Optimized 32-bit ARM APK | Older Android devices |
+| `cqaag-app-x86_64.apk` | Optimized x86_64 APK | Android emulators / ChromeOS |
+| `SHA256SUMS.txt` | Cryptographic SHA256 checksums | Integrity and authenticity verification |
+
+---
+
+### 🔐 Keystore & GitHub Secrets Management
+
+All production signing credentials and environment variables are securely stored in the private `secrets/` folder (ignored by git) and configured in GitHub Repository Secrets:
+
+| GitHub Secret | Purpose | Local File Source |
+| :--- | :--- | :--- |
+| `KEYSTORE_BASE64` | Base64-encoded release `.jks` signing key | `secrets/cqaag-keystore.jks` |
+| `KEYSTORE_PASSWORD`| Master keystore password | `secrets/key.properties` |
+| `KEY_ALIAS` | Release key alias (`cqaag-key`) | `secrets/key.properties` |
+| `KEY_PASSWORD` | Private key entry password | `secrets/key.properties` |
+| `ENV_FILE_BASE64` | Base64-encoded environment configuration | `.env` or `secrets/.env` |
+
+#### Updating or Rotating Secrets with GitHub CLI:
+To update secrets using the GitHub CLI under the `nkwabyte` organization:
+
+```bash
+# Switch to nkwabyte account
+gh auth switch --user nkwabyte
+
+# Set Keystore & Environment Secrets
+base64 -i secrets/cqaag-keystore.jks | gh secret set KEYSTORE_BASE64 --repo nkwabyte/cqaag_app
+base64 -i .env | gh secret set ENV_FILE_BASE64 --repo nkwabyte/cqaag_app
+
+# Set Credential Secrets
+echo -n "<KEYSTORE_PASSWORD>" | gh secret set KEYSTORE_PASSWORD --repo nkwabyte/cqaag_app
+echo -n "cqaag-key" | gh secret set KEY_ALIAS --repo nkwabyte/cqaag_app
+echo -n "<KEY_PASSWORD>" | gh secret set KEY_PASSWORD --repo nkwabyte/cqaag_app
 ```
 
 ---

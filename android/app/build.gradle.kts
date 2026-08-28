@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -6,6 +9,14 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties").takeIf { it.exists() }
+    ?: rootProject.file("../secrets/key.properties").takeIf { it.exists() }
+
+if (keystorePropertiesFile != null && keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -33,11 +44,44 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            val keyAliasProp = keystoreProperties.getProperty("keyAlias")
+            val keyPasswordProp = keystoreProperties.getProperty("keyPassword")
+            val storePasswordProp = keystoreProperties.getProperty("storePassword")
+            val storeFileProp = keystoreProperties.getProperty("storeFile")
+
+            if (!keyAliasProp.isNullOrEmpty() &&
+                !keyPasswordProp.isNullOrEmpty() &&
+                !storePasswordProp.isNullOrEmpty() &&
+                !storeFileProp.isNullOrEmpty()) {
+                keyAlias = keyAliasProp
+                keyPassword = keyPasswordProp
+                storePassword = storePasswordProp
+
+                val candidateFiles = listOf(
+                    file(storeFileProp),
+                    rootProject.file(storeFileProp),
+                    rootProject.file("../$storeFileProp"),
+                    rootProject.file("../secrets/$storeFileProp"),
+                    rootProject.file("../secrets/cqaag-keystore.jks")
+                )
+                val resolvedFile = candidateFiles.firstOrNull { it.exists() } ?: file(storeFileProp)
+                storeFile = resolvedFile
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            val releaseConfig = signingConfigs.getByName("release")
+            val isReleaseSigningReady = releaseConfig.storeFile != null && releaseConfig.storeFile!!.exists()
+
+            signingConfig = if (isReleaseSigningReady) {
+                releaseConfig
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
