@@ -140,14 +140,17 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         return 0;
       }
 
+      final standaloneMoisture = parseDouble(formData['batch_moisture'] ?? formData['moisture'] ?? formData['c1_moisture']);
+
       final cutTests = <CutTest>[];
       for (var cutting = 1; cutting <= kMaxCutTests; cutting++) {
         final label = formData[cutTestField(cutting, 'label')] as String?;
+        final cutMoisture = parseDouble(formData[cutTestField(cutting, 'moisture')]);
 
         final cut = CutTest(
           index: cutTests.length + 1,
           label: label,
-          moistureContent: parseDouble(formData[cutTestField(cutting, 'moisture')]),
+          moistureContent: cutMoisture > 0 ? cutMoisture : standaloneMoisture,
           nutCount: parseInt(formData[cutTestField(cutting, 'nut_count')]),
           fullyDamagedNuts: parseDouble(formData[cutTestField(cutting, 'fully_damaged')]),
           voidNuts: parseDouble(formData[cutTestField(cutting, 'void')]),
@@ -232,7 +235,7 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
 
         cutTests: cutTests,
 
-        moistureContent: cutTests.averageMoisture,
+        moistureContent: standaloneMoisture > 0 ? standaloneMoisture : cutTests.averageMoisture,
         nutCount: cutTests.averageNutCount.round(),
         kor: cutTests.averageKor,
 

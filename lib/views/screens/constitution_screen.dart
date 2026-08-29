@@ -189,7 +189,7 @@ class _ConstitutionScreenState extends State<ConstitutionScreen> {
         title,
         variant: TextVariant.headlineMedium,
         fontWeight: FontWeight.bold,
-        color: const Color(0xFF591a04), // darkBrown
+        color: AppColors.primaryGreen,
       ),
     );
   }

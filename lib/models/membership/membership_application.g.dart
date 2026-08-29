@@ -122,6 +122,7 @@ const _$GenderEnumMap = {
 
 const _$MembershipCategoryEnumMap = {
   MembershipCategory.full: 'full',
+  MembershipCategory.fullForeign: 'full_foreign',
   MembershipCategory.associate: 'associate',
   MembershipCategory.corporate: 'corporate',
   MembershipCategory.honorary: 'honorary',

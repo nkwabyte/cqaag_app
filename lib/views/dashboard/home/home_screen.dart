@@ -328,7 +328,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     switch (status) {
       case InspectionStatus.pending:
       case InspectionStatus.pendingSync:
-        return const Color(0xFFD6A467); // grayOrange
+        return AppColors.cashewGold;
       case InspectionStatus.inProgress:
         return const Color(0xFF2E7D32); // green
       case InspectionStatus.completed:

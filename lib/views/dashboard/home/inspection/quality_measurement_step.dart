@@ -29,11 +29,15 @@ class QualityMetricsStep extends StatefulWidget {
 
 class _QualityMetricsStepState extends State<QualityMetricsStep> {
   late int _cuttingCount;
+  double? _moisture;
 
   @override
   void initState() {
     super.initState();
     _cuttingCount = widget.initialCutTests.isEmpty ? 1 : widget.initialCutTests.length.clamp(1, kMaxCutTests);
+    if (widget.initialCutTests.isNotEmpty && widget.initialCutTests.first.moistureContent > 0) {
+      _moisture = widget.initialCutTests.first.moistureContent;
+    }
   }
 
   CutTest? _initialFor(int cutting) {
@@ -76,6 +80,7 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
 
     // Enforce small volume rule: <= 10,000kg only 1 cutting test
     final effectiveCuttingCount = isSmallVolume ? 1 : (_cuttingCount < 2 && isLargeVolume ? 2 : _cuttingCount);
+    final isMetricsUnlocked = _moisture != null && _moisture! > 0;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(24.r),
@@ -84,83 +89,266 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
         children: <Widget>[
           const CustomText("Quality Measurements", variant: TextVariant.displaySmall),
           CustomText(
-            "Record each cut test separately. The report displays each cutting and computes the official average.",
+            "CQAAG moisture control mechanism: Record the standalone moisture parameter before accessing cut-test metrics.",
             variant: TextVariant.bodyMedium,
             color: colorScheme.secondary,
           ),
-          Gap(16.h),
-
-          // Protocol Weight Rule Banner
-          if (isSmallVolume)
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(10.r),
-                border: Border.all(color: Colors.blue.shade300),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade800, size: 20.r),
-                  Gap(10.w),
-                  Expanded(
-                    child: CustomText(
-                      "Volume <= 10,000 kg (${volume.toStringAsFixed(0)} kg): CQAAG protocol mandates exactly one (1) cut test.",
-                      variant: TextVariant.bodySmall,
-                      color: Colors.blue.shade900,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else if (isLargeVolume)
-            Container(
-              padding: EdgeInsets.all(12.r),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(10.r),
-                border: Border.all(color: Colors.amber.shade600),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.amber.shade900, size: 20.r),
-                  Gap(10.w),
-                  Expanded(
-                    child: CustomText(
-                      "Volume >= 10,000 kg (${volume.toStringAsFixed(0)} kg): Minimum two (2) cut tests mandatory before processing.",
-                      variant: TextVariant.bodySmall,
-                      color: Colors.amber.shade900,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           Gap(20.h),
 
-          for (int cutting = 1; cutting <= effectiveCuttingCount; cutting++) ...[
-            _buildCuttingCard(cutting, colorScheme, effectiveCuttingCount, isLargeVolume),
-            Gap(20.h),
-          ],
+          // 1. STANDALONE MOISTURE PARAMETER CARD
+          _buildStandaloneMoistureCard(colorScheme),
+          Gap(24.h),
 
-          // Only allow adding 2nd/3rd cutting if volume is NOT <= 10,000kg
-          if (!isSmallVolume && effectiveCuttingCount < kMaxCutTests)
-            OutlinedButton.icon(
-              onPressed: () => setState(() => _cuttingCount = effectiveCuttingCount + 1),
-              icon: const Icon(Icons.add),
-              label: CustomText("Add ${_ordinal(effectiveCuttingCount + 1)}", variant: TextVariant.bodyMedium),
-              style: OutlinedButton.styleFrom(
-                minimumSize: Size(double.infinity, 48.h),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-                side: BorderSide(color: colorScheme.primary),
+          // 2. GATED CUTTING METRICS SECTION
+          if (!isMetricsUnlocked)
+            _buildLockedMetricsBanner(colorScheme)
+          else ...[
+            // Protocol Weight Rule Banner
+            if (isSmallVolume)
+              Container(
+                padding: EdgeInsets.all(12.r),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: Border.all(color: Colors.blue.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.blue.shade800, size: 20.r),
+                    Gap(10.w),
+                    Expanded(
+                      child: CustomText(
+                        "Volume <= 10,000 kg (${volume.toStringAsFixed(0)} kg): CQAAG protocol mandates exactly one (1) cut test.",
+                        variant: TextVariant.bodySmall,
+                        color: Colors.blue.shade900,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (isLargeVolume)
+              Container(
+                padding: EdgeInsets.all(12.r),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(10.r),
+                  border: Border.all(color: Colors.amber.shade600),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.amber.shade900, size: 20.r),
+                    Gap(10.w),
+                    Expanded(
+                      child: CustomText(
+                        "Volume >= 10,000 kg (${volume.toStringAsFixed(0)} kg): Minimum two (2) cut tests mandatory before processing.",
+                        variant: TextVariant.bodySmall,
+                        color: Colors.amber.shade900,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            Gap(20.h),
+
+            for (int cutting = 1; cutting <= effectiveCuttingCount; cutting++) ...[
+              _buildCuttingCard(cutting, colorScheme, effectiveCuttingCount, isLargeVolume),
+              Gap(20.h),
+            ],
+
+            // Only allow adding 2nd/3rd cutting if volume is NOT <= 10,000kg
+            if (!isSmallVolume && effectiveCuttingCount < kMaxCutTests)
+              OutlinedButton.icon(
+                onPressed: () => setState(() => _cuttingCount = effectiveCuttingCount + 1),
+                icon: const Icon(Icons.add),
+                label: CustomText("Add ${_ordinal(effectiveCuttingCount + 1)}", variant: TextVariant.bodyMedium),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: Size(double.infinity, 48.h),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                  side: BorderSide(color: colorScheme.primary),
+                ),
+              ),
+          ],
 
           if (widget.footer != null) ...[
             Gap(40.h),
             widget.footer!,
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStandaloneMoistureCard(ColorScheme colorScheme) {
+    final hasValue = _moisture != null && _moisture! > 0;
+    Color statusBg = Colors.grey.shade100;
+    Color statusColor = Colors.grey.shade800;
+    String statusText = "Pending Moisture Reading";
+    IconData statusIcon = Icons.water_drop_outlined;
+
+    if (hasValue) {
+      if (_moisture! <= 8.0) {
+        statusBg = const Color(0xFFDCFCE7);
+        statusColor = const Color(0xFF166534);
+        statusText = "Optimal Moisture (${_moisture!.toStringAsFixed(1)}%) — Safe for Storage & Export";
+        statusIcon = Icons.check_circle_outline;
+      } else if (_moisture! <= 10.0) {
+        statusBg = const Color(0xFFFEF3C7);
+        statusColor = const Color(0xFF92400E);
+        statusText = "Standard Compliant (${_moisture!.toStringAsFixed(1)}%) — Max Safe Limit ≤ 10.0%";
+        statusIcon = Icons.info_outline;
+      } else {
+        statusBg = const Color(0xFFFEE2E2);
+        statusColor = const Color(0xFFB91C1C);
+        statusText = "High Moisture Alert (${_moisture!.toStringAsFixed(1)}%) — Redrying Required";
+        statusIcon = Icons.warning_amber_rounded;
+      }
+    }
+
+    return Container(
+      padding: EdgeInsets.all(18.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(
+          color: hasValue ? colorScheme.primary : colorScheme.secondary.withValues(alpha: 0.35),
+          width: hasValue ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(99.r),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.water_drop, size: 14.r, color: colorScheme.primary),
+                    Gap(4.w),
+                    CustomText(
+                      "MOISTURE CONTROL GATE",
+                      variant: TextVariant.bodySmall,
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.primary,
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                decoration: BoxDecoration(
+                  color: hasValue ? Colors.green.shade50 : Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(6.r),
+                  border: Border.all(
+                    color: hasValue ? Colors.green.shade300 : Colors.amber.shade300,
+                  ),
+                ),
+                child: CustomText(
+                  hasValue ? "UNLOCKED" : "REQUIRED FIRST",
+                  variant: TextVariant.bodySmall,
+                  fontWeight: FontWeight.bold,
+                  color: hasValue ? Colors.green.shade800 : Colors.amber.shade900,
+                ),
+              ),
+            ],
+          ),
+          Gap(12.h),
+          const CustomText(
+            "Primary Moisture Parameter (%) *",
+            variant: TextVariant.headlineMedium,
+            fontWeight: FontWeight.bold,
+          ),
+          Gap(4.h),
+          CustomText(
+            "Inspectors must measure and record the moisture content (%) of the batch before cutting metrics are accessible.",
+            variant: TextVariant.bodySmall,
+            color: colorScheme.secondary,
+          ),
+          Gap(16.h),
+
+          CustomTextField(
+            name: 'batch_moisture',
+            label: "Moisture Content (%)",
+            hint: "e.g. 8.0",
+            initialValue: _numText(_moisture),
+            prefixIcon: Icons.water_drop_outlined,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (val) {
+              final v = double.tryParse(val ?? '');
+              setState(() => _moisture = v);
+            },
+          ),
+          Gap(12.h),
+
+          // Live safety rating pill
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            decoration: BoxDecoration(
+              color: statusBg,
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+            child: Row(
+              children: [
+                Icon(statusIcon, size: 18.r, color: statusColor),
+                Gap(8.w),
+                Expanded(
+                  child: CustomText(
+                    statusText,
+                    variant: TextVariant.bodySmall,
+                    fontWeight: FontWeight.w600,
+                    color: statusColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLockedMetricsBanner(ColorScheme colorScheme) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(24.r),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.lock_outline, size: 40.r, color: Colors.grey.shade600),
+          Gap(12.h),
+          CustomText(
+            "Cut-Test Metrics Locked",
+            variant: TextVariant.bodyLarge,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey.shade800,
+          ),
+          Gap(6.h),
+          CustomText(
+            "Enter the moisture content above to unlock nut count, outcount, and defect breakdown metrics. (Moisture Control Protocol active).",
+            variant: TextVariant.bodySmall,
+            color: colorScheme.secondary,
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -217,28 +405,13 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
             prefixIcon: Icons.place_outlined,
           ),
           Gap(16.h),
-          Row(
-            children: [
-              Expanded(
-                child: CustomTextField(
-                  name: cutTestField(cutting, 'nut_count'),
-                  label: "Nut Count (per kg)",
-                  hint: "e.g. 170",
-                  initialValue: _numText(initial?.nutCount),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
-              ),
-              Gap(16.w),
-              Expanded(
-                child: CustomTextField(
-                  name: cutTestField(cutting, 'moisture'),
-                  label: "Moisture (%)",
-                  hint: "e.g. 8.5",
-                  initialValue: _numText(initial?.moistureContent),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                ),
-              ),
-            ],
+
+          CustomTextField(
+            name: cutTestField(cutting, 'nut_count'),
+            label: "Nut Count (per kg) *",
+            hint: "e.g. 170",
+            initialValue: _numText(initial?.nutCount),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           Gap(16.h),
 
@@ -255,7 +428,7 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
               Expanded(
                 child: CustomTextField(
                   name: cutTestField(cutting, 'good_kernels'),
-                  label: "Good Kernels (g)",
+                  label: "Good Kernels (g) *",
                   hint: "e.g. 230",
                   initialValue: _numText(initial?.goodKernels),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -265,7 +438,7 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
               Expanded(
                 child: CustomTextField(
                   name: cutTestField(cutting, 'spotted'),
-                  label: "Spotted (g)",
+                  label: "Spotted (g) *",
                   hint: "e.g. 15",
                   initialValue: _numText(initial?.spottedNuts),
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),

@@ -227,7 +227,7 @@ class _TraceabilityScreenState extends State<TraceabilityScreen> {
         CustomText(
           value,
           variant: TextVariant.bodyLarge,
-          color: const Color(0xFFbe6735),
+          color: AppColors.cashewGold,
           fontWeight: FontWeight.bold,
         ),
       ],

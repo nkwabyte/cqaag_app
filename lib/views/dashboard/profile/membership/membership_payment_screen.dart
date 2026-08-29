@@ -47,12 +47,14 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
     // Defaults keep the screen usable even if settings/payment cannot be read.
     final settings = settingsAsync.value ?? PaymentSettings.defaults;
     final isUploadingForExistingApp = widget.applicationData['existing_application_id'] != null;
+    final category = _parseMembershipCategory(widget.applicationData['membership_category'] as String?);
+    final formattedFee = settings.formattedFeeFor(category);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         children: [
-          _buildHeader(colorScheme, settings),
+          _buildHeader(colorScheme, formattedFee),
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(24.r),
@@ -94,7 +96,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
 
                   if (_selectedMethod == PaymentMethod.momo) ...[
                     Gap(24.h),
-                    _buildMomoInstructions(colorScheme, settings),
+                    _buildMomoInstructions(colorScheme, settings, formattedFee),
                     Gap(24.h),
                     _buildEvidenceUpload(colorScheme),
                     Gap(24.h),
@@ -132,7 +134,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
     );
   }
 
-  Widget _buildHeader(ColorScheme colorScheme, PaymentSettings settings) {
+  Widget _buildHeader(ColorScheme colorScheme, String formattedFee) {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(20.w, 60.h, 20.w, 32.h),
@@ -161,7 +163,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
           const CustomText("Registration Payment", variant: TextVariant.displaySmall, color: Colors.white),
           Gap(8.h),
           CustomText(
-            "Amount due: ${settings.formattedFee}",
+            "Amount due: $formattedFee",
             variant: TextVariant.bodyLarge,
             color: Colors.white.withValues(alpha: 0.85),
           ),
@@ -234,7 +236,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
     );
   }
 
-  Widget _buildMomoInstructions(ColorScheme colorScheme, PaymentSettings settings) {
+  Widget _buildMomoInstructions(ColorScheme colorScheme, PaymentSettings settings, String formattedFee) {
     return Container(
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
@@ -246,7 +248,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CustomText(
-            "Send ${settings.formattedFee} to",
+            "Send $formattedFee to",
             variant: TextVariant.bodyLarge,
             fontWeight: FontWeight.bold,
           ),
@@ -562,6 +564,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
 
     final now = DateTime.now();
     final hasEvidence = evidenceUrl != null;
+    final category = _parseMembershipCategory(formData['membership_category'] as String?);
 
     return MembershipApplication(
       id: const uuid_pkg.Uuid().v4(),
@@ -578,7 +581,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
       regionDistrict: formData['region'] as String? ?? '',
       currentJobTitle: formData['job_title'] as String? ?? '',
       employerOrganization: formData['employer'] as String? ?? '',
-      membershipCategory: _parseMembershipCategory(formData['membership_category'] as String?),
+      membershipCategory: category,
       status: ApplicationStatus.submitted,
       createdAt: now,
       submittedAt: now,
@@ -586,7 +589,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
       // Payment details
       paymentMethod: PaymentMethod.momo.value,
       paymentStatus: hasEvidence ? PaymentStatus.pendingVerification.value : PaymentStatus.unpaid.value,
-      paymentAmount: settings.registrationFee,
+      paymentAmount: settings.feeForCategory(category),
       paymentCurrency: settings.currency,
       paymentEvidenceUrl: evidenceUrl,
       paymentReference: _referenceController.text.trim().isEmpty ? null : _referenceController.text.trim(),
@@ -597,18 +600,20 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
   }
 
   MembershipCategory _parseMembershipCategory(String? categoryStr) {
-    switch (categoryStr?.toLowerCase()) {
-      case 'full member':
-        return MembershipCategory.full;
-      case 'associate member':
-        return MembershipCategory.associate;
-      case 'corporate member':
-        return MembershipCategory.corporate;
-      case 'honorary member':
-        return MembershipCategory.honorary;
-      default:
-        return MembershipCategory.full;
+    final lower = categoryStr?.toLowerCase().trim() ?? '';
+    if (lower.contains('foreign') || lower == 'full_foreign') {
+      return MembershipCategory.fullForeign;
     }
+    if (lower.contains('associate')) {
+      return MembershipCategory.associate;
+    }
+    if (lower.contains('corporate')) {
+      return MembershipCategory.corporate;
+    }
+    if (lower.contains('honorary')) {
+      return MembershipCategory.honorary;
+    }
+    return MembershipCategory.full;
   }
 
   membership_models.Gender _parseGender(String? genderStr) {

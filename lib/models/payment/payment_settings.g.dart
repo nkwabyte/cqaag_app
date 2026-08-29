@@ -9,6 +9,8 @@ part of 'payment_settings.dart';
 _PaymentSettings _$PaymentSettingsFromJson(Map<String, dynamic> json) =>
     _PaymentSettings(
       registrationFee: (json['registration_fee'] as num?)?.toDouble() ?? 500.0,
+      foreignRegistrationFee:
+          (json['foreign_registration_fee'] as num?)?.toDouble() ?? 1500.0,
       currency: json['currency'] as String? ?? 'GHS',
       momoNumber: json['momo_number'] as String? ?? '+233 55 333 0931',
       momoNetwork: json['momo_network'] as String? ?? 'MTN',
@@ -23,6 +25,7 @@ _PaymentSettings _$PaymentSettingsFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$PaymentSettingsToJson(_PaymentSettings instance) =>
     <String, dynamic>{
       'registration_fee': instance.registrationFee,
+      'foreign_registration_fee': instance.foreignRegistrationFee,
       'currency': instance.currency,
       'momo_number': instance.momoNumber,
       'momo_network': instance.momoNetwork,
