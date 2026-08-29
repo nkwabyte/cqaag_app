@@ -105,7 +105,7 @@ class InspectionCard extends StatelessWidget {
                 const Icon(
                   Icons.location_on_outlined,
                   size: 18,
-                  color: Color(0xFFbe6735),
+                  color: AppColors.cashewGold,
                 ),
                 Gap(8.w),
                 Expanded(

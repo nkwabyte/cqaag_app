@@ -66,6 +66,9 @@ class PaymentSettingsService {
     final fee = out['registration_fee'];
     if (fee is num) out['registration_fee'] = fee.toDouble();
 
+    final foreignFee = out['foreign_registration_fee'];
+    if (foreignFee is num) out['foreign_registration_fee'] = foreignFee.toDouble();
+
     final updatedAt = out['updated_at'];
     if (updatedAt is Timestamp) {
       out['updated_at'] = updatedAt.toDate().toIso8601String();
@@ -77,6 +80,7 @@ class PaymentSettingsService {
   /// Persists the fee and MoMo account. Admin only, enforced by Firestore rules.
   Future<void> updateSettings({
     required double registrationFee,
+    double foreignRegistrationFee = 1500.0,
     required MomoNetwork momoNetwork,
     required String momoNumber,
     required String momoAccountName,
@@ -84,6 +88,7 @@ class PaymentSettingsService {
   }) async {
     await _settingsDoc.set({
       'registration_fee': registrationFee,
+      'foreign_registration_fee': foreignRegistrationFee,
       'currency': 'GHS',
       'momo_network': momoNetwork.value,
       'momo_number': momoNumber,

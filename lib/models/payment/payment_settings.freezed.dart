@@ -15,8 +15,9 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PaymentSettings {
 
-/// Registration fee amount.
- double get registrationFee;/// ISO currency code. Ghana Cedis unless changed.
+/// Registration fee amount (Ghanaian / Standard).
+ double get registrationFee;/// Registration fee amount for Foreign QC members.
+ double get foreignRegistrationFee;/// ISO currency code. Ghana Cedis unless changed.
  String get currency;/// Mobile Money number applicants send the fee to.
  String get momoNumber;/// Network the MoMo number belongs to.
  String get momoNetwork;/// Name registered on the MoMo account, so applicants can confirm it.
@@ -35,16 +36,16 @@ $PaymentSettingsCopyWith<PaymentSettings> get copyWith => _$PaymentSettingsCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PaymentSettings&&(identical(other.registrationFee, registrationFee) || other.registrationFee == registrationFee)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.momoNumber, momoNumber) || other.momoNumber == momoNumber)&&(identical(other.momoNetwork, momoNetwork) || other.momoNetwork == momoNetwork)&&(identical(other.momoAccountName, momoAccountName) || other.momoAccountName == momoAccountName)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.updatedBy, updatedBy) || other.updatedBy == updatedBy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PaymentSettings&&(identical(other.registrationFee, registrationFee) || other.registrationFee == registrationFee)&&(identical(other.foreignRegistrationFee, foreignRegistrationFee) || other.foreignRegistrationFee == foreignRegistrationFee)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.momoNumber, momoNumber) || other.momoNumber == momoNumber)&&(identical(other.momoNetwork, momoNetwork) || other.momoNetwork == momoNetwork)&&(identical(other.momoAccountName, momoAccountName) || other.momoAccountName == momoAccountName)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.updatedBy, updatedBy) || other.updatedBy == updatedBy));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,registrationFee,currency,momoNumber,momoNetwork,momoAccountName,updatedAt,updatedBy);
+int get hashCode => Object.hash(runtimeType,registrationFee,foreignRegistrationFee,currency,momoNumber,momoNetwork,momoAccountName,updatedAt,updatedBy);
 
 @override
 String toString() {
-  return 'PaymentSettings(registrationFee: $registrationFee, currency: $currency, momoNumber: $momoNumber, momoNetwork: $momoNetwork, momoAccountName: $momoAccountName, updatedAt: $updatedAt, updatedBy: $updatedBy)';
+  return 'PaymentSettings(registrationFee: $registrationFee, foreignRegistrationFee: $foreignRegistrationFee, currency: $currency, momoNumber: $momoNumber, momoNetwork: $momoNetwork, momoAccountName: $momoAccountName, updatedAt: $updatedAt, updatedBy: $updatedBy)';
 }
 
 
@@ -55,7 +56,7 @@ abstract mixin class $PaymentSettingsCopyWith<$Res>  {
   factory $PaymentSettingsCopyWith(PaymentSettings value, $Res Function(PaymentSettings) _then) = _$PaymentSettingsCopyWithImpl;
 @useResult
 $Res call({
- double registrationFee, String currency, String momoNumber, String momoNetwork, String momoAccountName, DateTime? updatedAt, String? updatedBy
+ double registrationFee, double foreignRegistrationFee, String currency, String momoNumber, String momoNetwork, String momoAccountName, DateTime? updatedAt, String? updatedBy
 });
 
 
@@ -72,9 +73,10 @@ class _$PaymentSettingsCopyWithImpl<$Res>
 
 /// Create a copy of PaymentSettings
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? registrationFee = null,Object? currency = null,Object? momoNumber = null,Object? momoNetwork = null,Object? momoAccountName = null,Object? updatedAt = freezed,Object? updatedBy = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? registrationFee = null,Object? foreignRegistrationFee = null,Object? currency = null,Object? momoNumber = null,Object? momoNetwork = null,Object? momoAccountName = null,Object? updatedAt = freezed,Object? updatedBy = freezed,}) {
   return _then(_self.copyWith(
 registrationFee: null == registrationFee ? _self.registrationFee : registrationFee // ignore: cast_nullable_to_non_nullable
+as double,foreignRegistrationFee: null == foreignRegistrationFee ? _self.foreignRegistrationFee : foreignRegistrationFee // ignore: cast_nullable_to_non_nullable
 as double,currency: null == currency ? _self.currency : currency // ignore: cast_nullable_to_non_nullable
 as String,momoNumber: null == momoNumber ? _self.momoNumber : momoNumber // ignore: cast_nullable_to_non_nullable
 as String,momoNetwork: null == momoNetwork ? _self.momoNetwork : momoNetwork // ignore: cast_nullable_to_non_nullable
@@ -166,10 +168,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double registrationFee,  String currency,  String momoNumber,  String momoNetwork,  String momoAccountName,  DateTime? updatedAt,  String? updatedBy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double registrationFee,  double foreignRegistrationFee,  String currency,  String momoNumber,  String momoNetwork,  String momoAccountName,  DateTime? updatedAt,  String? updatedBy)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PaymentSettings() when $default != null:
-return $default(_that.registrationFee,_that.currency,_that.momoNumber,_that.momoNetwork,_that.momoAccountName,_that.updatedAt,_that.updatedBy);case _:
+return $default(_that.registrationFee,_that.foreignRegistrationFee,_that.currency,_that.momoNumber,_that.momoNetwork,_that.momoAccountName,_that.updatedAt,_that.updatedBy);case _:
   return orElse();
 
 }
@@ -187,10 +189,10 @@ return $default(_that.registrationFee,_that.currency,_that.momoNumber,_that.momo
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double registrationFee,  String currency,  String momoNumber,  String momoNetwork,  String momoAccountName,  DateTime? updatedAt,  String? updatedBy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double registrationFee,  double foreignRegistrationFee,  String currency,  String momoNumber,  String momoNetwork,  String momoAccountName,  DateTime? updatedAt,  String? updatedBy)  $default,) {final _that = this;
 switch (_that) {
 case _PaymentSettings():
-return $default(_that.registrationFee,_that.currency,_that.momoNumber,_that.momoNetwork,_that.momoAccountName,_that.updatedAt,_that.updatedBy);case _:
+return $default(_that.registrationFee,_that.foreignRegistrationFee,_that.currency,_that.momoNumber,_that.momoNetwork,_that.momoAccountName,_that.updatedAt,_that.updatedBy);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -207,10 +209,10 @@ return $default(_that.registrationFee,_that.currency,_that.momoNumber,_that.momo
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double registrationFee,  String currency,  String momoNumber,  String momoNetwork,  String momoAccountName,  DateTime? updatedAt,  String? updatedBy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double registrationFee,  double foreignRegistrationFee,  String currency,  String momoNumber,  String momoNetwork,  String momoAccountName,  DateTime? updatedAt,  String? updatedBy)?  $default,) {final _that = this;
 switch (_that) {
 case _PaymentSettings() when $default != null:
-return $default(_that.registrationFee,_that.currency,_that.momoNumber,_that.momoNetwork,_that.momoAccountName,_that.updatedAt,_that.updatedBy);case _:
+return $default(_that.registrationFee,_that.foreignRegistrationFee,_that.currency,_that.momoNumber,_that.momoNetwork,_that.momoAccountName,_that.updatedAt,_that.updatedBy);case _:
   return null;
 
 }
@@ -222,11 +224,13 @@ return $default(_that.registrationFee,_that.currency,_that.momoNumber,_that.momo
 
 @JsonSerializable(fieldRename: FieldRename.snake)
 class _PaymentSettings extends PaymentSettings {
-  const _PaymentSettings({this.registrationFee = 500.0, this.currency = 'GHS', this.momoNumber = '+233 55 333 0931', this.momoNetwork = 'MTN', this.momoAccountName = 'Amoafo Ebenezer', this.updatedAt, this.updatedBy}): super._();
+  const _PaymentSettings({this.registrationFee = 500.0, this.foreignRegistrationFee = 1500.0, this.currency = 'GHS', this.momoNumber = '+233 55 333 0931', this.momoNetwork = 'MTN', this.momoAccountName = 'Amoafo Ebenezer', this.updatedAt, this.updatedBy}): super._();
   factory _PaymentSettings.fromJson(Map<String, dynamic> json) => _$PaymentSettingsFromJson(json);
 
-/// Registration fee amount.
+/// Registration fee amount (Ghanaian / Standard).
 @override@JsonKey() final  double registrationFee;
+/// Registration fee amount for Foreign QC members.
+@override@JsonKey() final  double foreignRegistrationFee;
 /// ISO currency code. Ghana Cedis unless changed.
 @override@JsonKey() final  String currency;
 /// Mobile Money number applicants send the fee to.
@@ -253,16 +257,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PaymentSettings&&(identical(other.registrationFee, registrationFee) || other.registrationFee == registrationFee)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.momoNumber, momoNumber) || other.momoNumber == momoNumber)&&(identical(other.momoNetwork, momoNetwork) || other.momoNetwork == momoNetwork)&&(identical(other.momoAccountName, momoAccountName) || other.momoAccountName == momoAccountName)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.updatedBy, updatedBy) || other.updatedBy == updatedBy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PaymentSettings&&(identical(other.registrationFee, registrationFee) || other.registrationFee == registrationFee)&&(identical(other.foreignRegistrationFee, foreignRegistrationFee) || other.foreignRegistrationFee == foreignRegistrationFee)&&(identical(other.currency, currency) || other.currency == currency)&&(identical(other.momoNumber, momoNumber) || other.momoNumber == momoNumber)&&(identical(other.momoNetwork, momoNetwork) || other.momoNetwork == momoNetwork)&&(identical(other.momoAccountName, momoAccountName) || other.momoAccountName == momoAccountName)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.updatedBy, updatedBy) || other.updatedBy == updatedBy));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,registrationFee,currency,momoNumber,momoNetwork,momoAccountName,updatedAt,updatedBy);
+int get hashCode => Object.hash(runtimeType,registrationFee,foreignRegistrationFee,currency,momoNumber,momoNetwork,momoAccountName,updatedAt,updatedBy);
 
 @override
 String toString() {
-  return 'PaymentSettings(registrationFee: $registrationFee, currency: $currency, momoNumber: $momoNumber, momoNetwork: $momoNetwork, momoAccountName: $momoAccountName, updatedAt: $updatedAt, updatedBy: $updatedBy)';
+  return 'PaymentSettings(registrationFee: $registrationFee, foreignRegistrationFee: $foreignRegistrationFee, currency: $currency, momoNumber: $momoNumber, momoNetwork: $momoNetwork, momoAccountName: $momoAccountName, updatedAt: $updatedAt, updatedBy: $updatedBy)';
 }
 
 
@@ -273,7 +277,7 @@ abstract mixin class _$PaymentSettingsCopyWith<$Res> implements $PaymentSettings
   factory _$PaymentSettingsCopyWith(_PaymentSettings value, $Res Function(_PaymentSettings) _then) = __$PaymentSettingsCopyWithImpl;
 @override @useResult
 $Res call({
- double registrationFee, String currency, String momoNumber, String momoNetwork, String momoAccountName, DateTime? updatedAt, String? updatedBy
+ double registrationFee, double foreignRegistrationFee, String currency, String momoNumber, String momoNetwork, String momoAccountName, DateTime? updatedAt, String? updatedBy
 });
 
 
@@ -290,9 +294,10 @@ class __$PaymentSettingsCopyWithImpl<$Res>
 
 /// Create a copy of PaymentSettings
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? registrationFee = null,Object? currency = null,Object? momoNumber = null,Object? momoNetwork = null,Object? momoAccountName = null,Object? updatedAt = freezed,Object? updatedBy = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? registrationFee = null,Object? foreignRegistrationFee = null,Object? currency = null,Object? momoNumber = null,Object? momoNetwork = null,Object? momoAccountName = null,Object? updatedAt = freezed,Object? updatedBy = freezed,}) {
   return _then(_PaymentSettings(
 registrationFee: null == registrationFee ? _self.registrationFee : registrationFee // ignore: cast_nullable_to_non_nullable
+as double,foreignRegistrationFee: null == foreignRegistrationFee ? _self.foreignRegistrationFee : foreignRegistrationFee // ignore: cast_nullable_to_non_nullable
 as double,currency: null == currency ? _self.currency : currency // ignore: cast_nullable_to_non_nullable
 as String,momoNumber: null == momoNumber ? _self.momoNumber : momoNumber // ignore: cast_nullable_to_non_nullable
 as String,momoNetwork: null == momoNetwork ? _self.momoNetwork : momoNetwork // ignore: cast_nullable_to_non_nullable

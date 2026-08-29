@@ -2,9 +2,13 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 /// Enum representing different membership categories in C.Q.A.A.G
 enum MembershipCategory {
-  /// Full Members: Experienced in cashew quality control (voting rights)
+  /// Full Members (Ghanaian): Ghanaian QC professionals (voting rights)
   @JsonValue('full')
   full,
+
+  /// Full Members (Foreign QC): Foreign/International QC professionals (voting rights)
+  @JsonValue('full_foreign')
+  fullForeign,
 
   /// Associate Members: Interested individuals/entities (non-voting)
   @JsonValue('associate')
@@ -23,7 +27,9 @@ enum MembershipCategory {
   String get displayName {
     switch (this) {
       case MembershipCategory.full:
-        return 'Full Member';
+        return 'Full Member (Ghanaian)';
+      case MembershipCategory.fullForeign:
+        return 'Full Member (Foreign QC)';
       case MembershipCategory.associate:
         return 'Associate Member';
       case MembershipCategory.corporate:
@@ -37,7 +43,9 @@ enum MembershipCategory {
   String get description {
     switch (this) {
       case MembershipCategory.full:
-        return 'Experienced in cashew quality control (voting rights)';
+        return 'Ghanaian certified cashew quality control professional (voting rights)';
+      case MembershipCategory.fullForeign:
+        return 'International / Foreign cashew quality control professional (voting rights)';
       case MembershipCategory.associate:
         return 'Individuals or entities interested in the Association\'s work but not meeting full eligibility (non-voting)';
       case MembershipCategory.corporate:
@@ -49,7 +57,7 @@ enum MembershipCategory {
 
   /// Check if this category has voting rights
   bool get hasVotingRights {
-    return this == MembershipCategory.full;
+    return this == MembershipCategory.full || this == MembershipCategory.fullForeign;
   }
 
   /// Get the JSON value
@@ -57,6 +65,8 @@ enum MembershipCategory {
     switch (this) {
       case MembershipCategory.full:
         return 'full';
+      case MembershipCategory.fullForeign:
+        return 'full_foreign';
       case MembershipCategory.associate:
         return 'associate';
       case MembershipCategory.corporate:

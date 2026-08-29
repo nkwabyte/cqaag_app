@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:cqaag_app/models/membership/membership_category.dart';
 
 part 'payment_settings.freezed.dart';
 part 'payment_settings.g.dart';
@@ -98,8 +99,11 @@ abstract class PaymentSettings with _$PaymentSettings {
 
   @JsonSerializable(fieldRename: FieldRename.snake)
   const factory PaymentSettings({
-    /// Registration fee amount.
+    /// Registration fee amount (Ghanaian / Standard).
     @Default(500.0) double registrationFee,
+
+    /// Registration fee amount for Foreign QC members.
+    @Default(1500.0) double foreignRegistrationFee,
 
     /// ISO currency code. Ghana Cedis unless changed.
     @Default('GHS') String currency,
@@ -130,4 +134,17 @@ abstract class PaymentSettings with _$PaymentSettings {
 
   /// Fee formatted for display, e.g. `GHS 500.00`.
   String get formattedFee => '$currency ${registrationFee.toStringAsFixed(2)}';
+
+  /// Fee for a specific membership category
+  double feeForCategory(MembershipCategory? category) {
+    if (category == MembershipCategory.fullForeign) {
+      return foreignRegistrationFee;
+    }
+    return registrationFee;
+  }
+
+  /// Formatted fee for a specific membership category
+  String formattedFeeFor(MembershipCategory? category) {
+    return '$currency ${(feeForCategory(category)).toStringAsFixed(2)}';
+  }
 }

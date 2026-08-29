@@ -65,7 +65,7 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
         user?.verification != null;
 
     final initialValues = {
-      'membership_category': 'Full Member',
+      'membership_category': 'Full Member (Ghanaian)',
       'title': 'Mr',
       'first_name': user?.firstName ?? '',
       'last_name': user?.lastName ?? '',
@@ -263,7 +263,8 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
       ),
       hint: const CustomText("Select category", variant: TextVariant.bodyMedium),
       items: [
-        'Full Member',
+        'Full Member (Ghanaian)',
+        'Full Member (Foreign QC)',
         'Associate Member',
         'Corporate Member',
         'Honorary Member',

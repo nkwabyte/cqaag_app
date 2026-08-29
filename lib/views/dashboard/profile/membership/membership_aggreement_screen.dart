@@ -420,18 +420,20 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
   }
 
   MembershipCategory _parseMembershipCategory(String? categoryStr) {
-    switch (categoryStr?.toLowerCase()) {
-      case 'full member':
-        return MembershipCategory.full;
-      case 'associate member':
-        return MembershipCategory.associate;
-      case 'corporate member':
-        return MembershipCategory.corporate;
-      case 'honorary member':
-        return MembershipCategory.honorary;
-      default:
-        return MembershipCategory.full;
+    final lower = categoryStr?.toLowerCase().trim() ?? '';
+    if (lower.contains('foreign') || lower == 'full_foreign') {
+      return MembershipCategory.fullForeign;
     }
+    if (lower.contains('associate')) {
+      return MembershipCategory.associate;
+    }
+    if (lower.contains('corporate')) {
+      return MembershipCategory.corporate;
+    }
+    if (lower.contains('honorary')) {
+      return MembershipCategory.honorary;
+    }
+    return MembershipCategory.full;
   }
 
   membership_models.Gender _parseGender(String? genderStr) {

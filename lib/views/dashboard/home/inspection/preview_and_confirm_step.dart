@@ -101,7 +101,7 @@ class PreviewAndConfirmStep extends StatelessWidget {
             title: '3. Quality Metrics Summary',
             stepIndex: 2,
             children: [
-              _buildRow('Moisture Content', '${formData['c1_moisture'] ?? 'N/A'}%'),
+              _buildRow('Moisture Content', '${formData['batch_moisture'] ?? formData['c1_moisture'] ?? 'N/A'}%'),
               _buildRow('Nut Count', '${formData['c1_nut_count'] ?? 'N/A'} nuts/kg'),
               _buildRow('Fully Damaged', '${formData['c1_fully_damaged'] ?? '0'}%'),
               _buildRow('Good Kernels', '${formData['c1_good_kernels'] ?? '0'}%'),

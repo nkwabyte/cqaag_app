@@ -20,6 +20,7 @@ class PaymentSettingsTab extends ConsumerStatefulWidget {
 
 class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
   final _feeController = TextEditingController();
+  final _foreignFeeController = TextEditingController();
   final _numberController = TextEditingController();
   final _nameController = TextEditingController();
   MomoNetwork _network = MomoNetwork.mtn;
@@ -31,6 +32,7 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
   @override
   void dispose() {
     _feeController.dispose();
+    _foreignFeeController.dispose();
     _numberController.dispose();
     _nameController.dispose();
     super.dispose();
@@ -39,6 +41,7 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
   void _hydrate(PaymentSettings settings) {
     if (_hydrated) return;
     _feeController.text = settings.registrationFee.toStringAsFixed(2);
+    _foreignFeeController.text = settings.foreignRegistrationFee.toStringAsFixed(2);
     _numberController.text = settings.momoNumber;
     _nameController.text = settings.momoAccountName;
     _network = settings.network;
@@ -113,12 +116,21 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
           ),
           Gap(20.h),
 
-          _buildLabel("Registration Fee (GHS)"),
+          _buildLabel("Registration Fee - Ghanaian (GHS)"),
           Gap(8.h),
           TextField(
             controller: _feeController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: _inputDecoration(colorScheme, prefixText: 'GHS  ', hint: '500.00'),
+          ),
+          Gap(16.h),
+
+          _buildLabel("Registration Fee - Foreign QC (GHS)"),
+          Gap(8.h),
+          TextField(
+            controller: _foreignFeeController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: _inputDecoration(colorScheme, prefixText: 'GHS  ', hint: '1500.00'),
           ),
           Gap(16.h),
 
@@ -558,6 +570,12 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
       return;
     }
 
+    final foreignFee = double.tryParse(_foreignFeeController.text.trim()) ?? 1500.0;
+    if (foreignFee <= 0) {
+      CustomSnackBar.error(context, message: 'Enter a foreign registration fee greater than zero.');
+      return;
+    }
+
     final number = _numberController.text.trim();
     if (number.isEmpty) {
       CustomSnackBar.error(context, message: 'Enter the Mobile Money number applicants should pay into.');
@@ -578,6 +596,7 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
 
       await ref.read(paymentSettingsServiceProvider).updateSettings(
         registrationFee: fee,
+        foreignRegistrationFee: foreignFee,
         momoNetwork: _network,
         momoNumber: number,
         momoAccountName: accountName,

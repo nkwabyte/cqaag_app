@@ -18,7 +18,7 @@ class JourneyNode extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final Color nodeColor = isCompleted ? const Color(0xFF591a04) : colorScheme.secondary.withValues(alpha: 0.3);
+    final Color nodeColor = isCompleted ? colorScheme.primary : colorScheme.secondary.withValues(alpha: 0.3);
 
     return Column(
       children: [
@@ -35,7 +35,7 @@ class JourneyNode extends StatelessWidget {
           Container(
             width: 2.w,
             height: 220.h, // Adjusted to match the card heights
-            color: const Color(0xFF591a04),
+            color: colorScheme.primary,
           ),
       ],
     );

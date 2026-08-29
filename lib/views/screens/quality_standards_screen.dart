@@ -675,7 +675,7 @@ class _InteractiveKorCalculatorCardState extends State<_InteractiveKorCalculator
   double _usefulKernel = 242.5;
   double _korLbs = 45.59;
   String _gradeLabel = "SECOND CLASS";
-  Color _gradeBg = const Color(0xFFBE6735);
+  Color _gradeBg = AppColors.tcdaAccentGreen;
   String _tradeDesc = "Standard Export Grade. Fully approved for standard international export shipments.";
   String _nutSizeLabel = "Medium Nuts (172 nuts/kg)";
   String _moistureLabel = "Optimal (8.0%)";
@@ -719,7 +719,7 @@ class _InteractiveKorCalculatorCardState extends State<_InteractiveKorCalculator
       desc = "Premium Export Quality. Eligible for top-tier international contract pricing.";
     } else if (kor >= 45) {
       label = "SECOND CLASS";
-      bg = const Color(0xFFBE6735);
+      bg = AppColors.tcdaAccentGreen;
       desc = "Standard Export Grade. Fully approved for standard international export shipments.";
     } else if (kor >= 40) {
       label = "UNDERGRADE";
