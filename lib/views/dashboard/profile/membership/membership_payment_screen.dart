@@ -293,9 +293,9 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
           // Instant MTN MoMo USSD Prompt button
           CustomButton(
             text: "Request MTN MoMo Prompt",
-            backgroundColor: Colors.amber.shade700,
-            textColor: Colors.black87,
-            leadingIcon: const Icon(Icons.touch_app_outlined, color: Colors.black87),
+            backgroundColor: AppColors.primaryGreen,
+            textColor: Colors.white,
+            leadingIcon: const Icon(Icons.touch_app_outlined, color: Colors.white),
             onPressed: () => _handleMtnMomoPush(settings),
           ),
         ],

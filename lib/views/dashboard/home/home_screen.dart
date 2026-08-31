@@ -167,20 +167,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         Container(
                           padding: EdgeInsets.all(14.r),
                           decoration: BoxDecoration(
-                            color: Colors.amber.shade100,
+                            color: AppColors.tcdaAccentGreen.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(color: Colors.amber.shade400),
+                            border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.warning_amber_rounded, color: Colors.amber.shade900),
+                              Icon(Icons.info_outline, color: AppColors.primaryGreen),
                               Gap(10.w),
                               Expanded(
                                 child: Text(
-                                  'Your account is pending Admin approval. Creating inspections and accessing report exports will be unlocked upon approval.',
+                                  (memberApp?.status == ApplicationStatus.approved && memberApp?.paymentStatus != 'verified')
+                                      ? 'Your KYC application is approved! Please complete your registration payment in Profile to activate inspection tools.'
+                                      : 'Your account is undergoing KYC verification. Creating inspections and accessing report exports will be unlocked upon approval and payment confirmation.',
                                   style: TextStyle(
                                     fontSize: 12.sp,
-                                    color: Colors.amber.shade900,
+                                    color: AppColors.primaryGreen,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -200,10 +202,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               leadingIcon: const Icon(Icons.add, color: Colors.white),
                               onPressed: () {
                                 if (user != null && !user.isApproved) {
+                                  final isKycApproved = memberApp?.status == ApplicationStatus.approved;
                                   CustomSnackBar.warning(
                                     context,
-                                    message: 'Only approved members can start a new inspection. Please await Admin approval.',
-                                    title: 'Approval Required',
+                                    message: isKycApproved
+                                        ? 'Your KYC is approved! Please complete your registration payment in Profile to activate inspections.'
+                                        : 'Only verified members can start inspections. Please await KYC approval and complete payment verification.',
+                                    title: 'Verification Required',
                                   );
                                   return;
                                 }
