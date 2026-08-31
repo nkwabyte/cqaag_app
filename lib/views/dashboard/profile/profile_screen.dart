@@ -370,16 +370,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         final myApp = membershipState?.myApplication;
 
                         if (myApp != null && (myApp.status == ApplicationStatus.submitted || myApp.status == ApplicationStatus.underReview || myApp.status == ApplicationStatus.draft)) {
-                          final isUnpaid = myApp.paymentStatus == 'unpaid';
-
                           return Container(
                             margin: EdgeInsets.only(bottom: 12.h),
                             padding: EdgeInsets.all(16.r),
                             decoration: BoxDecoration(
-                              color: isUnpaid ? Colors.amber.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.08),
+                              color: AppColors.primaryGreen.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(16.r),
                               border: Border.all(
-                                color: isUnpaid ? Colors.amber.withValues(alpha: 0.3) : Colors.blue.withValues(alpha: 0.2),
+                                color: AppColors.primaryGreen.withValues(alpha: 0.25),
                               ),
                             ),
                             child: Column(
@@ -388,8 +386,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 Row(
                                   children: [
                                     Icon(
-                                      isUnpaid ? Icons.pending_actions : Icons.hourglass_top,
-                                      color: isUnpaid ? Colors.amber.shade800 : Colors.blue,
+                                      Icons.hourglass_top_rounded,
+                                      color: AppColors.primaryGreen,
                                       size: 28.r,
                                     ),
                                     Gap(12.w),
@@ -397,17 +395,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          CustomText(
-                                            isUnpaid ? "Payment Evidence Pending" : "Application Under Review",
+                                          const CustomText(
+                                            "Application & KYC Under Review",
                                             variant: TextVariant.bodyLarge,
                                             fontWeight: FontWeight.bold,
                                           ),
                                           CustomText(
-                                            isUnpaid
-                                                ? "Your registration is submitted! Upload your payment screenshot or wait for admin review."
-                                                : "Your application and payment evidence are awaiting administrator verification.",
+                                            "Your membership application and identity documents are under review by the Secretariat. Once approved, you will be prompted to make your registration payment.",
                                             variant: TextVariant.bodySmall,
-                                            color: isUnpaid ? Colors.amber.shade900 : Colors.blue,
+                                            color: AppColors.primaryGreen,
                                           ),
                                         ],
                                       ),
@@ -417,7 +413,78 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 Gap(12.h),
                                 Row(
                                   children: [
-                                    if (isUnpaid) ...[
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => _confirmWithdrawApplication(context, ref, myApp.id),
+                                        icon: Icon(Icons.cancel_outlined, color: Colors.red.shade700, size: 16),
+                                        label: Text(
+                                          "Withdraw Application",
+                                          style: TextStyle(color: Colors.red.shade700, fontSize: 13.sp),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          side: BorderSide(color: Colors.red.shade300),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        if (myApp != null && myApp.status == ApplicationStatus.approved && myApp.paymentStatus != 'verified') {
+                          final isPendingVerification = myApp.paymentStatus == 'pending_verification';
+
+                          return Container(
+                            margin: EdgeInsets.only(bottom: 12.h),
+                            padding: EdgeInsets.all(16.r),
+                            decoration: BoxDecoration(
+                              color: isPendingVerification
+                                  ? AppColors.primaryGreen.withValues(alpha: 0.08)
+                                  : AppColors.tcdaAccentGreen.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(16.r),
+                              border: Border.all(
+                                color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      isPendingVerification ? Icons.payment_outlined : Icons.check_circle_outline,
+                                      color: AppColors.primaryGreen,
+                                      size: 28.r,
+                                    ),
+                                    Gap(12.w),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          CustomText(
+                                            isPendingVerification ? "Payment Under Verification" : "🎉 KYC Approved — Payment Required",
+                                            variant: TextVariant.bodyLarge,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          CustomText(
+                                            isPendingVerification
+                                                ? "Your payment evidence has been uploaded and is being verified by the Secretariat. Full membership access will unlock once confirmed."
+                                                : "Your application and identity verification have been approved! Please proceed with your registration payment to activate your membership.",
+                                            variant: TextVariant.bodySmall,
+                                            color: AppColors.primaryGreen,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Gap(12.h),
+                                Row(
+                                  children: [
+                                    if (!isPendingVerification) ...[
                                       Expanded(
                                         child: ElevatedButton.icon(
                                           onPressed: () {
@@ -426,10 +493,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                               extra: {'existing_application_id': myApp.id},
                                             );
                                           },
-                                          icon: const Icon(Icons.upload_file, color: Colors.white, size: 16),
-                                          label: const Text("Pay / Upload"),
+                                          icon: const Icon(Icons.payment, color: Colors.white, size: 16),
+                                          label: const Text("Proceed to Payment"),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.amber.shade800,
+                                            backgroundColor: AppColors.primaryGreen,
                                             foregroundColor: Colors.white,
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
                                           ),
@@ -458,32 +525,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           );
                         }
 
-                        if (myApp != null && myApp.status == ApplicationStatus.approved) {
+                        if (myApp != null && myApp.status == ApplicationStatus.approved && myApp.paymentStatus == 'verified') {
                           return Container(
                             margin: EdgeInsets.only(bottom: 12.h),
                             padding: EdgeInsets.all(16.r),
                             decoration: BoxDecoration(
-                              color: Colors.green.withValues(alpha: 0.08),
+                              color: AppColors.primaryGreen.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(16.r),
-                              border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+                              border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.25)),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.workspace_premium, color: Colors.green, size: 36.r),
+                                Icon(Icons.workspace_premium, color: AppColors.primaryGreen, size: 36.r),
                                 Gap(12.w),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       const CustomText(
-                                        "CQAAG Membership Approved",
+                                        "CQAAG Verified Member",
                                         variant: TextVariant.bodyLarge,
                                         fontWeight: FontWeight.bold,
                                       ),
                                       CustomText(
-                                        "Congratulations! Your official CQAAG membership application has been approved.",
+                                        "Congratulations! Your membership and registration payment are fully verified. All tools are active.",
                                         variant: TextVariant.bodySmall,
-                                        color: Colors.green.shade800,
+                                        color: AppColors.primaryGreen,
                                       ),
                                     ],
                                   ),

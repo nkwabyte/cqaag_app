@@ -220,54 +220,49 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
   Future<void> _handleAcceptAndRegister() async {
     final user = ref.read(authServiceProvider).currentUser;
 
-    // If guest applicant, proceed directly to Payment screen with full data
-    if (user == null) {
-      context.pushNamed(
-        MembershipPaymentScreen.id,
-        extra: widget.applicationData,
-      );
-      return;
-    }
-
     setState(() => _isSubmitting = true);
 
     try {
       final settings = await ref.read(paymentSettingsServiceProvider).getSettings();
+      final applicantEmail = widget.applicationData['email'] as String? ?? (user?.email ?? '');
+      final applicantUserId = user?.uid ?? 'guest_${const uuid_pkg.Uuid().v4().substring(0, 8)}';
 
       final application = _buildApplication(
-        userId: user.uid,
-        userEmail: user.email ?? '',
+        userId: applicantUserId,
+        userEmail: applicantEmail,
         settings: settings,
       );
 
       await ref.read(membershipControllerProvider.notifier).submitApplication(application);
 
-      final currentUserProfile = ref.read(currentUserProfileProvider).value;
-      final isAlreadyVerified = currentUserProfile?.verificationStatus == VerificationStatus.verified;
+      if (user != null) {
+        final currentUserProfile = ref.read(currentUserProfileProvider).value;
+        final isAlreadyVerified = currentUserProfile?.verificationStatus == VerificationStatus.verified;
 
-      final formData = widget.applicationData;
-      final updateData = <String, dynamic>{
-        'membership_status': 'applied',
-      };
-
-      if (!isAlreadyVerified) {
-        updateData['verification_status'] = 'pending';
-        updateData['verification'] = {
-          'id_card_front_url': formData['id_card_front_url'] as String? ?? '',
-          'id_card_back_url': formData['id_card_back_url'] as String? ?? '',
-          'selfie_url': formData['selfie_url'] as String? ?? '',
-          'id_card_number': formData['ghana_card_number'] as String? ?? '',
+        final formData = widget.applicationData;
+        final updateData = <String, dynamic>{
+          'membership_status': 'applied',
         };
-      }
 
-      await ref.read(userServiceProvider).updateUserData(
-        user.uid,
-        updateData,
-      );
+        if (!isAlreadyVerified) {
+          updateData['verification_status'] = 'pending';
+          updateData['verification'] = {
+            'id_card_front_url': formData['id_card_front_url'] as String? ?? '',
+            'id_card_back_url': formData['id_card_back_url'] as String? ?? '',
+            'selfie_url': formData['selfie_url'] as String? ?? '',
+            'id_card_number': formData['ghana_card_number'] as String? ?? '',
+          };
+        }
+
+        await ref.read(userServiceProvider).updateUserData(
+          user.uid,
+          updateData,
+        );
+      }
 
       if (!mounted) return;
 
-      _showRegistrationSuccessDialog(application.id);
+      _showRegistrationSuccessDialog(application.id, isGuest: user == null);
     } catch (e) {
       if (!mounted) return;
       CustomSnackBar.error(
@@ -282,7 +277,7 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
     }
   }
 
-  void _showRegistrationSuccessDialog(String applicationId) {
+  void _showRegistrationSuccessDialog(String applicationId, {required bool isGuest}) {
     final colorScheme = Theme.of(context).colorScheme;
 
     showModalBottomSheet(
@@ -299,67 +294,55 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.check_circle_outline, color: Colors.green, size: 48.r),
+              Icon(Icons.check_circle_outline, color: AppColors.primaryGreen, size: 52.r),
               Gap(12.h),
               const CustomText(
-                "Application Registered!",
+                "Application Submitted for Review",
                 variant: TextVariant.headlineMedium,
                 fontWeight: FontWeight.bold,
                 textAlign: TextAlign.center,
               ),
               Gap(8.h),
               CustomText(
-                "Your membership application has been submitted and registered. An administrator will review your application and details for approval.",
+                "Your membership application and KYC identity verification documents have been received by the CQAAG Secretariat.",
                 variant: TextVariant.bodyMedium,
                 color: colorScheme.secondary,
                 textAlign: TextAlign.center,
               ),
-              Gap(12.h),
+              Gap(14.h),
               Container(
-                padding: EdgeInsets.all(12.r),
+                padding: EdgeInsets.all(14.r),
                 decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.05),
+                  color: AppColors.primaryGreen.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15)),
+                  border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.2)),
                 ),
-                child: CustomText(
-                  "You can pay the registration fee now to expedite verification, or wait for admin approval before paying.",
-                  variant: TextVariant.bodySmall,
-                  color: colorScheme.secondary,
-                  textAlign: TextAlign.center,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline, color: AppColors.primaryGreen, size: 20.r),
+                    Gap(10.w),
+                    Expanded(
+                      child: CustomText(
+                        "Next Step: Once the Secretariat reviews and approves your KYC verification, you will be prompted to make the registration payment to activate your membership.",
+                        variant: TextVariant.bodySmall,
+                        color: AppColors.primaryGreen,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Gap(16.h),
+              Gap(20.h),
               CustomButton(
-                text: "Pay Registration Fee Now",
+                text: isGuest ? "Return to Home" : "Go to Dashboard",
                 onPressed: () {
                   Navigator.of(bottomSheetContext).pop();
-                  context.pushReplacementNamed(
-                    MembershipPaymentScreen.id,
-                    extra: {'existing_application_id': applicationId},
-                  );
-                },
-              ),
-              Gap(10.h),
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.of(bottomSheetContext).pop();
-                  if (Navigator.of(context).canPop()) {
-                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  if (isGuest) {
+                    context.goNamed(GuestHomeScreen.id);
+                  } else {
+                    context.goNamed(DashboardScreen.id);
                   }
-                  context.goNamed(DashboardScreen.id);
                 },
-                style: OutlinedButton.styleFrom(
-                  minimumSize: Size(double.infinity, 48.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                ),
-                child: const CustomText(
-                  "Wait for Approval (Pay Later)",
-                  variant: TextVariant.bodyLarge,
-                  fontWeight: FontWeight.w600,
-                ),
               ),
             ],
           ),
