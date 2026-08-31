@@ -79,6 +79,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Assets.svgLogoWhite,
                       width: 100.w,
                     ),
+                    Gap(6.h),
+                    CustomText(
+                      "Guardians of Ghana's Cashew Quality",
+                      variant: TextVariant.bodySmall,
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontStyle: FontStyle.italic,
+                    ),
                     Gap(10.h),
                     const CustomText(
                       "Welcome Back",

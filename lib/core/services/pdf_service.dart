@@ -116,11 +116,9 @@ class PdfService {
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
         pw.Container(
-          width: 50,
-          height: 50,
-          child: cqaagImage != null
-              ? pw.Image(cqaagImage, fit: pw.BoxFit.contain)
-              : pw.SvgImage(svg: logoSvg),
+          width: 52,
+          height: 52,
+          child: pw.SvgImage(svg: logoSvg),
         ),
         pw.SizedBox(width: 8),
         pw.Expanded(
@@ -133,6 +131,17 @@ class PdfService {
                   fontSize: 12.5,
                   fontWeight: pw.FontWeight.bold,
                   color: PdfColors.green900,
+                ),
+                textAlign: pw.TextAlign.center,
+              ),
+              pw.SizedBox(height: 2),
+              pw.Text(
+                'Motto: "Guardians of Ghana\'s Cashew Quality"',
+                style: pw.TextStyle(
+                  fontSize: 8.5,
+                  fontWeight: pw.FontWeight.bold,
+                  fontStyle: pw.FontStyle.italic,
+                  color: PdfColors.green800,
                 ),
                 textAlign: pw.TextAlign.center,
               ),
