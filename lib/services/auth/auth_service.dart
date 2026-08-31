@@ -75,6 +75,28 @@ class AuthService {
     );
 
     await _firestore.collection('users').doc(newUser.id).set(newUser.toJson());
+
+    // Automatically send email verification link upon registration
+    try {
+      await credential.user!.sendEmailVerification();
+    } catch (_) {
+      // Handled silently if rate-limited or transient failure
+    }
+  }
+
+  Future<void> sendEmailVerification() async {
+    await _connectivityService.ensureConnected();
+    final user = _auth.currentUser;
+    if (user != null && !user.emailVerified) {
+      await user.sendEmailVerification();
+    }
+  }
+
+  Future<bool> reloadAndCheckEmailVerified() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    await user.reload();
+    return _auth.currentUser?.emailVerified ?? false;
   }
 
   Future<void> updateUser(AppUser user) async {
