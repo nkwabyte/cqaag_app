@@ -701,13 +701,14 @@ class _InteractiveKorCalculatorCardState extends State<_InteractiveKorCalculator
   void _calculate() {
     final goodG = double.tryParse(_goodController.text) ?? 0;
     final spottedG = double.tryParse(_spottedController.text) ?? 0;
+    final immatureG = double.tryParse(_immatureController.text) ?? 0;
     final sampleW = double.tryParse(_sampleWeightController.text) ?? 1000;
     final moisture = double.tryParse(_moistureController.text) ?? 0;
     final outCount = int.tryParse(_outCountController.text) ?? 0;
 
-    final useful = goodG + (0.5 * spottedG);
+    final useful = goodG + (0.5 * (spottedG + immatureG));
     final actualSample = sampleW > 0 ? sampleW : 1000;
-    final kor = (useful / actualSample) * 0.188 * 80;
+    final kor = (useful / actualSample) * 176.0;
 
     String label = "REJECT";
     Color bg = const Color(0xFFDC2626);
