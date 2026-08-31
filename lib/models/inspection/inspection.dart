@@ -111,7 +111,8 @@ abstract class Inspection with _$Inspection {
   /// the averaged fields. Those are presented as a single cut test so older
   /// records still fill the first column instead of showing an empty table.
   List<CutTest> get effectiveCutTests {
-    if (cutTests.isNotEmpty) return cutTests;
+    final nonEmpties = cutTests.where((c) => !c.isEmpty).toList();
+    if (nonEmpties.isNotEmpty) return nonEmpties;
 
     return [
       CutTest(

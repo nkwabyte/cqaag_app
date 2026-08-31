@@ -146,22 +146,40 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
       for (var cutting = 1; cutting <= kMaxCutTests; cutting++) {
         final label = formData[cutTestField(cutting, 'label')] as String?;
         final cutMoisture = parseDouble(formData[cutTestField(cutting, 'moisture')]);
+        final nutCount = parseInt(formData[cutTestField(cutting, 'nut_count')]);
+        final fullyDamaged = parseDouble(formData[cutTestField(cutting, 'fully_damaged')]);
+        final voidNuts = parseDouble(formData[cutTestField(cutting, 'void')]);
+        final oilNuts = parseDouble(formData[cutTestField(cutting, 'oil')]);
+        final spottedNuts = parseDouble(formData[cutTestField(cutting, 'spotted')]);
+        final immatureNuts = parseDouble(formData[cutTestField(cutting, 'immature')]);
+        final goodKernels = parseDouble(formData[cutTestField(cutting, 'good_kernels')]);
+        final emptyShells = parseDouble(formData[cutTestField(cutting, 'empty_shells')]);
 
-        final cut = CutTest(
-          index: cutTests.length + 1,
-          label: label,
-          moistureContent: cutMoisture > 0 ? cutMoisture : standaloneMoisture,
-          nutCount: parseInt(formData[cutTestField(cutting, 'nut_count')]),
-          fullyDamagedNuts: parseDouble(formData[cutTestField(cutting, 'fully_damaged')]),
-          voidNuts: parseDouble(formData[cutTestField(cutting, 'void')]),
-          oilNuts: parseDouble(formData[cutTestField(cutting, 'oil')]),
-          spottedNuts: parseDouble(formData[cutTestField(cutting, 'spotted')]),
-          immatureNuts: parseDouble(formData[cutTestField(cutting, 'immature')]),
-          goodKernels: parseDouble(formData[cutTestField(cutting, 'good_kernels')]),
-          emptyShells: parseDouble(formData[cutTestField(cutting, 'empty_shells')]),
-        );
+        final hasMeasurements = nutCount > 0 ||
+            fullyDamaged > 0 ||
+            voidNuts > 0 ||
+            oilNuts > 0 ||
+            spottedNuts > 0 ||
+            immatureNuts > 0 ||
+            goodKernels > 0 ||
+            emptyShells > 0;
 
-        if (!cut.isEmpty) cutTests.add(cut);
+        if (hasMeasurements) {
+          final cut = CutTest(
+            index: cutTests.length + 1,
+            label: label,
+            moistureContent: cutMoisture > 0 ? cutMoisture : standaloneMoisture,
+            nutCount: nutCount,
+            fullyDamagedNuts: fullyDamaged,
+            voidNuts: voidNuts,
+            oilNuts: oilNuts,
+            spottedNuts: spottedNuts,
+            immatureNuts: immatureNuts,
+            goodKernels: goodKernels,
+            emptyShells: emptyShells,
+          );
+          cutTests.add(cut);
+        }
       }
 
       if (cutTests.isEmpty) {
