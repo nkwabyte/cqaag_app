@@ -33,7 +33,9 @@ GoRouter goRouter(Ref ref) {
       final authState = authNotifier.value;
       final isLoading = authState.isLoading;
       final hasError = authState.hasError;
-      final isLoggedIn = authState.asData?.value != null;
+      final currentUser = authState.asData?.value;
+      final isLoggedIn = currentUser != null;
+      final isEmailVerified = currentUser?.emailVerified ?? false;
 
       // Check guest mode
       final guestMode = ref.read(guestModeProvider);
@@ -44,6 +46,7 @@ GoRouter goRouter(Ref ref) {
       final isLogin = state.uri.path == '/${LoginScreen.id}';
       final isRegister = state.uri.path == '/${RegisterScreen.id}';
       final isForgotPassword = state.uri.path == '/${ForgotPasswordScreen.id}';
+      final isEmailVerification = state.uri.path == '/${EmailVerificationScreen.id}';
       // Guest-accessible routes (public screens)
       final guestAccessibleRoutes = [
         '/${AboutScreen.id}',
@@ -67,7 +70,7 @@ GoRouter goRouter(Ref ref) {
       ];
       final isGuestAccessible = guestAccessibleRoutes.contains(state.uri.path);
 
-      final isPublicRoute = isSplash || isBoarding || isLogin || isRegister || isForgotPassword || isGuestAccessible;
+      final isPublicRoute = isSplash || isBoarding || isLogin || isRegister || isForgotPassword || isEmailVerification || isGuestAccessible;
 
       if (isLoading || hasError) return null;
 
@@ -82,8 +85,16 @@ GoRouter goRouter(Ref ref) {
       }
 
       if (isLoggedIn) {
-        // If logged in and on a public route (Splash, Boarding, Login, Register), redirect to Dashboard
-        if (isPublicRoute && !isSplash) {
+        // Enforce email verification for non-guest users
+        if (!isEmailVerified) {
+          if (!isEmailVerification && !isSplash && !isGuestAccessible) {
+            return '/${EmailVerificationScreen.id}';
+          }
+          return null;
+        }
+
+        // If logged in & verified and on auth screens or verification screen, redirect to Dashboard
+        if ((isPublicRoute || isEmailVerification) && !isSplash && !isGuestAccessible) {
           return '/${DashboardScreen.id}';
         }
       } else {
@@ -115,6 +126,11 @@ GoRouter goRouter(Ref ref) {
         path: '/${RegisterScreen.id}',
         name: RegisterScreen.id,
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/${EmailVerificationScreen.id}',
+        name: EmailVerificationScreen.id,
+        builder: (context, state) => const EmailVerificationScreen(),
       ),
       GoRoute(
         path: '/${ForgotPasswordScreen.id}',
