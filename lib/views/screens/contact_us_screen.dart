@@ -179,7 +179,7 @@ class _ContactUsScreenState extends State<ContactUsScreen> {
               context,
               icon: Icons.location_on,
               title: 'Headquarters',
-              content: 'Sampa, Bono Region, Ghana',
+              content: 'Wenchi, Bono Region, Ghana',
             ),
             Gap(12.h),
             _buildInfoCard(
