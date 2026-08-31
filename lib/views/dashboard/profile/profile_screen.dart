@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gap/gap.dart';
 import 'package:cqaag_app/index.dart';
 import 'package:go_router/go_router.dart';
@@ -729,16 +730,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Center(
                       child: Column(
                         children: <Widget>[
+                          SvgPicture.asset(
+                            Assets.svgLogoBlack,
+                            width: 44.w,
+                          ),
+                          Gap(8.h),
                           const CustomText(
                             "C.Q.A.A.G",
                             variant: TextVariant.headlineMedium,
                             fontWeight: FontWeight.bold,
                           ),
                           CustomText(
-                            "Cashew Quality Analysts Association Ghana\nGuardians of Ghana's Cashew Quality",
+                            "Cashew Quality Analysts Association Ghana\n\"Guardians of Ghana's Cashew Quality\"",
                             variant: TextVariant.bodySmall,
                             textAlign: TextAlign.center,
-                            color: colorScheme.secondary.withValues(alpha: 0.6),
+                            fontStyle: FontStyle.italic,
+                            color: colorScheme.secondary.withValues(alpha: 0.7),
                           ),
                         ],
                       ),
