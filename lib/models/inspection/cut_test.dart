@@ -50,7 +50,6 @@ abstract class CutTest with _$CutTest {
 
   /// Heading for this cut test's column on the report.
   String get displayLabel {
-    if (label != null && label!.trim().isNotEmpty) return label!.trim();
     return switch (index) {
       1 => '1st Cutting',
       2 => '2nd Cutting',
@@ -77,9 +76,8 @@ abstract class CutTest with _$CutTest {
   /// OUTTURN (KOR) in lbs per 80kg bag.
   double get kor => totalYield * korFactor;
 
-  /// True when nothing has been entered, used to skip blank cut tests.
+  /// True when no actual cut test measurements have been entered.
   bool get isEmpty =>
-      moistureContent == 0 &&
       nutCount == 0 &&
       fullyDamagedNuts == 0 &&
       voidNuts == 0 &&

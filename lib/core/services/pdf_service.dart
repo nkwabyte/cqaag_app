@@ -10,8 +10,20 @@ class PdfService {
   Future<Uint8List> generateReport(Map<String, dynamic> data) async {
     final pdf = pw.Document();
 
-    // Load Logo
+    // Load Logos
     final logoSvg = await rootBundle.loadString(Assets.svgLogoBlack);
+
+    pw.MemoryImage? cqaagLogoImage;
+    try {
+      final cqaagLogoBytes = await rootBundle.load('assets/images/cqaag_logo.png');
+      cqaagLogoImage = pw.MemoryImage(cqaagLogoBytes.buffer.asUint8List());
+    } catch (_) {}
+
+    pw.MemoryImage? tcdaLogoImage;
+    try {
+      final tcdaLogoBytes = await rootBundle.load('assets/images/tcda_logo.jpg');
+      tcdaLogoImage = pw.MemoryImage(tcdaLogoBytes.buffer.asUint8List());
+    } catch (_) {}
 
     final font = await PdfGoogleFonts.openSansRegular();
     final fontBold = await PdfGoogleFonts.openSansBold();
@@ -34,7 +46,7 @@ class PdfService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              _buildHeader(logoSvg, data, isExport),
+              _buildHeader(logoSvg, cqaagLogoImage, tcdaLogoImage, data, isExport),
               pw.SizedBox(height: 8),
               if (isExport) ...[
                 _buildExportInfoBlock(data),
@@ -60,7 +72,7 @@ class PdfService {
               pw.SizedBox(height: 10),
               _buildKORAndCertBlock(data),
               pw.SizedBox(height: 10),
-              _buildStandaloneTcdaSection(),
+              _buildStandaloneTcdaSection(tcdaLogoImage),
               pw.SizedBox(height: 10),
               _buildSignatures(data, isExport),
               if (isExport) ...[
@@ -86,7 +98,13 @@ class PdfService {
     return pdf.save();
   }
 
-  pw.Widget _buildHeader(String logoSvg, Map<String, dynamic> data, bool isExport) {
+  pw.Widget _buildHeader(
+    String logoSvg,
+    pw.MemoryImage? cqaagImage,
+    pw.MemoryImage? tcdaImage,
+    Map<String, dynamic> data,
+    bool isExport,
+  ) {
     final rawAnalysisType = (data['analysisType'] ?? '').toString().trim();
     final String reportHeaderTitle = isExport
         ? "EXPORT RCN QUALITY REPORT"
@@ -98,11 +116,13 @@ class PdfService {
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
         pw.Container(
-          width: 55,
-          height: 55,
-          child: pw.SvgImage(svg: logoSvg),
+          width: 50,
+          height: 50,
+          child: cqaagImage != null
+              ? pw.Image(cqaagImage, fit: pw.BoxFit.contain)
+              : pw.SvgImage(svg: logoSvg),
         ),
-        pw.SizedBox(width: 12),
+        pw.SizedBox(width: 8),
         pw.Expanded(
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -110,20 +130,20 @@ class PdfService {
               pw.Text(
                 "CASHEW QUALITY ANALYSTS' ASSOCIATION, GHANA (C.Q.A.A.G)",
                 style: pw.TextStyle(
-                  fontSize: 14,
+                  fontSize: 12.5,
                   fontWeight: pw.FontWeight.bold,
                   color: PdfColors.green900,
                 ),
                 textAlign: pw.TextAlign.center,
               ),
-              pw.SizedBox(height: 4),
+              pw.SizedBox(height: 3),
               pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+                padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 2.5),
                 decoration: const pw.BoxDecoration(color: PdfColors.black),
                 child: pw.Text(
                   reportHeaderTitle,
                   style: pw.TextStyle(
-                    fontSize: 12,
+                    fontSize: 10.5,
                     fontWeight: pw.FontWeight.bold,
                     color: PdfColors.white,
                   ),
@@ -132,6 +152,15 @@ class PdfService {
             ],
           ),
         ),
+        pw.SizedBox(width: 8),
+        if (tcdaImage != null)
+          pw.Container(
+            width: 50,
+            height: 50,
+            child: pw.Image(tcdaImage, fit: pw.BoxFit.contain),
+          )
+        else
+          pw.SizedBox(width: 50),
       ],
     );
   }
@@ -265,15 +294,16 @@ class PdfService {
   }
 
   pw.Widget _buildAnalysisTable(Map<String, dynamic> data) {
-    final cuts = (data['cutTests'] as List<CutTest>?) ?? const <CutTest>[];
+    final rawCuts = (data['cutTests'] as List<CutTest>?) ?? const <CutTest>[];
+    final cuts = rawCuts.where((c) => !c.isEmpty).toList();
     const slots = 3;
 
     String headingFor(int slot) {
-      if (slot < cuts.length) return cuts[slot].displayLabel;
       return switch (slot) {
+        0 => '1st Cutting',
         1 => '2nd Cutting',
         2 => '3rd Cutting',
-        _ => '',
+        _ => 'Cutting ${slot + 1}',
       };
     }
 
@@ -337,7 +367,8 @@ class PdfService {
 
     String format(double value) => value.toStringAsFixed(decimals);
 
-    final average = cuts.isEmpty ? null : cuts.map(select).reduce((a, b) => a + b) / cuts.length;
+    final activeCuts = cuts.where((c) => !c.isEmpty).toList();
+    final average = activeCuts.isEmpty ? null : activeCuts.map(select).reduce((a, b) => a + b) / activeCuts.length;
     final emphasised = isBold || isGroupHeading;
 
     return pw.TableRow(
@@ -354,7 +385,7 @@ class PdfService {
           ),
         ),
         for (var i = 0; i < slots; i++)
-          _buildValueCell(i < cuts.length ? format(select(cuts[i])) : '', isBold: emphasised),
+          _buildValueCell(i < activeCuts.length ? format(select(activeCuts[i])) : '-', isBold: emphasised),
         _buildValueCell(average == null ? '-' : format(average), isBold: true),
       ],
     );
@@ -370,87 +401,70 @@ class PdfService {
   }
 
   pw.Widget _buildKORAndCertBlock(Map<String, dynamic> data) {
-    return pw.Row(
-      children: [
-        // KOR Block
-        pw.Expanded(
-          flex: 2,
-          child: pw.Container(
-            padding: const pw.EdgeInsets.all(6),
-            decoration: pw.BoxDecoration(
-              border: pw.Border.all(width: 1),
-              color: PdfColors.grey100,
-            ),
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.center,
-              children: [
-                pw.Text("OUTTURN (KOR) - LBS: ", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                pw.Text(data['kor'] ?? '', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.green900)),
-              ],
-            ),
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(width: 1, color: PdfColors.green900),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(2)),
+        color: PdfColors.grey100,
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.center,
+        children: [
+          pw.Text(
+            "OUTTURN (KOR) - LBS: ",
+            style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
           ),
-        ),
-        pw.SizedBox(width: 8),
-        // CCQ Seal Box
-        pw.Expanded(
-          flex: 1,
-          child: pw.Container(
-            padding: const pw.EdgeInsets.all(4),
-            decoration: pw.BoxDecoration(
-              border: pw.Border.all(width: 1, color: PdfColors.green900),
-              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
-              color: PdfColors.green50,
-            ),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text(
-                  "CCQ CERTIFIED",
-                  style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.green900),
-                ),
-                pw.Text(
-                  "Cashew Certification of Quality",
-                  style: const pw.TextStyle(fontSize: 6, color: PdfColors.grey800),
-                ),
-              ],
-            ),
+          pw.Text(
+            data['kor'] ?? '',
+            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.green900),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   /// Standalone TCDA Authority Section
-  pw.Widget _buildStandaloneTcdaSection() {
+  pw.Widget _buildStandaloneTcdaSection(pw.MemoryImage? tcdaImage) {
     return pw.Container(
       width: double.infinity,
       padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: pw.BoxDecoration(
-        border: pw.Border.all(width: 0.8, color: PdfColors.blueGrey900),
+        border: pw.Border.all(width: 0.8, color: PdfColors.green900),
         borderRadius: const pw.BorderRadius.all(pw.Radius.circular(2)),
-        color: PdfColors.grey50,
+        color: PdfColors.green50,
       ),
       child: pw.Row(
         crossAxisAlignment: pw.CrossAxisAlignment.center,
         children: [
-          pw.Container(
-            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-            decoration: const pw.BoxDecoration(
-              color: PdfColors.blueGrey900,
+          if (tcdaImage != null) ...[
+            pw.Container(
+              width: 32,
+              height: 32,
+              child: pw.Image(tcdaImage, fit: pw.BoxFit.contain),
             ),
-            child: pw.Text(
-              "TCDA",
-              style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+            pw.SizedBox(width: 8),
+          ] else ...[
+            pw.Container(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              decoration: const pw.BoxDecoration(
+                color: PdfColors.green900,
+              ),
+              child: pw.Text(
+                "TCDA",
+                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+              ),
             ),
-          ),
-          pw.SizedBox(width: 8),
+            pw.SizedBox(width: 8),
+          ],
           pw.Expanded(
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 pw.Text(
                   "TREE CROP DEVELOPMENT AUTHORITY (TCDA) - STATUTORY REGULATORY AUTHORITY",
-                  style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey900),
+                  style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.green900),
                 ),
                 pw.SizedBox(height: 1),
                 pw.Text(
