@@ -22,6 +22,8 @@ secrets/
 *.iws
 .idea/
 
+.playwright-mcp/
+
 .claude/
 .agents/
 .agent/
@@ -33,6 +35,8 @@ secrets/
 .impeccable/
 .kilo/
 .kimi/
+.codex/
+
 
 *.xlsx
 **/*.xlsx
