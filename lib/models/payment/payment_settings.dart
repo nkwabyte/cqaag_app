@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:cqaag_app/models/membership/membership_category.dart';
+import 'package:cqaag_app/models/payment/fee_schedule.dart';
 
 part 'payment_settings.freezed.dart';
 part 'payment_settings.g.dart';
@@ -99,11 +100,15 @@ abstract class PaymentSettings with _$PaymentSettings {
 
   @JsonSerializable(fieldRename: FieldRename.snake)
   const factory PaymentSettings({
-    /// Registration fee amount (Ghanaian / Standard).
-    @Default(500.0) double registrationFee,
+    /// Legacy flat registration fee, kept so records and clients written
+    /// before the fee schedule existed still read a sensible number.
+    /// New quotes come from [schedule] instead.
+    @Default(250.0) double registrationFee,
 
-    /// Registration fee amount for Foreign QC members.
-    @Default(1500.0) double foreignRegistrationFee,
+    /// Legacy flat registration fee for foreign applicants. Under the schedule
+    /// the Registration Fee is the same for every fee-paying category; only the
+    /// Annual Dues differ.
+    @Default(250.0) double foreignRegistrationFee,
 
     /// ISO currency code. Ghana Cedis unless changed.
     @Default('GHS') String currency,
@@ -122,6 +127,12 @@ abstract class PaymentSettings with _$PaymentSettings {
 
     /// UID of the admin who last changed them.
     String? updatedBy,
+
+    /// The full Membership Categories, Fees & Dues Schedule.
+    ///
+    /// Null on projects that have not saved a schedule yet, in which case
+    /// [schedule] falls back to the Board-approved defaults.
+    FeeSchedule? feeSchedule,
   }) = _PaymentSettings;
 
   factory PaymentSettings.fromJson(Map<String, dynamic> json) => _$PaymentSettingsFromJson(json);
@@ -132,19 +143,39 @@ abstract class PaymentSettings with _$PaymentSettings {
 
   MomoNetwork get network => MomoNetwork.fromValue(momoNetwork);
 
-  /// Fee formatted for display, e.g. `GHS 500.00`.
-  String get formattedFee => '$currency ${registrationFee.toStringAsFixed(2)}';
+  /// The fee schedule in force, falling back to the Board-approved defaults.
+  FeeSchedule get schedule => feeSchedule ?? FeeSchedule.defaults;
 
-  /// Fee for a specific membership category
+  /// Formats an amount in the configured currency, e.g. `GHS 520.00`.
+  String money(double amount) => '$currency ${amount.toStringAsFixed(2)}';
+
+  /// Fee formatted for display, e.g. `GHS 250.00`.
+  String get formattedFee => money(registrationFee);
+
+  /// Registration Fee for a membership category, per the fee schedule.
   double feeForCategory(MembershipCategory? category) {
-    if (category == MembershipCategory.fullForeign) {
-      return foreignRegistrationFee;
-    }
-    return registrationFee;
+    return schedule.registrationFeeFor(FeeCategory.fromMembership(category));
   }
 
-  /// Formatted fee for a specific membership category
+  /// Formatted Registration Fee for a specific membership category.
   String formattedFeeFor(MembershipCategory? category) {
-    return '$currency ${(feeForCategory(category)).toStringAsFixed(2)}';
+    return money(feeForCategory(category));
+  }
+
+  /// What a category owes before choosing any optional kit items:
+  /// Registration Fee + Annual Dues.
+  double mandatoryTotalFor(MembershipCategory? category) {
+    return schedule.mandatoryTotalFor(FeeCategory.fromMembership(category));
+  }
+
+  /// Prices one applicant's choices against the schedule in force.
+  FeeQuote quoteFor(
+    MembershipCategory? category, {
+    List<SelectedFeeItem> selectedOptionalItems = const [],
+  }) {
+    return schedule.quote(
+      FeeCategory.fromMembership(category),
+      selectedOptionalItems: selectedOptionalItems,
+    );
   }
 }

@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cqaag_app/models/membership/membership_application.dart';
 import 'package:cqaag_app/models/membership/membership_category.dart';
+import 'package:cqaag_app/models/payment/fee_schedule.dart';
 import 'package:cqaag_app/models/payment/payment_settings.dart';
+import 'package:cqaag_app/utils/ghana_card.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'membership_service.g.dart';
@@ -72,6 +74,33 @@ class MembershipService {
     final phoneQuery = await _applicationsCollection.where('phone_number_primary', isEqualTo: identifier.trim()).limit(1).get();
     if (phoneQuery.docs.isNotEmpty) {
       return MembershipApplication.fromJson(phoneQuery.docs.first.data());
+    }
+
+    return null;
+  }
+
+  /// Finds an existing application already registered against [ghanaCardNumber].
+  ///
+  /// One Ghana Card backs one membership: with card images no longer collected,
+  /// the number is the only thing distinguishing one identity from another, so
+  /// letting it repeat would let a single person hold several memberships.
+  ///
+  /// [excludingUserId] lets a member re-submit their own number without being
+  /// told it is taken.
+  Future<MembershipApplication?> findApplicationByGhanaCardNumber(
+    String ghanaCardNumber, {
+    String? excludingUserId,
+  }) async {
+    final normalised = GhanaCard.normalise(ghanaCardNumber);
+    if (normalised == null) return null;
+
+    final querySnapshot =
+        await _applicationsCollection.where('ghana_card_number', isEqualTo: normalised).limit(5).get();
+
+    for (final doc in querySnapshot.docs) {
+      final application = MembershipApplication.fromJson(doc.data());
+      if (excludingUserId != null && application.userId == excludingUserId) continue;
+      return application;
     }
 
     return null;
@@ -204,17 +233,20 @@ class MembershipService {
   }
 
   /// Records payment evidence uploaded by an applicant after initial registration.
+  ///
+  /// [quote] re-snapshots the itemised fee, because an applicant can change
+  /// which optional kit items they are taking up to the moment they pay.
   Future<void> submitPaymentEvidence({
     required String applicationId,
     required String evidenceUrl,
     String? reference,
     required PaymentSettings settings,
+    required FeeQuote quote,
   }) async {
     final now = DateTime.now();
     await _applicationsCollection.doc(applicationId).update({
       'payment_method': PaymentMethod.momo.value,
       'payment_status': PaymentStatus.pendingVerification.value,
-      'payment_amount': settings.registrationFee,
       'payment_currency': settings.currency,
       'payment_evidence_url': evidenceUrl,
       if (reference != null && reference.isNotEmpty) 'payment_reference': reference,
@@ -222,7 +254,23 @@ class MembershipService {
       'payment_momo_number': settings.momoNumber,
       'payment_submitted_at': now.toIso8601String(),
       'updated_at': now.toIso8601String(),
+      ...feeQuoteFields(quote),
     });
+  }
+
+  /// The itemised fee fields written onto a `members` document.
+  ///
+  /// Shared by the submission and the pay-later paths, and named exactly as the
+  /// website writes them, so one record reads the same from either client.
+  static Map<String, dynamic> feeQuoteFields(FeeQuote quote) {
+    return {
+      'payment_amount': quote.total,
+      'payment_registration_fee': quote.registrationFee,
+      'payment_annual_dues': quote.annualDues,
+      'payment_optional_total': quote.optionalTotal,
+      'payment_optional_items': quote.optionalItems.map((e) => e.toJson()).toList(),
+      'payment_registration_components': quote.registrationComponents.map((e) => e.toJson()).toList(),
+    };
   }
 
   /// Records an admin's verdict on an applicant's registration payment.

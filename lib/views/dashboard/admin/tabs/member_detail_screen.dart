@@ -292,8 +292,28 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
                     _buildInfoRow("Date of Birth", widget.application.dateOfBirth.split('T')[0]),
                     _buildInfoRow("Nationality", widget.application.nationality),
                     _buildInfoRow("Region/District", widget.application.regionDistrict),
-                    if (widget.application.ghanaCardNumber != null)
+                    if (widget.application.ghanaCardNumber != null) ...[
                       _buildInfoRow("Ghana Card", widget.application.ghanaCardNumber!),
+                      // The number is now the whole of the identity evidence, so
+                      // a malformed one has to be obvious rather than buried.
+                      if (!widget.application.hasValidGhanaCardNumber)
+                        Padding(
+                          padding: EdgeInsets.only(top: 4.h),
+                          child: Row(
+                            children: [
+                              Icon(Icons.error_outline, size: 14.r, color: colorScheme.error),
+                              Gap(6.w),
+                              Expanded(
+                                child: CustomText(
+                                  "Malformed — does not match ${GhanaCard.placeholder}.",
+                                  variant: TextVariant.bodySmall,
+                                  color: colorScheme.error,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   ],
                 ),
 
@@ -478,6 +498,20 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
           ),
           Gap(12.h),
           _buildInfoRow("Amount", app.formattedPaymentAmount ?? "Not recorded"),
+
+          // Break the total down, so an admin reconciling a transfer can see
+          // exactly which schedule lines make it up.
+          if (app.paymentRegistrationFee != null)
+            _buildInfoRow("  Registration Fee", app.money(app.paymentRegistrationFee!)),
+          if (app.paymentAnnualDues != null)
+            _buildInfoRow("  Annual Dues", app.money(app.paymentAnnualDues!)),
+          if (app.hasOptionalItems)
+            ...app.paymentOptionalItems.map(
+              (item) => _buildInfoRow("  ${item.displayLabel}", app.money(item.amount)),
+            )
+          else if (app.paymentRegistrationFee != null)
+            _buildInfoRow("  Optional items", "None taken"),
+
           if (app.paymentMethod != null) _buildInfoRow("Method", app.paymentMethod == 'momo' ? 'Mobile Money' : 'Paystack'),
           if (app.paymentMomoNumber != null)
             _buildInfoRow("Paid to", "${app.paymentMomoNetwork ?? ''} ${app.paymentMomoNumber}".trim()),

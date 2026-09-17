@@ -39,7 +39,11 @@ abstract class MembershipApplication with _$MembershipApplication {
     /// Nationality
     required String nationality,
 
-    /// Ghana Card / ID Number
+    /// Ghana Card personal ID number, in the form `GHA-#########-#`.
+    ///
+    /// Under current Ghanaian law this number is the only identity evidence
+    /// collected — no images of the card are captured or stored — so it is what
+    /// an admin verifies the applicant against.
     String? ghanaCardNumber,
 
     /// Primary phone number
@@ -102,8 +106,26 @@ abstract class MembershipApplication with _$MembershipApplication {
     /// Verification state: unpaid, pending_verification, verified, rejected
     @Default('unpaid') String paymentStatus,
 
-    /// Amount the applicant was asked to pay
+    /// Total the applicant was asked to pay: Registration Fee + Annual Dues
+    /// + whichever optional kit items they chose.
     double? paymentAmount,
+
+    /// Registration Fee portion of [paymentAmount], per the fee schedule.
+    double? paymentRegistrationFee,
+
+    /// Annual Dues portion of [paymentAmount].
+    double? paymentAnnualDues,
+
+    /// Total of the optional kit items the applicant chose to take.
+    @Default(0.0) double paymentOptionalTotal,
+
+    /// The optional kit items the applicant chose, priced as at the moment of
+    /// choice. Empty when they declined all of them.
+    @Default(<SelectedFeeItem>[]) List<SelectedFeeItem> paymentOptionalItems,
+
+    /// The Registration Fee components in force when the applicant was quoted,
+    /// snapshotted so a later change to the schedule cannot rewrite history.
+    @Default(<SelectedFeeItem>[]) List<SelectedFeeItem> paymentRegistrationComponents,
 
     /// Currency of [paymentAmount]
     @Default('GHS') String paymentCurrency,
@@ -142,6 +164,21 @@ abstract class MembershipApplication with _$MembershipApplication {
   String? get formattedPaymentAmount {
     final amount = paymentAmount;
     if (amount == null) return null;
-    return '$paymentCurrency ${amount.toStringAsFixed(2)}';
+    return money(amount);
   }
+
+  /// Formats an amount in the currency this application was quoted in.
+  String money(double amount) => '$paymentCurrency ${amount.toStringAsFixed(2)}';
+
+  /// The fee schedule column that applies to this applicant.
+  FeeCategory get feeCategory => FeeCategory.fromMembership(membershipCategory);
+
+  /// Whether the applicant took any optional kit items.
+  bool get hasOptionalItems => paymentOptionalItems.isNotEmpty;
+
+  /// Whether the recorded Ghana Card number is structurally valid.
+  ///
+  /// Surfaced to admins so a malformed number is obvious at a glance rather
+  /// than only failing when it is checked against the national register.
+  bool get hasValidGhanaCardNumber => GhanaCard.isValid(ghanaCardNumber);
 }

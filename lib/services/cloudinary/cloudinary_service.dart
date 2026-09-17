@@ -65,10 +65,6 @@ class CloudinaryService {
     }
   }
 
-  Future<String?> uploadIdentityDocument(File file) async {
-    return _uploadFile(file, folder: 'Identification');
-  }
-
   Future<String?> uploadMembershipDocument(File file) async {
     return _uploadFile(file, folder: 'Members');
   }

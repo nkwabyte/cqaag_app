@@ -50,6 +50,21 @@ _MembershipApplication _$MembershipApplicationFromJson(
   paymentMethod: json['payment_method'] as String?,
   paymentStatus: json['payment_status'] as String? ?? 'unpaid',
   paymentAmount: (json['payment_amount'] as num?)?.toDouble(),
+  paymentRegistrationFee: (json['payment_registration_fee'] as num?)
+      ?.toDouble(),
+  paymentAnnualDues: (json['payment_annual_dues'] as num?)?.toDouble(),
+  paymentOptionalTotal:
+      (json['payment_optional_total'] as num?)?.toDouble() ?? 0.0,
+  paymentOptionalItems:
+      (json['payment_optional_items'] as List<dynamic>?)
+          ?.map((e) => SelectedFeeItem.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <SelectedFeeItem>[],
+  paymentRegistrationComponents:
+      (json['payment_registration_components'] as List<dynamic>?)
+          ?.map((e) => SelectedFeeItem.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <SelectedFeeItem>[],
   paymentCurrency: json['payment_currency'] as String? ?? 'GHS',
   paymentEvidenceUrl: json['payment_evidence_url'] as String?,
   paymentReference: json['payment_reference'] as String?,
@@ -96,6 +111,11 @@ Map<String, dynamic> _$MembershipApplicationToJson(
   'payment_method': instance.paymentMethod,
   'payment_status': instance.paymentStatus,
   'payment_amount': instance.paymentAmount,
+  'payment_registration_fee': instance.paymentRegistrationFee,
+  'payment_annual_dues': instance.paymentAnnualDues,
+  'payment_optional_total': instance.paymentOptionalTotal,
+  'payment_optional_items': instance.paymentOptionalItems,
+  'payment_registration_components': instance.paymentRegistrationComponents,
   'payment_currency': instance.paymentCurrency,
   'payment_evidence_url': instance.paymentEvidenceUrl,
   'payment_reference': instance.paymentReference,

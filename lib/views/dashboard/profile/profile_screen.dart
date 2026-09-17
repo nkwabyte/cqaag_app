@@ -283,12 +283,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: <Widget>[
                                         const CustomText(
-                                          "Account Verification",
+                                          "Ghana Card Verification",
                                           variant: TextVariant.bodyLarge,
                                           fontWeight: FontWeight.bold,
                                         ),
                                         CustomText(
-                                          "Upload ID & Documents",
+                                          "Enter your Ghana Card number",
                                           variant: TextVariant.bodySmall,
                                           color: Colors.blue,
                                         ),
@@ -402,7 +402,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                             fontWeight: FontWeight.bold,
                                           ),
                                           CustomText(
-                                            "Your membership application and identity documents are under review by the Secretariat. Once approved, you will be prompted to make your registration payment.",
+                                            "Your membership application and Ghana Card number are under review by the Secretariat. Once approved, you will be prompted to make your registration payment.",
                                             variant: TextVariant.bodySmall,
                                             color: AppColors.primaryGreen,
                                           ),
@@ -466,14 +466,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           CustomText(
-                                            isPendingVerification ? "Payment Under Verification" : "🎉 KYC Approved — Payment Required",
+                                            isPendingVerification ? "Payment Under Verification" : "🎉 Verification Approved — Payment Required",
                                             variant: TextVariant.bodyLarge,
                                             fontWeight: FontWeight.bold,
                                           ),
                                           CustomText(
                                             isPendingVerification
                                                 ? "Your payment evidence has been uploaded and is being verified by the Secretariat. Full membership access will unlock once confirmed."
-                                                : "Your application and identity verification have been approved! Please proceed with your registration payment to activate your membership.",
+                                                : "Your application and Ghana Card verification have been approved! Please proceed with your registration payment to activate your membership.",
                                             variant: TextVariant.bodySmall,
                                             color: AppColors.primaryGreen,
                                           ),

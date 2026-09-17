@@ -8,9 +8,9 @@ part of 'payment_settings.dart';
 
 _PaymentSettings _$PaymentSettingsFromJson(Map<String, dynamic> json) =>
     _PaymentSettings(
-      registrationFee: (json['registration_fee'] as num?)?.toDouble() ?? 500.0,
+      registrationFee: (json['registration_fee'] as num?)?.toDouble() ?? 250.0,
       foreignRegistrationFee:
-          (json['foreign_registration_fee'] as num?)?.toDouble() ?? 1500.0,
+          (json['foreign_registration_fee'] as num?)?.toDouble() ?? 250.0,
       currency: json['currency'] as String? ?? 'GHS',
       momoNumber: json['momo_number'] as String? ?? '+233 55 333 0931',
       momoNetwork: json['momo_network'] as String? ?? 'MTN',
@@ -20,6 +20,9 @@ _PaymentSettings _$PaymentSettingsFromJson(Map<String, dynamic> json) =>
           ? null
           : DateTime.parse(json['updated_at'] as String),
       updatedBy: json['updated_by'] as String?,
+      feeSchedule: json['fee_schedule'] == null
+          ? null
+          : FeeSchedule.fromJson(json['fee_schedule'] as Map<String, dynamic>),
     );
 
 Map<String, dynamic> _$PaymentSettingsToJson(_PaymentSettings instance) =>
@@ -32,4 +35,5 @@ Map<String, dynamic> _$PaymentSettingsToJson(_PaymentSettings instance) =>
       'momo_account_name': instance.momoAccountName,
       'updated_at': instance.updatedAt?.toIso8601String(),
       'updated_by': instance.updatedBy,
+      'fee_schedule': instance.feeSchedule,
     };

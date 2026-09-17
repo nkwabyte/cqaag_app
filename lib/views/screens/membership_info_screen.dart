@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:cqaag_app/index.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 class MembershipInfoScreen extends StatelessWidget {
   static const String id = 'membership_info_screen';
@@ -110,14 +111,18 @@ class MembershipInfoScreen extends StatelessWidget {
                   Gap(12.h),
                   _buildCategoryItem(
                     '1. Full Members',
-                    'Experienced quality analysts in cashew quality control with voting rights. Only Full Members are qualified to be licensed by the TCDA to practice cashew quality control.',
+                    'Experienced professionals who are Ghanaian nationals in cashew quality control. Voting rights, eligible for executive office, and eligible to be recommended to the TCDA for licensing to practise nationwide.',
                   ),
                   _buildCategoryItem(
-                    '2. Associate Members',
-                    'Individuals interested in the Association\'s work (e.g., students, trainees) who do not meet full eligibility. Associate members can attend events but do not have voting rights and cannot hold executive office.',
+                    '2. National Associate Members',
+                    'Ghanaian nationals interested in the Association\'s work but not meeting full eligibility (e.g. students, trainees, affiliates). Non-voting, cannot hold executive office, and not eligible for TCDA-licensing recommendation.',
                   ),
-                  _buildCategoryItem('3. Corporate Members', 'Laboratories, processors, business companies, or organizations supporting quality efforts. Non-voting status.'),
-                  _buildCategoryItem('4. Honorary Members', 'Distinguished individuals nominated by the Board for significant contributions. Non-voting and exempt from dues.'),
+                  _buildCategoryItem(
+                    '3. Foreign Associate Members',
+                    'Foreign cashew quality analysts coming to practise in Ghana. Non-voting and cannot hold executive office, but eligible to be recommended to the TCDA for licensing to practise nationwide.',
+                  ),
+                  _buildCategoryItem('4. Corporate Members', 'Laboratories, processors, business companies, or organizations supporting quality efforts. Non-voting status.'),
+                  _buildCategoryItem('5. Honorary Members', 'Distinguished individuals nominated by the Board for significant contributions. Non-voting and pay no fees.'),
 
                   Gap(24.h),
                   const Divider(),
@@ -393,7 +398,7 @@ class MembershipInfoScreen extends StatelessWidget {
                   _buildBulletPoint('Production: Centralised at HQ to prevent duplication.', boldPrefix: true),
                   _buildBulletPoint('Content: Includes Bio-data, Member ID, Chapter Affiliation, and Security Features.', boldPrefix: true),
                   _buildBulletPoint('Validity: Valid for 5 years; renewable annually upon dues payment.', boldPrefix: true),
-                  _buildBulletPoint('Cost: Covered within Registration Fees/Annual Dues.', boldPrefix: true),
+                  _buildBulletPoint('Cost: The Membership Card is one of the Registration Fee components.', boldPrefix: true),
                   Gap(16.h),
                   _buildSubHeader('Association Uniform & Kits'),
                   Gap(8.h),
@@ -448,7 +453,7 @@ class MembershipInfoScreen extends StatelessWidget {
                         ),
                         Gap(8.h),
                         const CustomText(
-                          'Complete your membership application form, submit verification documents and payment to be accredited.',
+                          'Complete your membership application form, verify your Ghana Card number and pay your fees to be accredited.',
                           variant: TextVariant.bodyMedium,
                           color: Colors.white,
                           textAlign: TextAlign.center,
@@ -553,81 +558,67 @@ class MembershipInfoScreen extends StatelessWidget {
     );
   }
 
+  /// The Board's fee schedule, read live from `settings/payment` so the figures
+  /// quoted here can never drift from the ones an applicant is actually charged.
   Widget _buildDuesTable() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: DataTable(
-          headingRowColor: WidgetStateProperty.all(const Color(0xFF2E7D32)), // Green header
-          dataRowColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
-            // Alternating colors logic if needed, or simple greyish
-            return Colors.grey.shade100;
-          }),
-          columns: const [
-            DataColumn(
-              label: Text(
-                'Category',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+    return Consumer(
+      builder: (context, ref, child) {
+        final settings = ref.watch(paymentSettingsProvider).value ?? PaymentSettings.defaults;
+        final schedule = settings.schedule;
+
+        String cell(double amount, FeeCategory category) {
+          if (category.isExempt) return 'Waived';
+          return settings.money(amount);
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: DataTable(
+                  headingRowColor: WidgetStateProperty.all(AppColors.primaryGreen),
+                  dataRowColor: WidgetStateProperty.all(Colors.grey.shade100),
+                  columns: const [
+                    DataColumn(label: Text('Category', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Registration Fee', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Annual Dues', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Payable on joining', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                  ],
+                  rows: FeeCategory.values.map((category) {
+                    return DataRow(
+                      cells: [
+                        DataCell(Text(category.label)),
+                        DataCell(Text(cell(schedule.registrationFeeFor(category), category))),
+                        DataCell(Text(cell(schedule.annualDuesFor(category), category))),
+                        DataCell(Text(cell(schedule.mandatoryTotalFor(category), category))),
+                      ],
+                    );
+                  }).toList(),
+                ),
               ),
             ),
-            DataColumn(
-              label: Text(
-                'Registration Fee (GHS)',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
+            Gap(12.h),
+            CustomText(
+              'The Registration Fee is made up of ${schedule.registrationComponents.map((e) => e.label).join(', ')}. '
+              'Annual Dues are inclusive of the TCDA recommendation letter, where applicable.',
+              variant: TextVariant.bodySmall,
+              color: Colors.black54,
             ),
-            DataColumn(
-              label: Text(
-                'Annual Dues (GHS)',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-            ),
-            DataColumn(
-              label: Text(
-                'Notes',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
+            Gap(8.h),
+            CustomText(
+              'Optional kit items (safety gear, moisture machine, cutter, gloves, kit bag and more) '
+              'are charged separately and only if you choose to take them. You pick these at the payment step.',
+              variant: TextVariant.bodySmall,
+              color: Colors.black54,
             ),
           ],
-          rows: const [
-            DataRow(
-              cells: [
-                DataCell(Text('Full Member')),
-                DataCell(Text('[Determined by Board]')),
-                DataCell(Text('[Determined by Board]')),
-                DataCell(Text('Full payment required.')),
-              ],
-            ),
-            DataRow(
-              cells: [
-                DataCell(Text('Associate Member')),
-                DataCell(Text('200')),
-                DataCell(Text('75')),
-                DataCell(Text('Half dues.')),
-              ],
-            ),
-            DataRow(
-              cells: [
-                DataCell(Text('Corporate Member')),
-                DataCell(Text('500')),
-                DataCell(Text('250')),
-                DataCell(Text('Organizational rate.')),
-              ],
-            ),
-            DataRow(
-              cells: [
-                DataCell(Text('Honorary Member')),
-                DataCell(Text('Waived')),
-                DataCell(Text('Waived')),
-                DataCell(Text('No financial obligations.')),
-              ],
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

@@ -15,7 +15,13 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$VerificationData {
 
- String get idCardFrontUrl; String get idCardBackUrl; String get idCardNumber; String get selfieUrl; String? get verifiedBy; DateTime? get dateVerified;
+/// Ghana Card personal ID number, in the form `GHA-#########-#`.
+ String get idCardNumber;/// UID of the admin who verified the number.
+ String? get verifiedBy;/// When the number was verified.
+ DateTime? get dateVerified;/// Legacy, from the superseded document-upload flow. Never written.
+ String? get idCardFrontUrl;/// Legacy, from the superseded document-upload flow. Never written.
+ String? get idCardBackUrl;/// Legacy, from the superseded document-upload flow. Never written.
+ String? get selfieUrl;
 /// Create a copy of VerificationData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +34,16 @@ $VerificationDataCopyWith<VerificationData> get copyWith => _$VerificationDataCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is VerificationData&&(identical(other.idCardFrontUrl, idCardFrontUrl) || other.idCardFrontUrl == idCardFrontUrl)&&(identical(other.idCardBackUrl, idCardBackUrl) || other.idCardBackUrl == idCardBackUrl)&&(identical(other.idCardNumber, idCardNumber) || other.idCardNumber == idCardNumber)&&(identical(other.selfieUrl, selfieUrl) || other.selfieUrl == selfieUrl)&&(identical(other.verifiedBy, verifiedBy) || other.verifiedBy == verifiedBy)&&(identical(other.dateVerified, dateVerified) || other.dateVerified == dateVerified));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is VerificationData&&(identical(other.idCardNumber, idCardNumber) || other.idCardNumber == idCardNumber)&&(identical(other.verifiedBy, verifiedBy) || other.verifiedBy == verifiedBy)&&(identical(other.dateVerified, dateVerified) || other.dateVerified == dateVerified)&&(identical(other.idCardFrontUrl, idCardFrontUrl) || other.idCardFrontUrl == idCardFrontUrl)&&(identical(other.idCardBackUrl, idCardBackUrl) || other.idCardBackUrl == idCardBackUrl)&&(identical(other.selfieUrl, selfieUrl) || other.selfieUrl == selfieUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,idCardFrontUrl,idCardBackUrl,idCardNumber,selfieUrl,verifiedBy,dateVerified);
+int get hashCode => Object.hash(runtimeType,idCardNumber,verifiedBy,dateVerified,idCardFrontUrl,idCardBackUrl,selfieUrl);
 
 @override
 String toString() {
-  return 'VerificationData(idCardFrontUrl: $idCardFrontUrl, idCardBackUrl: $idCardBackUrl, idCardNumber: $idCardNumber, selfieUrl: $selfieUrl, verifiedBy: $verifiedBy, dateVerified: $dateVerified)';
+  return 'VerificationData(idCardNumber: $idCardNumber, verifiedBy: $verifiedBy, dateVerified: $dateVerified, idCardFrontUrl: $idCardFrontUrl, idCardBackUrl: $idCardBackUrl, selfieUrl: $selfieUrl)';
 }
 
 
@@ -48,7 +54,7 @@ abstract mixin class $VerificationDataCopyWith<$Res>  {
   factory $VerificationDataCopyWith(VerificationData value, $Res Function(VerificationData) _then) = _$VerificationDataCopyWithImpl;
 @useResult
 $Res call({
- String idCardFrontUrl, String idCardBackUrl, String idCardNumber, String selfieUrl, String? verifiedBy, DateTime? dateVerified
+ String idCardNumber, String? verifiedBy, DateTime? dateVerified, String? idCardFrontUrl, String? idCardBackUrl, String? selfieUrl
 });
 
 
@@ -65,15 +71,15 @@ class _$VerificationDataCopyWithImpl<$Res>
 
 /// Create a copy of VerificationData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? idCardFrontUrl = null,Object? idCardBackUrl = null,Object? idCardNumber = null,Object? selfieUrl = null,Object? verifiedBy = freezed,Object? dateVerified = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? idCardNumber = null,Object? verifiedBy = freezed,Object? dateVerified = freezed,Object? idCardFrontUrl = freezed,Object? idCardBackUrl = freezed,Object? selfieUrl = freezed,}) {
   return _then(_self.copyWith(
-idCardFrontUrl: null == idCardFrontUrl ? _self.idCardFrontUrl : idCardFrontUrl // ignore: cast_nullable_to_non_nullable
-as String,idCardBackUrl: null == idCardBackUrl ? _self.idCardBackUrl : idCardBackUrl // ignore: cast_nullable_to_non_nullable
-as String,idCardNumber: null == idCardNumber ? _self.idCardNumber : idCardNumber // ignore: cast_nullable_to_non_nullable
-as String,selfieUrl: null == selfieUrl ? _self.selfieUrl : selfieUrl // ignore: cast_nullable_to_non_nullable
+idCardNumber: null == idCardNumber ? _self.idCardNumber : idCardNumber // ignore: cast_nullable_to_non_nullable
 as String,verifiedBy: freezed == verifiedBy ? _self.verifiedBy : verifiedBy // ignore: cast_nullable_to_non_nullable
 as String?,dateVerified: freezed == dateVerified ? _self.dateVerified : dateVerified // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,idCardFrontUrl: freezed == idCardFrontUrl ? _self.idCardFrontUrl : idCardFrontUrl // ignore: cast_nullable_to_non_nullable
+as String?,idCardBackUrl: freezed == idCardBackUrl ? _self.idCardBackUrl : idCardBackUrl // ignore: cast_nullable_to_non_nullable
+as String?,selfieUrl: freezed == selfieUrl ? _self.selfieUrl : selfieUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -158,10 +164,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String idCardFrontUrl,  String idCardBackUrl,  String idCardNumber,  String selfieUrl,  String? verifiedBy,  DateTime? dateVerified)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String idCardNumber,  String? verifiedBy,  DateTime? dateVerified,  String? idCardFrontUrl,  String? idCardBackUrl,  String? selfieUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _VerificationData() when $default != null:
-return $default(_that.idCardFrontUrl,_that.idCardBackUrl,_that.idCardNumber,_that.selfieUrl,_that.verifiedBy,_that.dateVerified);case _:
+return $default(_that.idCardNumber,_that.verifiedBy,_that.dateVerified,_that.idCardFrontUrl,_that.idCardBackUrl,_that.selfieUrl);case _:
   return orElse();
 
 }
@@ -179,10 +185,10 @@ return $default(_that.idCardFrontUrl,_that.idCardBackUrl,_that.idCardNumber,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String idCardFrontUrl,  String idCardBackUrl,  String idCardNumber,  String selfieUrl,  String? verifiedBy,  DateTime? dateVerified)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String idCardNumber,  String? verifiedBy,  DateTime? dateVerified,  String? idCardFrontUrl,  String? idCardBackUrl,  String? selfieUrl)  $default,) {final _that = this;
 switch (_that) {
 case _VerificationData():
-return $default(_that.idCardFrontUrl,_that.idCardBackUrl,_that.idCardNumber,_that.selfieUrl,_that.verifiedBy,_that.dateVerified);case _:
+return $default(_that.idCardNumber,_that.verifiedBy,_that.dateVerified,_that.idCardFrontUrl,_that.idCardBackUrl,_that.selfieUrl);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +205,10 @@ return $default(_that.idCardFrontUrl,_that.idCardBackUrl,_that.idCardNumber,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String idCardFrontUrl,  String idCardBackUrl,  String idCardNumber,  String selfieUrl,  String? verifiedBy,  DateTime? dateVerified)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String idCardNumber,  String? verifiedBy,  DateTime? dateVerified,  String? idCardFrontUrl,  String? idCardBackUrl,  String? selfieUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _VerificationData() when $default != null:
-return $default(_that.idCardFrontUrl,_that.idCardBackUrl,_that.idCardNumber,_that.selfieUrl,_that.verifiedBy,_that.dateVerified);case _:
+return $default(_that.idCardNumber,_that.verifiedBy,_that.dateVerified,_that.idCardFrontUrl,_that.idCardBackUrl,_that.selfieUrl);case _:
   return null;
 
 }
@@ -213,16 +219,22 @@ return $default(_that.idCardFrontUrl,_that.idCardBackUrl,_that.idCardNumber,_tha
 /// @nodoc
 
 @JsonSerializable(fieldRename: FieldRename.snake)
-class _VerificationData implements VerificationData {
-  const _VerificationData({required this.idCardFrontUrl, required this.idCardBackUrl, required this.idCardNumber, required this.selfieUrl, this.verifiedBy, this.dateVerified});
+class _VerificationData extends VerificationData {
+  const _VerificationData({required this.idCardNumber, this.verifiedBy, this.dateVerified, this.idCardFrontUrl, this.idCardBackUrl, this.selfieUrl}): super._();
   factory _VerificationData.fromJson(Map<String, dynamic> json) => _$VerificationDataFromJson(json);
 
-@override final  String idCardFrontUrl;
-@override final  String idCardBackUrl;
+/// Ghana Card personal ID number, in the form `GHA-#########-#`.
 @override final  String idCardNumber;
-@override final  String selfieUrl;
+/// UID of the admin who verified the number.
 @override final  String? verifiedBy;
+/// When the number was verified.
 @override final  DateTime? dateVerified;
+/// Legacy, from the superseded document-upload flow. Never written.
+@override final  String? idCardFrontUrl;
+/// Legacy, from the superseded document-upload flow. Never written.
+@override final  String? idCardBackUrl;
+/// Legacy, from the superseded document-upload flow. Never written.
+@override final  String? selfieUrl;
 
 /// Create a copy of VerificationData
 /// with the given fields replaced by the non-null parameter values.
@@ -237,16 +249,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VerificationData&&(identical(other.idCardFrontUrl, idCardFrontUrl) || other.idCardFrontUrl == idCardFrontUrl)&&(identical(other.idCardBackUrl, idCardBackUrl) || other.idCardBackUrl == idCardBackUrl)&&(identical(other.idCardNumber, idCardNumber) || other.idCardNumber == idCardNumber)&&(identical(other.selfieUrl, selfieUrl) || other.selfieUrl == selfieUrl)&&(identical(other.verifiedBy, verifiedBy) || other.verifiedBy == verifiedBy)&&(identical(other.dateVerified, dateVerified) || other.dateVerified == dateVerified));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _VerificationData&&(identical(other.idCardNumber, idCardNumber) || other.idCardNumber == idCardNumber)&&(identical(other.verifiedBy, verifiedBy) || other.verifiedBy == verifiedBy)&&(identical(other.dateVerified, dateVerified) || other.dateVerified == dateVerified)&&(identical(other.idCardFrontUrl, idCardFrontUrl) || other.idCardFrontUrl == idCardFrontUrl)&&(identical(other.idCardBackUrl, idCardBackUrl) || other.idCardBackUrl == idCardBackUrl)&&(identical(other.selfieUrl, selfieUrl) || other.selfieUrl == selfieUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,idCardFrontUrl,idCardBackUrl,idCardNumber,selfieUrl,verifiedBy,dateVerified);
+int get hashCode => Object.hash(runtimeType,idCardNumber,verifiedBy,dateVerified,idCardFrontUrl,idCardBackUrl,selfieUrl);
 
 @override
 String toString() {
-  return 'VerificationData(idCardFrontUrl: $idCardFrontUrl, idCardBackUrl: $idCardBackUrl, idCardNumber: $idCardNumber, selfieUrl: $selfieUrl, verifiedBy: $verifiedBy, dateVerified: $dateVerified)';
+  return 'VerificationData(idCardNumber: $idCardNumber, verifiedBy: $verifiedBy, dateVerified: $dateVerified, idCardFrontUrl: $idCardFrontUrl, idCardBackUrl: $idCardBackUrl, selfieUrl: $selfieUrl)';
 }
 
 
@@ -257,7 +269,7 @@ abstract mixin class _$VerificationDataCopyWith<$Res> implements $VerificationDa
   factory _$VerificationDataCopyWith(_VerificationData value, $Res Function(_VerificationData) _then) = __$VerificationDataCopyWithImpl;
 @override @useResult
 $Res call({
- String idCardFrontUrl, String idCardBackUrl, String idCardNumber, String selfieUrl, String? verifiedBy, DateTime? dateVerified
+ String idCardNumber, String? verifiedBy, DateTime? dateVerified, String? idCardFrontUrl, String? idCardBackUrl, String? selfieUrl
 });
 
 
@@ -274,15 +286,15 @@ class __$VerificationDataCopyWithImpl<$Res>
 
 /// Create a copy of VerificationData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? idCardFrontUrl = null,Object? idCardBackUrl = null,Object? idCardNumber = null,Object? selfieUrl = null,Object? verifiedBy = freezed,Object? dateVerified = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? idCardNumber = null,Object? verifiedBy = freezed,Object? dateVerified = freezed,Object? idCardFrontUrl = freezed,Object? idCardBackUrl = freezed,Object? selfieUrl = freezed,}) {
   return _then(_VerificationData(
-idCardFrontUrl: null == idCardFrontUrl ? _self.idCardFrontUrl : idCardFrontUrl // ignore: cast_nullable_to_non_nullable
-as String,idCardBackUrl: null == idCardBackUrl ? _self.idCardBackUrl : idCardBackUrl // ignore: cast_nullable_to_non_nullable
-as String,idCardNumber: null == idCardNumber ? _self.idCardNumber : idCardNumber // ignore: cast_nullable_to_non_nullable
-as String,selfieUrl: null == selfieUrl ? _self.selfieUrl : selfieUrl // ignore: cast_nullable_to_non_nullable
+idCardNumber: null == idCardNumber ? _self.idCardNumber : idCardNumber // ignore: cast_nullable_to_non_nullable
 as String,verifiedBy: freezed == verifiedBy ? _self.verifiedBy : verifiedBy // ignore: cast_nullable_to_non_nullable
 as String?,dateVerified: freezed == dateVerified ? _self.dateVerified : dateVerified // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,idCardFrontUrl: freezed == idCardFrontUrl ? _self.idCardFrontUrl : idCardFrontUrl // ignore: cast_nullable_to_non_nullable
+as String?,idCardBackUrl: freezed == idCardBackUrl ? _self.idCardBackUrl : idCardBackUrl // ignore: cast_nullable_to_non_nullable
+as String?,selfieUrl: freezed == selfieUrl ? _self.selfieUrl : selfieUrl // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

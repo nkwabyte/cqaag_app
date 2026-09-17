@@ -3,9 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:uuid/uuid.dart' as uuid_pkg;
 import 'package:cqaag_app/index.dart';
-import 'package:cqaag_app/models/membership/membership_category.dart' as membership_models;
 
 class MembershipAgreementScreen extends ConsumerStatefulWidget {
   static const String id = 'membership_agreement_screen';
@@ -18,8 +16,6 @@ class MembershipAgreementScreen extends ConsumerStatefulWidget {
 }
 
 class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementScreen> {
-  bool _isSubmitting = false;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -86,7 +82,7 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
 
                   _buildLegalSection(
                     "1. Membership Categories",
-                    "C.Q.A.A.G offers Full, Associate, Corporate, and Honorary memberships. Eligibility, rights, and benefits for each category are subject to approval by the Membership Committee.",
+                    "C.Q.A.A.G offers Full, National Associate, Foreign Associate, Corporate, and Honorary memberships. Eligibility, rights, and benefits for each category are subject to approval by the Membership Committee.",
                   ),
 
                   _buildLegalSection(
@@ -96,7 +92,7 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
 
                   _buildLegalSection(
                     "3. Membership Obligations",
-                    "You agree to uphold high professional standards, comply with the Code of Conduct, pay registration and annual dues promptly, and promote the objectives of C.Q.A.A.G.",
+                    "You agree to uphold high professional standards, comply with the Code of Conduct, pay the registration fee and annual dues promptly as set out in the Board's fee schedule, and promote the objectives of C.Q.A.A.G.",
                   ),
 
                   _buildLegalSection(
@@ -161,13 +157,12 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   CustomButton(
-                    text: _isSubmitting ? "Registering..." : "Accept & Submit Application",
-                    isLoading: _isSubmitting,
-                    onPressed: _isSubmitting ? () {} : _handleAcceptAndRegister,
+                    text: "Accept & Continue to Payment",
+                    onPressed: _handleAcceptAndContinue,
                   ),
                   Gap(12.h),
                   OutlinedButton(
-                    onPressed: _isSubmitting ? null : _handleDecline,
+                    onPressed: _handleDecline,
                     style: OutlinedButton.styleFrom(
                       minimumSize: Size(double.infinity, 50.h),
                       shape: RoundedRectangleBorder(
@@ -217,216 +212,15 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
     context.goNamed(DashboardScreen.id);
   }
 
-  Future<void> _handleAcceptAndRegister() async {
-    final user = ref.read(authServiceProvider).currentUser;
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      final settings = await ref.read(paymentSettingsServiceProvider).getSettings();
-      final applicantEmail = widget.applicationData['email'] as String? ?? (user?.email ?? '');
-      final applicantUserId = user?.uid ?? 'guest_${const uuid_pkg.Uuid().v4().substring(0, 8)}';
-
-      final application = _buildApplication(
-        userId: applicantUserId,
-        userEmail: applicantEmail,
-        settings: settings,
-      );
-
-      await ref.read(membershipControllerProvider.notifier).submitApplication(application);
-
-      if (user != null) {
-        final currentUserProfile = ref.read(currentUserProfileProvider).value;
-        final isAlreadyVerified = currentUserProfile?.verificationStatus == VerificationStatus.verified;
-
-        final formData = widget.applicationData;
-        final updateData = <String, dynamic>{
-          'membership_status': 'applied',
-        };
-
-        if (!isAlreadyVerified) {
-          updateData['verification_status'] = 'pending';
-          updateData['verification'] = {
-            'id_card_front_url': formData['id_card_front_url'] as String? ?? '',
-            'id_card_back_url': formData['id_card_back_url'] as String? ?? '',
-            'selfie_url': formData['selfie_url'] as String? ?? '',
-            'id_card_number': formData['ghana_card_number'] as String? ?? '',
-          };
-        }
-
-        await ref.read(userServiceProvider).updateUserData(
-          user.uid,
-          updateData,
-        );
-      }
-
-      if (!mounted) return;
-
-      _showRegistrationSuccessDialog(application.id, isGuest: user == null);
-    } catch (e) {
-      if (!mounted) return;
-      CustomSnackBar.error(
-        context,
-        message: 'Failed to submit application: ${e.toString()}',
-        title: 'Registration Failed',
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
-  }
-
-  void _showRegistrationSuccessDialog(String applicationId, {required bool isGuest}) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    showModalBottomSheet(
-      context: context,
-      isDismissible: false,
-      enableDrag: false,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
-      builder: (bottomSheetContext) => SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.check_circle_outline, color: AppColors.primaryGreen, size: 52.r),
-              Gap(12.h),
-              const CustomText(
-                "Application Submitted for Review",
-                variant: TextVariant.headlineMedium,
-                fontWeight: FontWeight.bold,
-                textAlign: TextAlign.center,
-              ),
-              Gap(8.h),
-              CustomText(
-                "Your membership application and KYC identity verification documents have been received by the CQAAG Secretariat.",
-                variant: TextVariant.bodyMedium,
-                color: colorScheme.secondary,
-                textAlign: TextAlign.center,
-              ),
-              Gap(14.h),
-              Container(
-                padding: EdgeInsets.all(14.r),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryGreen.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.info_outline, color: AppColors.primaryGreen, size: 20.r),
-                    Gap(10.w),
-                    Expanded(
-                      child: CustomText(
-                        "Next Step: Once the Secretariat reviews and approves your KYC verification, you will be prompted to make the registration payment to activate your membership.",
-                        variant: TextVariant.bodySmall,
-                        color: AppColors.primaryGreen,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Gap(20.h),
-              CustomButton(
-                text: isGuest ? "Return to Home" : "Go to Dashboard",
-                onPressed: () {
-                  Navigator.of(bottomSheetContext).pop();
-                  if (isGuest) {
-                    context.goNamed(GuestHomeScreen.id);
-                  } else {
-                    context.goNamed(DashboardScreen.id);
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
+  /// Accepting the agreement moves the applicant on to the payment step; the
+  /// application itself is written there, once the fee is known.
+  ///
+  /// Nothing is persisted here, so an applicant who backs out of payment does
+  /// not leave a half-made membership record behind.
+  void _handleAcceptAndContinue() {
+    context.pushNamed(
+      MembershipPaymentScreen.id,
+      extra: Map<String, dynamic>.from(widget.applicationData),
     );
-  }
-
-  MembershipApplication _buildApplication({
-    required String userId,
-    required String userEmail,
-    required PaymentSettings settings,
-  }) {
-    final formData = widget.applicationData;
-
-    final titleStr = (formData['title'] as String?)?.toLowerCase() ?? 'mr';
-    final title = membership_models.Title.values.firstWhere(
-      (t) => t.name == titleStr,
-      orElse: () => membership_models.Title.mr,
-    );
-
-    final dobDateTime = formData['dob'] as DateTime?;
-    final dateOfBirth = dobDateTime?.toIso8601String() ?? DateTime.now().toIso8601String();
-
-    final now = DateTime.now();
-
-    return MembershipApplication(
-      id: const uuid_pkg.Uuid().v4(),
-      userId: userId,
-      title: title,
-      firstName: formData['first_name'] as String? ?? '',
-      lastName: formData['last_name'] as String? ?? '',
-      dateOfBirth: dateOfBirth,
-      gender: _parseGender(formData['gender'] as String?),
-      nationality: formData['nationality'] as String? ?? 'Ghanaian',
-      ghanaCardNumber: formData['ghana_card_number'] as String?,
-      phoneNumberPrimary: formData['phone'] as String? ?? '',
-      emailAddress: userEmail,
-      residentialAddress: formData['address'] as String? ?? '',
-      regionDistrict: formData['region'] as String? ?? '',
-      currentJobTitle: formData['job_title'] as String? ?? '',
-      employerOrganization: formData['employer'] as String? ?? '',
-      membershipCategory: _parseMembershipCategory(formData['membership_category'] as String?),
-      status: ApplicationStatus.submitted,
-      createdAt: now,
-      submittedAt: now,
-
-      paymentMethod: PaymentMethod.momo.value,
-      paymentStatus: PaymentStatus.unpaid.value,
-      paymentAmount: settings.registrationFee,
-      paymentCurrency: settings.currency,
-      paymentEvidenceUrl: null,
-      paymentReference: null,
-      paymentMomoNetwork: settings.network.value,
-      paymentMomoNumber: settings.momoNumber,
-      paymentSubmittedAt: null,
-    );
-  }
-
-  MembershipCategory _parseMembershipCategory(String? categoryStr) {
-    final lower = categoryStr?.toLowerCase().trim() ?? '';
-    if (lower.contains('foreign') || lower == 'full_foreign') {
-      return MembershipCategory.fullForeign;
-    }
-    if (lower.contains('associate')) {
-      return MembershipCategory.associate;
-    }
-    if (lower.contains('corporate')) {
-      return MembershipCategory.corporate;
-    }
-    if (lower.contains('honorary')) {
-      return MembershipCategory.honorary;
-    }
-    return MembershipCategory.full;
-  }
-
-  membership_models.Gender _parseGender(String? genderStr) {
-    switch (genderStr?.toLowerCase()) {
-      case 'female':
-        return membership_models.Gender.female;
-      case 'prefer not to say':
-        return membership_models.Gender.preferNotToSay;
-      default:
-        return membership_models.Gender.male;
-    }
   }
 }

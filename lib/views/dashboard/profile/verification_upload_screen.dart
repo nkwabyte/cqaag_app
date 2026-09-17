@@ -1,16 +1,23 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:cqaag_app/index.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
-import 'package:form_builder_validators/form_builder_validators.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+/// Ghana Card verification (KYC).
+///
+/// Current Ghanaian law limits what the Association may collect to the Ghana
+/// Card *number*. No photograph of the card and no selfie is captured, so this
+/// screen takes one field and validates it hard: the number is the only piece
+/// of identity evidence an admin will have to verify against, which makes its
+/// structural correctness and uniqueness the whole of the check.
 class VerificationUploadScreen extends ConsumerStatefulWidget {
   static const String id = 'verification_upload_screen';
+
+  /// Set when this is a step of the membership application flow, in which case
+  /// the number is carried forward rather than written on its own.
   final Map<String, dynamic>? applicationData;
 
   const VerificationUploadScreen({super.key, this.applicationData});
@@ -21,161 +28,103 @@ class VerificationUploadScreen extends ConsumerStatefulWidget {
 
 class _VerificationUploadScreenState extends ConsumerState<VerificationUploadScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
-
-  File? _idFrontFile;
-  File? _idBackFile;
-  File? _selfieFile;
   bool _isLoading = false;
 
-  /// Offers the camera, the gallery or the file browser, so a Ghana Card can be
-  /// photographed on the spot instead of having to exist as a file already.
-  Future<void> _pickDocument(void Function(File) onPick) async {
-    try {
-      final file = await ImageSourcePicker.pick(
-        context,
-        cameraLabel: 'Take a photo of the card',
-      );
+  /// Live preview of whether what has been typed so far is a valid number.
+  bool _isNumberValid = false;
 
-      if (file != null) {
-        setState(() {
-          onPick(file);
-        });
-      }
-    } catch (e) {
-      if (mounted) CustomSnackBar.error(context, message: 'Error picking document: $e');
-    }
-  }
-
-  /// Defaults to the front camera, but still allows picking an existing photo.
-  Future<void> _takeSelfie(void Function(File) onPick) async {
-    try {
-      final file = await ImageSourcePicker.pick(
-        context,
-        useFrontCamera: true,
-        cameraLabel: 'Take a selfie',
-        fileLabel: 'Choose an existing photo',
-      );
-
-      if (file != null) {
-        setState(() {
-          onPick(file);
-        });
-      }
-    } catch (e) {
-      debugPrint(e.toString());
-      if (mounted) CustomSnackBar.error(context, message: 'Error taking selfie: $e');
-    }
-  }
+  bool get _isApplicationStep => widget.applicationData != null;
 
   Future<void> _submitVerification() async {
-    if (_formKey.currentState?.saveAndValidate() ?? false) {
-      if (_idFrontFile == null) {
-        CustomSnackBar.error(context, message: 'Please upload the front of your Ghana Card.');
-        return;
-      }
-      if (_idBackFile == null) {
-        CustomSnackBar.error(context, message: 'Please upload the back of your Ghana Card.');
-        return;
-      }
-      if (_selfieFile == null) {
-        CustomSnackBar.error(context, message: 'Please take a selfie.');
-        return;
-      }
+    if (!(_formKey.currentState?.saveAndValidate() ?? false)) return;
 
-      setState(() => _isLoading = true);
-      AppDialogs.showLoadingDialog(context, message: "Uploading Verification Documents");
+    final raw = _formKey.currentState!.value['ghana_card_number'] as String?;
+    final ghanaCardNumber = GhanaCard.normalise(raw);
 
-      try {
-        final cloudinary = ref.read(cloudinaryServiceProvider);
+    // saveAndValidate already ran the same check, so this only guards against
+    // a number that formats but does not normalise.
+    if (ghanaCardNumber == null) {
+      CustomSnackBar.error(context, message: 'Enter a valid Ghana Card number in the form ${GhanaCard.placeholder}.');
+      return;
+    }
 
-        // Upload images
-        final frontUrl = await cloudinary.uploadIdentityDocument(_idFrontFile!);
-        final backUrl = await cloudinary.uploadIdentityDocument(_idBackFile!);
-        final selfieUrl = await cloudinary.uploadIdentityDocument(_selfieFile!);
+    setState(() => _isLoading = true);
 
-        if (frontUrl == null || backUrl == null || selfieUrl == null) {
-          throw Exception("Failed to upload one or more images.");
-        }
+    try {
+      final currentUser = ref.read(authServiceProvider).currentUser;
 
-        final formData = _formKey.currentState!.value;
-        final ghanaCardNumber = formData['ghana_card_number'] as String;
+      // One Ghana Card may only back one membership. Checked here so the
+      // applicant is told immediately rather than being rejected at review.
+      final takenBy = await ref.read(membershipServiceProvider).findApplicationByGhanaCardNumber(
+        ghanaCardNumber,
+        excludingUserId: currentUser?.uid,
+      );
 
-        // When part of membership application flow
-        if (widget.applicationData != null) {
-          if (mounted) {
-            if (_isLoading) {
-              Navigator.of(context, rootNavigator: true).pop();
-              setState(() => _isLoading = false);
-            }
-
-            final combinedData = Map<String, dynamic>.from(widget.applicationData!);
-            combinedData['ghana_card_number'] = ghanaCardNumber;
-            combinedData['id_card_front_url'] = frontUrl;
-            combinedData['id_card_back_url'] = backUrl;
-            combinedData['selfie_url'] = selfieUrl;
-
-            context.pushNamed(
-              MembershipAgreementScreen.id,
-              extra: combinedData,
-            );
-          }
-          return;
-        }
-
-        final verificationData = VerificationData(
-          idCardFrontUrl: frontUrl,
-          idCardBackUrl: backUrl,
-          idCardNumber: ghanaCardNumber,
-          selfieUrl: selfieUrl,
+      if (takenBy != null) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        CustomSnackBar.error(
+          context,
+          title: 'Ghana Card already registered',
+          message: 'This Ghana Card number is already on a CQAAG membership record. '
+              'Please check the number, or contact the Secretariat if you believe this is an error.',
         );
-
-        final currentUser = ref.read(authServiceProvider).currentUser;
-        if (currentUser != null) {
-          await ref.read(userServiceProvider).updateUserData(
-            currentUser.uid,
-            {
-              'verification': verificationData.toJson(),
-              'verification_status': VerificationStatus.pending.name,
-            },
-          );
-
-          if (mounted) {
-            if (_isLoading) {
-              Navigator.of(context, rootNavigator: true).pop();
-              setState(() => _isLoading = false);
-            }
-            if (context.canPop()) {
-              context.pop();
-            } else {
-              context.goNamed(DashboardScreen.id);
-            }
-            CustomSnackBar.success(context, message: 'Verification submitted successfully!');
-            ref.invalidate(currentUserProfileProvider);
-          }
-        } else {
-          throw Exception("User profile not found. Please log in again.");
-        }
-      } catch (e) {
-        debugPrint('Submission error: $e');
-        if (mounted) {
-          if (_isLoading) {
-            Navigator.of(context, rootNavigator: true).pop();
-            setState(() => _isLoading = false);
-          }
-          CustomSnackBar.error(context, message: 'Submission failed: $e');
-        }
+        return;
       }
+
+      // Part of the application flow: hand the number to the next step.
+      if (_isApplicationStep) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+
+        final combinedData = Map<String, dynamic>.from(widget.applicationData!);
+        combinedData['ghana_card_number'] = ghanaCardNumber;
+
+        context.pushNamed(MembershipAgreementScreen.id, extra: combinedData);
+        return;
+      }
+
+      // Standalone verification from the profile screen.
+      if (currentUser == null) {
+        throw Exception('User profile not found. Please log in again.');
+      }
+
+      await ref.read(userServiceProvider).updateUserData(
+        currentUser.uid,
+        {
+          'verification': VerificationData(idCardNumber: ghanaCardNumber).toJson(),
+          'verification_status': VerificationStatus.pending.value,
+        },
+      );
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      ref.invalidate(currentUserProfileProvider);
+      CustomSnackBar.success(context, message: 'Ghana Card number submitted for verification.');
+
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.goNamed(DashboardScreen.id);
+      }
+    } catch (e) {
+      debugPrint('Ghana Card verification error: $e');
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      CustomSnackBar.error(context, message: 'Submission failed: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         title: const CustomText(
-          "Identity Verification",
+          "Ghana Card Verification",
           variant: TextVariant.displayMedium,
         ),
         backgroundColor: theme.colorScheme.onSurface,
@@ -189,67 +138,48 @@ class _VerificationUploadScreenState extends ConsumerState<VerificationUploadScr
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                CustomText(
+                const CustomText(
                   "Verify Your Identity",
                   variant: TextVariant.headlineMedium,
                   fontWeight: FontWeight.bold,
                 ),
                 Gap(8.h),
                 CustomText(
-                  "Please provide your Ghana Card details and a selfie to verify your account.",
+                  "Enter the personal ID number printed on the front of your Ghana Card. "
+                  "The Secretariat verifies this number against the National Identification Register.",
                   variant: TextVariant.bodyMedium,
-                ),
-                Gap(32.h),
-
-                // Ghana Card Front
-                _buildImageUploadCard(
-                  title: "Ghana Card (Front)",
-                  description: "Upload the front view of your Ghana Card.",
-                  file: _idFrontFile,
-                  onTap: () => _pickDocument((file) => _idFrontFile = file),
-                ),
-                Gap(16.h),
-
-                // Ghana Card Back
-                _buildImageUploadCard(
-                  title: "Ghana Card (Back)",
-                  description: "Upload the back view of your Ghana Card.",
-                  file: _idBackFile,
-                  onTap: () => _pickDocument((file) => _idBackFile = file),
+                  color: colorScheme.secondary,
                 ),
                 Gap(24.h),
 
-                // Ghana Card Number Field
+                _buildPrivacyNotice(colorScheme),
+                Gap(24.h),
+
                 CustomTextField(
                   name: 'ghana_card_number',
                   label: 'Ghana Card Number',
-                  hint: 'GHA-000000000-0',
-                  initialValue: 'GHA-',
-                  validator: FormBuilderValidators.compose([
-                    FormBuilderValidators.required(),
-                    FormBuilderValidators.minLength(15, errorText: "Invalid Ghana Card Number"),
-                    FormBuilderValidators.maxLength(15, errorText: "Invalid Ghana Card Number"),
-                  ]),
-                  inputFormatters: [
-                    GhanaCardFormatter(),
-                  ],
+                  hint: GhanaCard.placeholder,
+                  initialValue: GhanaCard.prefix,
+                  keyboardType: TextInputType.number,
+                  validator: (value) => GhanaCard.validationError(value),
+                  inputFormatters: [GhanaCardFormatter()],
+                  onChanged: (value) {
+                    final valid = GhanaCard.isValid(value);
+                    if (valid != _isNumberValid) {
+                      setState(() => _isNumberValid = valid);
+                    }
+                  },
+                ),
+                Gap(8.h),
+                _buildFormatHint(colorScheme),
+
+                Gap(32.h),
+                CustomButton(
+                  text: _isApplicationStep ? "Continue to Membership Agreement" : "Submit for Verification",
+                  isLoading: _isLoading,
+                  onPressed: _isLoading ? () {} : _submitVerification,
                 ),
                 Gap(24.h),
-
-                // Selfie
-                _buildImageUploadCard(
-                  title: "Selfie",
-                  description: "Take a selfie to verify your identity.",
-                  file: _selfieFile,
-                  onTap: () => _takeSelfie((file) => _selfieFile = file),
-                  icon: Icons.camera_alt_outlined,
-                ),
-                Gap(40.h),
-
-                CustomButton(
-                  text: widget.applicationData != null ? "Continue to Membership Agreement" : "Submit Verification",
-                  onPressed: _submitVerification,
-                ),
               ],
             ),
           ),
@@ -258,110 +188,68 @@ class _VerificationUploadScreenState extends ConsumerState<VerificationUploadScr
     );
   }
 
-  Widget _buildImageUploadCard({
-    required String title,
-    required String description,
-    File? file,
-    required VoidCallback onTap,
-    IconData icon = Icons.credit_card,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12.r),
-      child: Container(
-        padding: EdgeInsets.all(16.r),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 60.r,
-              height: 60.r,
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8.r),
-                image: file != null ? DecorationImage(image: FileImage(file), fit: BoxFit.cover) : null,
-              ),
-              child: file == null ? Icon(icon, color: Theme.of(context).primaryColor, size: 30.r) : null,
+  /// States plainly that no card images are taken. Applicants who went through
+  /// the old flow, or who expect to be asked for photographs, would otherwise
+  /// assume the step is unfinished.
+  Widget _buildPrivacyNotice(ColorScheme colorScheme) {
+    return Container(
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: AppColors.primaryGreen.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.privacy_tip_outlined, color: AppColors.primaryGreen, size: 22.r),
+          Gap(12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const CustomText(
+                  "We no longer collect card images",
+                  variant: TextVariant.bodyMedium,
+                  fontWeight: FontWeight.bold,
+                ),
+                Gap(4.h),
+                CustomText(
+                  "In line with current Ghanaian identity law, CQAAG records your Ghana Card "
+                  "number only. Do not send photographs of your card to anyone claiming to "
+                  "act for the Association.",
+                  variant: TextVariant.bodySmall,
+                  color: colorScheme.secondary,
+                ),
+              ],
             ),
-            Gap(16.w),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CustomText(title, variant: TextVariant.labelLarge, fontWeight: FontWeight.bold),
-                  Gap(4.h),
-                  CustomText(description, variant: TextVariant.bodySmall, color: Colors.grey),
-                ],
-              ),
-            ),
-            Icon(
-              file != null ? Icons.check_circle : Icons.upload_file,
-              color: file != null ? Colors.green : Colors.grey,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class GhanaCardFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    String text = newValue.text;
-
-    // Ensure it starts with GHA-
-    if (!text.startsWith('GHA-')) {
-      // If user tries to delete prefix, keep it
-      if (oldValue.text.startsWith('GHA-') && text.length < 4) {
-        return oldValue;
-      }
-      // Or prepend it if completely cleared
-      if (text.isEmpty) {
-        return const TextEditingValue(
-          text: 'GHA-',
-          selection: TextSelection.collapsed(offset: 4),
-        );
-      }
-      return const TextEditingValue(
-        text: 'GHA-',
-        selection: TextSelection.collapsed(offset: 4),
-      );
-    }
-
-    // Logic for hyphens
-    // GHA- => 4 chars
-    // digits => 9
-    // auto add -
-
-    // Clean text to just digits after 'GHA-'
-    String cleanText = text.substring(4).replaceAll(RegExp(r'[^0-9]'), '');
-
-    String newText = 'GHA-';
-
-    if (cleanText.isNotEmpty) {
-      if (cleanText.length > 9) {
-        newText +=
-            '${cleanText.substring(0, 9)}-${cleanText.substring(9, cleanText.length > 10 ? 10 : cleanText.length)}';
-      } else {
-        newText += cleanText;
-        // Auto-add hyphen if 9 digits entered and user is adding text (not deleting)
-        if (cleanText.length == 9 && newValue.text.length > oldValue.text.length) {
-          newText += '-';
-        }
-      }
-    }
-
-    return TextEditingValue(
-      text: newText,
-      selection: TextSelection.collapsed(offset: newText.length),
+  /// Confirms the structure as it is typed, so a mistyped number is caught
+  /// before submission rather than at review.
+  Widget _buildFormatHint(ColorScheme colorScheme) {
+    return Row(
+      children: [
+        Icon(
+          _isNumberValid ? Icons.check_circle : Icons.info_outline,
+          size: 16.r,
+          color: _isNumberValid ? AppColors.primaryGreen : colorScheme.secondary,
+        ),
+        Gap(6.w),
+        Expanded(
+          child: CustomText(
+            _isNumberValid
+                ? "Valid Ghana Card number format."
+                : "Format: ${GhanaCard.placeholder} — nine digits followed by a single check digit.",
+            variant: TextVariant.bodySmall,
+            color: _isNumberValid ? AppColors.primaryGreen : colorScheme.secondary,
+          ),
+        ),
+      ],
     );
   }
 }

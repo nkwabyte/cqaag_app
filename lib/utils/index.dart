@@ -21,3 +21,4 @@ export 'firebase_error_mapper.dart';
 export 'id_utils.dart';
 export 'image_source_picker.dart';
 export 'animations/index.dart';
+export 'ghana_card.dart';

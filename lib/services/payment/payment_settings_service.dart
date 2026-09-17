@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import 'package:cqaag_app/models/payment/fee_schedule.dart';
 import 'package:cqaag_app/models/payment/payment_settings.dart';
 
 part 'payment_settings_service.g.dart';
@@ -74,27 +75,41 @@ class PaymentSettingsService {
       out['updated_at'] = updatedAt.toDate().toIso8601String();
     }
 
+    // Firestore hands nested maps back as Map<Object?, Object?>, which the
+    // generated fromJson will not accept as a Map<String, dynamic>.
+    final schedule = out['fee_schedule'];
+    if (schedule is Map) {
+      out['fee_schedule'] = Map<String, dynamic>.from(schedule);
+    }
+
     return out;
   }
 
-  /// Persists the fee and MoMo account. Admin only, enforced by Firestore rules.
+  /// Persists the MoMo account, and optionally a new fee schedule.
+  /// Admin only, enforced by Firestore rules.
+  ///
+  /// When [feeSchedule] is given, the legacy flat `registration_fee` fields are
+  /// rewritten from it as well, so any client still reading those — including
+  /// older installs of this app — quotes a figure consistent with the schedule.
   Future<void> updateSettings({
-    required double registrationFee,
-    double foreignRegistrationFee = 1500.0,
     required MomoNetwork momoNetwork,
     required String momoNumber,
     required String momoAccountName,
     required String updatedBy,
+    FeeSchedule? feeSchedule,
   }) async {
     await _settingsDoc.set({
-      'registration_fee': registrationFee,
-      'foreign_registration_fee': foreignRegistrationFee,
       'currency': 'GHS',
       'momo_network': momoNetwork.value,
       'momo_number': momoNumber,
       'momo_account_name': momoAccountName,
       'updated_at': DateTime.now().toIso8601String(),
       'updated_by': updatedBy,
+      if (feeSchedule != null) ...{
+        'fee_schedule': feeSchedule.toJson(),
+        'registration_fee': feeSchedule.registrationFeeFor(FeeCategory.full),
+        'foreign_registration_fee': feeSchedule.registrationFeeFor(FeeCategory.foreignAssociate),
+      },
     }, SetOptions(merge: true));
   }
 }

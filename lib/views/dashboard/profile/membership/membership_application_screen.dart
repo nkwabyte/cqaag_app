@@ -19,6 +19,9 @@ class MembershipApplicationScreen extends ConsumerStatefulWidget {
 class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicationScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
 
+  /// Drives the fee preview below the category dropdown.
+  MembershipCategory _selectedCategory = MembershipCategory.full;
+
   void _navigateToNextStep() {
     if (_formKey.currentState?.saveAndValidate() ?? false) {
       final formData = Map<String, dynamic>.from(_formKey.currentState!.value);
@@ -28,13 +31,14 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
           user?.verificationStatus == VerificationStatus.pending ||
           user?.verification != null;
 
-      if (isAlreadyVerifiedOrPending) {
-        if (user?.verification != null) {
-          formData['ghana_card_number'] = user!.verification!.idCardNumber;
-          formData['id_card_front_url'] = user.verification!.idCardFrontUrl;
-          formData['id_card_back_url'] = user.verification!.idCardBackUrl;
-          formData['selfie_url'] = user.verification!.selfieUrl;
-        }
+      // A member who already has a valid Ghana Card number on file is not asked
+      // for it again; anything else — including a number stored before the
+      // format was enforced — goes back through verification.
+      final existingNumber = user?.verification?.idCardNumber;
+      final hasUsableNumber = isAlreadyVerifiedOrPending && GhanaCard.isValid(existingNumber);
+
+      if (hasUsableNumber) {
+        formData['ghana_card_number'] = GhanaCard.normalise(existingNumber);
 
         context.pushNamed(
           MembershipAgreementScreen.id,
@@ -60,12 +64,12 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
     final colorScheme = theme.colorScheme;
     final user = ref.watch(currentUserProfileProvider).value;
 
-    final isAlreadyVerifiedOrPending = user?.verificationStatus == VerificationStatus.verified ||
-        user?.verificationStatus == VerificationStatus.pending ||
-        user?.verification != null;
+    final hasUsableNumber = (user?.verificationStatus == VerificationStatus.verified ||
+            user?.verificationStatus == VerificationStatus.pending) &&
+        GhanaCard.isValid(user?.verification?.idCardNumber);
 
     final initialValues = {
-      'membership_category': 'Full Member (Ghanaian)',
+      'membership_category': MembershipCategory.full.value,
       'title': 'Mr',
       'first_name': user?.firstName ?? '',
       'last_name': user?.lastName ?? '',
@@ -95,6 +99,7 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     // Section 1: Category
                     _buildSectionTitle("1. Membership Category"),
                     _buildCategoryDropdown(colorScheme),
+                    _buildFeePreview(colorScheme),
 
                     Gap(30.h),
                     // Section 2: Personal
@@ -190,7 +195,7 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     Gap(40.h),
                     // Action Button to proceed to Agreement
                     CustomButton(
-                      text: isAlreadyVerifiedOrPending ? "Review & Sign Agreement" : "Continue to Identity Verification",
+                      text: hasUsableNumber ? "Review & Sign Agreement" : "Continue to Ghana Card Verification",
                       onPressed: _navigateToNextStep,
                     ),
                     Gap(40.h),
@@ -262,14 +267,101 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
         ),
       ),
       hint: const CustomText("Select category", variant: TextVariant.bodyMedium),
-      items: [
-        'Full Member (Ghanaian)',
-        'Full Member (Foreign QC)',
-        'Associate Member',
-        'Corporate Member',
-        'Honorary Member',
-      ].map((cat) => DropdownMenuItem(value: cat, child: CustomText(cat))).toList(),
+      // Driven by the enum so the labels here can never drift from the ones the
+      // fee schedule and the admin screens use.
+      items: MembershipCategory.values
+          .map((cat) => DropdownMenuItem(value: cat.value, child: CustomText(cat.displayName)))
+          .toList(),
+      onChanged: (value) => setState(() => _selectedCategory = _categoryFromValue(value)),
       validator: FormBuilderValidators.required(),
+    );
+  }
+
+  MembershipCategory _categoryFromValue(String? value) {
+    return MembershipCategory.values.firstWhere(
+      (cat) => cat.value == value,
+      orElse: () => MembershipCategory.full,
+    );
+  }
+
+  /// What the selected category owes, shown before the applicant commits to it.
+  ///
+  /// The dues differ sharply between categories — a Foreign Associate Member
+  /// pays five times a Full Member's annual dues — so choosing blind and finding
+  /// out at the payment step would be a poor surprise.
+  Widget _buildFeePreview(ColorScheme colorScheme) {
+    final settings = ref.watch(paymentSettingsProvider).value ?? PaymentSettings.defaults;
+    final feeCategory = FeeCategory.fromMembership(_selectedCategory);
+    final schedule = settings.schedule;
+
+    if (feeCategory.isExempt) {
+      return _buildFeePreviewShell(
+        colorScheme,
+        child: CustomText(
+          "Honorary Members pay no registration fee and no annual dues.",
+          variant: TextVariant.bodySmall,
+          color: colorScheme.secondary,
+        ),
+      );
+    }
+
+    return _buildFeePreviewShell(
+      colorScheme,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildFeePreviewRow("Registration Fee", settings.money(schedule.registrationFeeFor(feeCategory))),
+          Gap(4.h),
+          _buildFeePreviewRow("Annual Dues", settings.money(schedule.annualDuesFor(feeCategory))),
+          Gap(6.h),
+          const Divider(height: 1),
+          Gap(6.h),
+          _buildFeePreviewRow(
+            "Payable on registration",
+            settings.money(schedule.mandatoryTotalFor(feeCategory)),
+            isBold: true,
+          ),
+          Gap(6.h),
+          CustomText(
+            "Optional kit items can be added at the payment step.",
+            variant: TextVariant.bodySmall,
+            color: colorScheme.secondary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeePreviewShell(ColorScheme colorScheme, {required Widget child}) {
+    return Container(
+      margin: EdgeInsets.only(top: 12.h),
+      padding: EdgeInsets.all(14.r),
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.15)),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildFeePreviewRow(String label, String amount, {bool isBold = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: CustomText(
+            label,
+            variant: TextVariant.bodySmall,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        CustomText(
+          amount,
+          variant: TextVariant.bodySmall,
+          fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+        ),
+      ],
     );
   }
 

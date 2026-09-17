@@ -1,24 +1,33 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-/// Enum representing different membership categories in C.Q.A.A.G
+/// The membership categories of Constitution Art. 2, as amended.
+///
+/// The stored JSON values predate the amendment and are kept as they are, so
+/// existing records still read; the labels follow the amended Constitution and
+/// the Board's fee schedule.
 enum MembershipCategory {
-  /// Full Members (Ghanaian): Ghanaian QC professionals (voting rights)
+  /// Full Membership: indigenous (Ghanaian) cashew QC professionals. Votes,
+  /// may hold office, and may be recommended to TCDA for licensing.
   @JsonValue('full')
   full,
 
-  /// Full Members (Foreign QC): Foreign/International QC professionals (voting rights)
+  /// Foreign Associate Members (Art. 2.1(b)): foreign cashew quality analysts
+  /// coming to practise in Ghana. No vote, but TCDA-licensing eligible.
   @JsonValue('full_foreign')
   fullForeign,
 
-  /// Associate Members: Interested individuals/entities (non-voting)
+  /// National Associate Members (Art. 2.1(a)): Ghanaian nationals interested in
+  /// the Association's work but not fully eligible. No vote.
   @JsonValue('associate')
   associate,
 
-  /// Corporate Members: Entities supporting quality efforts (non-voting)
+  /// Corporate Members: laboratories, processors and organizations supporting
+  /// quality efforts. No vote.
   @JsonValue('corporate')
   corporate,
 
-  /// Honorary Members: Distinguished individuals nominated by Board (non-voting)
+  /// Honorary Members: distinguished individuals nominated by the Board.
+  /// No vote, and pay no fees.
   @JsonValue('honorary')
   honorary
   ;
@@ -27,11 +36,11 @@ enum MembershipCategory {
   String get displayName {
     switch (this) {
       case MembershipCategory.full:
-        return 'Full Member (Ghanaian)';
+        return 'Full Member';
       case MembershipCategory.fullForeign:
-        return 'Full Member (Foreign QC)';
+        return 'Foreign Associate Member';
       case MembershipCategory.associate:
-        return 'Associate Member';
+        return 'National Associate Member';
       case MembershipCategory.corporate:
         return 'Corporate Member';
       case MembershipCategory.honorary:
@@ -43,22 +52,34 @@ enum MembershipCategory {
   String get description {
     switch (this) {
       case MembershipCategory.full:
-        return 'Ghanaian certified cashew quality control professional (voting rights)';
+        return 'Experienced Ghanaian cashew quality control professional. Votes, may hold executive office, and may be recommended to TCDA for licensing.';
       case MembershipCategory.fullForeign:
-        return 'International / Foreign cashew quality control professional (voting rights)';
+        return 'Foreign cashew quality analyst coming to practise in Ghana. Non-voting, but may be recommended to TCDA for licensing.';
       case MembershipCategory.associate:
-        return 'Individuals or entities interested in the Association\'s work but not meeting full eligibility (non-voting)';
+        return 'Ghanaian national interested in the Association\'s work but not meeting full eligibility, e.g. a student or trainee. Non-voting.';
       case MembershipCategory.corporate:
-        return 'Entities, processors, or organizations supporting quality efforts (non-voting)';
+        return 'Laboratory, processor, or organization supporting quality efforts. Non-voting.';
       case MembershipCategory.honorary:
-        return 'Distinguished individuals nominated by the Board for significant contributions (non-voting)';
+        return 'Distinguished individual nominated by the Board for significant contributions. Non-voting and pays no fees.';
     }
   }
 
-  /// Check if this category has voting rights
-  bool get hasVotingRights {
-    return this == MembershipCategory.full || this == MembershipCategory.fullForeign;
-  }
+  /// Whether this category carries voting rights (Art. 2 and 3, as amended).
+  ///
+  /// Only Full Membership does — Foreign Associate Members are TCDA-licensing
+  /// eligible but do not vote.
+  bool get hasVotingRights => this == MembershipCategory.full;
+
+  /// Whether this category may hold executive office.
+  bool get canHoldOffice => this == MembershipCategory.full;
+
+  /// Whether members of this category may be recommended to the TCDA for
+  /// licensing to practise nationwide (Art. 2, as amended).
+  bool get isTcdaLicensingEligible =>
+      this == MembershipCategory.full || this == MembershipCategory.fullForeign;
+
+  /// Honorary Members pay no fees at all.
+  bool get isFeeExempt => this == MembershipCategory.honorary;
 
   /// Get the JSON value
   String get value {
