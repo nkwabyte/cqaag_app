@@ -36,19 +36,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   void _initializeLayout() {
     final user = ref.read(currentUserProfileProvider).value;
-    final guestMode = ref.read(guestModeProvider);
 
-    // If user is logged in, force disable guest mode if it was left active
-    if (user != null && guestMode == AuthMode.guest) {
-      ref.read(guestModeProvider.notifier).disableGuestMode();
-    }
-
-    final isGuest = (user == null || guestMode == AuthMode.guest);
-
-    if (isGuest) {
+    if (user == null) {
+      // Profile still loading (the router keeps signed-out users away from here).
       navItems = [];
-      pages = <Widget>[
-        const GuestHomeScreen(),
+      pages = const <Widget>[
+        Center(child: CircularProgressIndicator()),
       ];
     } else {
       _isAdmin = user.isAdmin;
@@ -82,18 +75,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           });
         }
       });
-    });
-
-    // Listen for guest mode changes
-    ref.listen(guestModeProvider, (previous, next) {
-      if (mounted) {
-        setState(() {
-          _initializeLayout();
-          if (_selectedIndex >= pages.length) {
-            _selectedIndex = 0;
-          }
-        });
-      }
     });
 
     final colorScheme = Theme.of(context).colorScheme;
@@ -140,29 +121,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       drawer: AppDrawer(
         onDashboardTap: () {
           Navigator.pop(context);
-          if (ref.read(guestModeProvider) == AuthMode.guest) {
-            ref.read(guestModeProvider.notifier).disableGuestMode();
-            // Maybe setAuthenticated? Depends on logic. disable sets to unauth.
-            // But user provider still present. Dashboard checks user != null.
-            // So disableGuestMode is fine (clears guest flag).
-          }
           setState(() {
             _selectedIndex = 0; // Navigate to Home tab
           });
         },
         onHomeTap: () {
           Navigator.pop(context);
-          ref.read(guestModeProvider.notifier).enableGuestMode();
-          // No need to set index, Guest layout has 1 page.
+          setState(() {
+            _selectedIndex = 0; // Navigate to Home tab
+          });
         },
         onSettingsTap: () {
           Navigator.pop(context);
-          // If in guest mode, maybe switch back to auth mode to show profile?
-          if (ref.read(guestModeProvider) == AuthMode.guest) {
-            ref.read(guestModeProvider.notifier).disableGuestMode();
-          }
           setState(() {
-            _selectedIndex = 3; // Navigate to Profile tab
+            _selectedIndex = pages.length - 1; // Profile is always the last tab
           });
         },
       ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:cqaag_app/index.dart';
@@ -13,16 +12,8 @@ class TermsAndConditionsScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
     final user = ref.watch(currentUserProfileProvider).value;
     final isAuthenticated = user != null;
-
-    // Check if coming from register screen
-    final state = GoRouterState.of(context);
-    final extra = state.extra as Map<String, dynamic>?;
-    final fromRegister = extra?['fromRegister'] as bool? ?? false;
-    final showBackButton = !fromRegister;
 
     final isLoading = useState(false);
 
@@ -48,120 +39,17 @@ class TermsAndConditionsScreen extends HookConsumerWidget {
       }
     }
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      extendBodyBehindAppBar: true,
-      body: Column(
-        children: <Widget>[
-          // 1. Focused Header (No Back Button)
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            decoration: BoxDecoration(
-              color: AppColors.darkRed,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(50.r),
-                bottomRight: Radius.circular(50.r),
-              ),
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                children: <Widget>[
-                  Gap(40.h),
-                  Row(
-                    children: [
-                      if (showBackButton)
-                        InkWell(
-                          onTap: () => Navigator.pop(context),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.arrow_back, color: Colors.white, size: 20.r),
-                              Gap(8.w),
-                              const CustomText("Back", color: Colors.white),
-                            ],
-                          ),
-                        ),
-                      if (showBackButton) Gap(24.h), // Only add gap if button is shown
-                    ],
-                  ),
-                  Gap(12.h),
-                  const CustomText(
-                    "Terms of Service",
-                    variant: TextVariant.displaySmall,
-                    color: Colors.white,
-                    textAlign: TextAlign.center,
-                  ),
-                  Gap(12.h),
-                  CustomText(
-                    "Effective Date: January 05, 2026",
-                    variant: TextVariant.bodySmall,
-                    color: Colors.white.withValues(alpha: 0.7),
-                  ),
-                  Gap(40.h),
-                ],
-              ),
-            ),
-          ),
+    // Arriving straight from registration there is nothing to go back to.
+    final extra = GoRouterState.of(context).extra as Map<String, dynamic>?;
+    final fromRegister = extra?['fromRegister'] as bool? ?? false;
 
-          // 2. Scrollable Terms Content
-          Expanded(
-            child: SafeArea(
-              top: false,
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(24.r),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    CustomText(
-                      "By using the C.Q.A.A.G Platform, you agree to be bound by these Terms. If you do not agree, please do not use the service.",
-                      variant: TextVariant.bodyLarge,
-                      color: colorScheme.secondary,
-                    ),
-                    Gap(24.h),
-                    _buildLegalSection(
-                      "1. Acceptance of Terms",
-                      "These Terms constitute a binding agreement between you and C.Q.A.A.G. Continued use of the platform after changes constitutes acceptance of updated Terms.",
-                    ),
-                    _buildLegalSection(
-                      "2. Authorized Use",
-                      "You may use this platform for lawful, professional purposes including quality inspections, reporting, and accessing association resources.",
-                    ),
-                    _buildLegalSection(
-                      "3. User Conduct",
-                      "You agree not to violate Ghanaian law, disrupt servers, or upload malicious code. Unauthorized access to data is strictly prohibited.",
-                    ),
-                    _buildLegalSection(
-                      "4. Intellectual Property",
-                      "All content, including text, logos, and report formats, is owned by C.Q.A.A.G. Reproduction without written permission is prohibited.",
-                    ),
-                    _buildLegalSection(
-                      "5. Membership Data",
-                      "You are responsible for maintaining the confidentiality of your login credentials and providing accurate professional information.",
-                    ),
-                    _buildLegalSection(
-                      "6. Limitation of Liability",
-                      "C.Q.A.A.G is not liable for indirect or incidental damages arising from platform use. Our liability is limited to fees paid in the last 12 months.",
-                    ),
-                    _buildLegalSection(
-                      "7. Governing Law",
-                      "These Terms are governed by the laws of the Republic of Ghana. Any disputes shall be resolved in Ghanaian courts.",
-                    ),
-                    Gap(20.h),
-                    const Divider(),
-                    Gap(20.h),
-                    _buildContactSection(colorScheme),
-                    Gap(40.h),
-                  ],
-                ),
-              ),
-            ),
-          ),
+    final needsAcceptance = !isAuthenticated || !user.hasAcceptedTerms;
 
-          // 3. Acceptance Footer - Only show if not accepted yet
-          if (isAuthenticated && !user.hasAcceptedTerms || !isAuthenticated)
-            Container(
+    return LegalDocumentReader(
+      type: LegalDocumentType.termsOfService,
+      showBack: !fromRegister,
+      footer: needsAcceptance
+          ? Container(
               padding: EdgeInsets.all(24.r),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -178,50 +66,8 @@ class TermsAndConditionsScreen extends HookConsumerWidget {
                 isLoading: isLoading.value,
                 onPressed: handleAcceptance,
               ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLegalSection(String title, String content) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        CustomText(
-          title,
-          variant: TextVariant.headlineMedium,
-          fontWeight: FontWeight.bold,
-        ),
-        Gap(8.h),
-        CustomText(
-          content,
-          variant: TextVariant.bodyMedium,
-          textAlign: TextAlign.left,
-        ),
-        Gap(24.h),
-      ],
-    );
-  }
-
-  Widget _buildContactSection(ColorScheme colorScheme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const CustomText(
-          "Contact Us",
-          variant: TextVariant.headlineMedium,
-          fontWeight: FontWeight.bold,
-        ),
-        Gap(12.h),
-        Row(
-          children: <Widget>[
-            Icon(Icons.email_outlined, size: 18.r, color: colorScheme.primary),
-            Gap(12.w),
-            const CustomText("info@cqaag.org", variant: TextVariant.bodyMedium),
-          ],
-        ),
-      ],
+            )
+          : null,
     );
   }
 }

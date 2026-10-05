@@ -18,14 +18,38 @@ _MembershipApplication _$MembershipApplicationFromJson(
   dateOfBirth: json['date_of_birth'] as String,
   gender: $enumDecode(_$GenderEnumMap, json['gender']),
   nationality: json['nationality'] as String,
+  placeOfBirth: json['place_of_birth'] as String?,
   ghanaCardNumber: json['ghana_card_number'] as String?,
   phoneNumberPrimary: json['phone_number_primary'] as String,
   phoneNumberSecondary: json['phone_number_secondary'] as String?,
   emailAddress: json['email_address'] as String,
   residentialAddress: json['residential_address'] as String,
   regionDistrict: json['region_district'] as String,
-  currentJobTitle: json['current_job_title'] as String,
+  currentJobTitle: _readJobTitle(json, 'current_job_title') as String,
   employerOrganization: json['employer_organization'] as String,
+  employerType: json['employer_type'] as String?,
+  industrySectors:
+      (json['industry_sectors'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const <String>[],
+  industrySectorOther: json['industry_sector_other'] as String?,
+  yearsOfExperience: _intOrNull(json['years_of_experience']),
+  professionalQualifications: json['professional_qualifications'] as String?,
+  highestEducationLevel:
+      _readEducationLevel(json, 'highest_education_level') as String?,
+  educationLevelOther:
+      _readEducationLevelOther(json, 'education_level_other') as String?,
+  fieldOfStudy: _readFieldOfStudy(json, 'field_of_study') as String?,
+  institution: _readInstitution(json, 'institution') as String?,
+  yearQualificationObtained: _stringOrNull(
+    _readYearObtained(json, 'year_qualification_obtained'),
+  ),
+  nationalIdNumber: json['national_id_number'] as String?,
+  directoryConsent: json['directory_consent'] as bool? ?? false,
+  signedDocuments:
+      json['signed_documents'] as Map<String, dynamic>? ??
+      const <String, dynamic>{},
   membershipCategory: $enumDecode(
     _$MembershipCategoryEnumMap,
     json['membership_category'],
@@ -50,6 +74,21 @@ _MembershipApplication _$MembershipApplicationFromJson(
   paymentMethod: json['payment_method'] as String?,
   paymentStatus: json['payment_status'] as String? ?? 'unpaid',
   paymentAmount: (json['payment_amount'] as num?)?.toDouble(),
+  paymentRegistrationFee: (json['payment_registration_fee'] as num?)
+      ?.toDouble(),
+  paymentAnnualDues: (json['payment_annual_dues'] as num?)?.toDouble(),
+  paymentOptionalTotal:
+      (json['payment_optional_total'] as num?)?.toDouble() ?? 0.0,
+  paymentOptionalItems:
+      (json['payment_optional_items'] as List<dynamic>?)
+          ?.map((e) => SelectedFeeItem.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <SelectedFeeItem>[],
+  paymentRegistrationComponents:
+      (json['payment_registration_components'] as List<dynamic>?)
+          ?.map((e) => SelectedFeeItem.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <SelectedFeeItem>[],
   paymentCurrency: json['payment_currency'] as String? ?? 'GHS',
   paymentEvidenceUrl: json['payment_evidence_url'] as String?,
   paymentReference: json['payment_reference'] as String?,
@@ -62,6 +101,7 @@ _MembershipApplication _$MembershipApplicationFromJson(
       ? null
       : DateTime.parse(json['payment_verified_at'] as String),
   paymentVerifiedBy: json['payment_verified_by'] as String?,
+  credentialsIssuedAt: _dateOrNull(json['credentials_issued_at']),
 );
 
 Map<String, dynamic> _$MembershipApplicationToJson(
@@ -76,6 +116,7 @@ Map<String, dynamic> _$MembershipApplicationToJson(
   'date_of_birth': instance.dateOfBirth,
   'gender': _$GenderEnumMap[instance.gender]!,
   'nationality': instance.nationality,
+  'place_of_birth': instance.placeOfBirth,
   'ghana_card_number': instance.ghanaCardNumber,
   'phone_number_primary': instance.phoneNumberPrimary,
   'phone_number_secondary': instance.phoneNumberSecondary,
@@ -84,6 +125,19 @@ Map<String, dynamic> _$MembershipApplicationToJson(
   'region_district': instance.regionDistrict,
   'current_job_title': instance.currentJobTitle,
   'employer_organization': instance.employerOrganization,
+  'employer_type': instance.employerType,
+  'industry_sectors': instance.industrySectors,
+  'industry_sector_other': instance.industrySectorOther,
+  'years_of_experience': instance.yearsOfExperience,
+  'professional_qualifications': instance.professionalQualifications,
+  'highest_education_level': instance.highestEducationLevel,
+  'education_level_other': instance.educationLevelOther,
+  'field_of_study': instance.fieldOfStudy,
+  'institution': instance.institution,
+  'year_qualification_obtained': instance.yearQualificationObtained,
+  'national_id_number': instance.nationalIdNumber,
+  'directory_consent': instance.directoryConsent,
+  'signed_documents': instance.signedDocuments,
   'membership_category':
       _$MembershipCategoryEnumMap[instance.membershipCategory]!,
   'status': _$ApplicationStatusEnumMap[instance.status]!,
@@ -96,6 +150,15 @@ Map<String, dynamic> _$MembershipApplicationToJson(
   'payment_method': instance.paymentMethod,
   'payment_status': instance.paymentStatus,
   'payment_amount': instance.paymentAmount,
+  'payment_registration_fee': instance.paymentRegistrationFee,
+  'payment_annual_dues': instance.paymentAnnualDues,
+  'payment_optional_total': instance.paymentOptionalTotal,
+  'payment_optional_items': instance.paymentOptionalItems
+      .map((e) => e.toJson())
+      .toList(),
+  'payment_registration_components': instance.paymentRegistrationComponents
+      .map((e) => e.toJson())
+      .toList(),
   'payment_currency': instance.paymentCurrency,
   'payment_evidence_url': instance.paymentEvidenceUrl,
   'payment_reference': instance.paymentReference,
@@ -104,6 +167,7 @@ Map<String, dynamic> _$MembershipApplicationToJson(
   'payment_submitted_at': instance.paymentSubmittedAt?.toIso8601String(),
   'payment_verified_at': instance.paymentVerifiedAt?.toIso8601String(),
   'payment_verified_by': instance.paymentVerifiedBy,
+  'credentials_issued_at': instance.credentialsIssuedAt?.toIso8601String(),
 };
 
 const _$TitleEnumMap = {

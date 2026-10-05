@@ -23,3 +23,5 @@ export 'membership_management_tab.dart';
 export 'reports_management_tab.dart';
 export 'payment_settings_tab.dart';
 export 'system_maintenance_tab.dart';
+export 'export_approvals_tab.dart';
+export 'kit_orders_tab.dart';

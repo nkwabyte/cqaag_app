@@ -39,7 +39,7 @@ class AppDrawer extends ConsumerWidget {
               right: false,
               child: Padding(
                 padding: EdgeInsets.fromLTRB(24.w, 20.h, 24.w, 24.h),
-                child: isAuthenticated ? _buildAuthHeader(user, ref) : _buildGuestHeader(),
+                child: isAuthenticated ? _buildAuthHeader(user, ref) : const SizedBox.shrink(),
               ),
             ),
           ),
@@ -53,43 +53,30 @@ class AppDrawer extends ConsumerWidget {
                   padding: EdgeInsets.symmetric(vertical: 4.h),
                   child: Column(
                     children: <Widget>[
-                      if (isAuthenticated) ...[
-                        _buildDrawerItem(
-                          context: context,
-                          colorScheme: colorScheme,
-                          icon: Icons.dashboard_outlined,
-                          title: 'Dashboard',
-                          onTap:
-                              onDashboardTap ??
-                              () {
-                                Navigator.pop(context);
-                                context.goNamed(DashboardScreen.id);
-                              },
-                        ),
-                        _buildDrawerItem(
-                          context: context,
-                          colorScheme: colorScheme,
-                          icon: Icons.home_outlined,
-                          title: 'Home',
-                          onTap:
-                              onHomeTap ??
-                              () {
-                                Navigator.pop(context);
-                                context.goNamed(DashboardScreen.id);
-                              },
-                        ),
-                      ] else ...[
-                        _buildDrawerItem(
-                          context: context,
-                          colorScheme: colorScheme,
-                          icon: Icons.home_outlined,
-                          title: 'Home',
-                          onTap: () {
-                            Navigator.pop(context);
-                            context.goNamed(DashboardScreen.id);
-                          },
-                        ),
-                      ],
+                      _buildDrawerItem(
+                        context: context,
+                        colorScheme: colorScheme,
+                        icon: Icons.dashboard_outlined,
+                        title: 'Dashboard',
+                        onTap:
+                            onDashboardTap ??
+                            () {
+                              Navigator.pop(context);
+                              context.goNamed(DashboardScreen.id);
+                            },
+                      ),
+                      _buildDrawerItem(
+                        context: context,
+                        colorScheme: colorScheme,
+                        icon: Icons.home_outlined,
+                        title: 'Home',
+                        onTap:
+                            onHomeTap ??
+                            () {
+                              Navigator.pop(context);
+                              context.goNamed(DashboardScreen.id);
+                            },
+                      ),
 
                       _buildDrawerItem(
                         context: context,
@@ -138,7 +125,17 @@ class AppDrawer extends ConsumerWidget {
                         title: 'Events',
                         onTap: () {
                           Navigator.pop(context);
-                          context.pushNamed(GuestEventsScreen.id);
+                          WebsiteLauncher.open(WebsiteLauncher.events);
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context: context,
+                        colorScheme: colorScheme,
+                        icon: Icons.shopping_bag_outlined,
+                        title: 'Quality Cutting Kits',
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.pushNamed(KitPurchaseScreen.id);
                         },
                       ),
                       _buildDrawerItem(
@@ -199,32 +196,18 @@ class AppDrawer extends ConsumerWidget {
                         endIndent: 20.w,
                       ),
 
-                      if (isAuthenticated) ...[
-                        _buildDrawerItem(
-                          context: context,
-                          colorScheme: colorScheme,
-                          icon: Icons.settings,
-                          title: 'Settings',
-                          onTap:
-                              onSettingsTap ??
-                              () {
-                                // Default behavior if not provided
-                                Navigator.pop(context);
-                              },
-                        ),
-                      ] else ...[
-                        _buildDrawerItem(
-                          context: context,
-                          colorScheme: colorScheme,
-                          icon: Icons.login,
-                          title: 'Login',
-                          onTap: () {
-                            Navigator.pop(context);
-                            ref.read(guestModeProvider.notifier).disableGuestMode();
-                            context.goNamed(LoginScreen.id);
-                          },
-                        ),
-                      ],
+                      _buildDrawerItem(
+                        context: context,
+                        colorScheme: colorScheme,
+                        icon: Icons.settings,
+                        title: 'Settings',
+                        onTap:
+                            onSettingsTap ??
+                            () {
+                              // Default behavior if not provided
+                              Navigator.pop(context);
+                            },
+                      ),
                     ],
                   ),
                 ),
@@ -299,39 +282,6 @@ class AppDrawer extends ConsumerWidget {
           maxLines: 1,
         ),
       ],
-    );
-  }
-
-  Widget _buildGuestHeader() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          CircleAvatar(
-            radius: 40.r,
-            child: Icon(
-              Icons.person_outline,
-              size: 44.0.r,
-            ),
-          ),
-          Gap(12.h),
-          const CustomText(
-            'Guest User',
-            variant: TextVariant.headlineMedium,
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-          Gap(4.h),
-          CustomText(
-            'Exploring C.Q.A.A.G',
-            variant: TextVariant.bodySmall,
-            color: Colors.white.withValues(alpha: 0.8),
-          ),
-        ],
-      ),
     );
   }
 

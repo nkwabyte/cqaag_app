@@ -1,4 +1,9 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
@@ -62,13 +67,21 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
         reviewerId: user?.uid,
       );
 
+      // The approval email carries the link to pay for final activation.
+      final mailed = await ref.read(websiteApiServiceProvider).sendMembershipDecision(
+        memberId: widget.application.id,
+        decision: 'approved',
+      );
+
       if (!mounted) return;
 
       context.pop();
       CustomSnackBar.success(
         context,
-        message: 'Application approved successfully!',
-        title: 'Success',
+        message: mailed.success
+            ? 'Application approved. The applicant was emailed the payment link.'
+            : 'Application approved, but the email could not be sent: ${mailed.message ?? 'no response'}',
+        title: 'Approved',
       );
     } catch (e) {
       if (!mounted) return;
@@ -125,13 +138,21 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
         reviewerId: user?.uid,
       );
 
+      // The rejection email gives the reason and the link to re-apply.
+      final mailed = await ref.read(websiteApiServiceProvider).sendMembershipDecision(
+        memberId: widget.application.id,
+        decision: 'rejected',
+      );
+
       if (!mounted) return;
 
       context.pop();
       CustomSnackBar.success(
         context,
-        message: 'Application rejected.',
-        title: 'Success',
+        message: mailed.success
+            ? 'Application rejected. The applicant was emailed the reason and how to re-apply.'
+            : 'Application rejected, but the email could not be sent: ${mailed.message ?? 'no response'}',
+        title: 'Rejected',
       );
     } catch (e) {
       if (!mounted) return;
@@ -290,10 +311,34 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
                       _buildInfoRow("Alt Phone", widget.application.phoneNumberSecondary!),
                     _buildInfoRow("Address", widget.application.residentialAddress),
                     _buildInfoRow("Date of Birth", widget.application.dateOfBirth.split('T')[0]),
+                    if (widget.application.placeOfBirth != null)
+                      _buildInfoRow("Place of Birth", widget.application.placeOfBirth!),
+                    if (widget.application.ghanaCardNumber == null && widget.application.nationalIdNumber != null)
+                      _buildInfoRow("National ID", widget.application.nationalIdNumber!),
                     _buildInfoRow("Nationality", widget.application.nationality),
                     _buildInfoRow("Region/District", widget.application.regionDistrict),
-                    if (widget.application.ghanaCardNumber != null)
+                    if (widget.application.ghanaCardNumber != null) ...[
                       _buildInfoRow("Ghana Card", widget.application.ghanaCardNumber!),
+                      // The number is now the whole of the identity evidence, so
+                      // a malformed one has to be obvious rather than buried.
+                      if (!widget.application.hasValidGhanaCardNumber)
+                        Padding(
+                          padding: EdgeInsets.only(top: 4.h),
+                          child: Row(
+                            children: [
+                              Icon(Icons.error_outline, size: 14.r, color: colorScheme.error),
+                              Gap(6.w),
+                              Expanded(
+                                child: CustomText(
+                                  "Malformed — does not match ${GhanaCard.placeholder}.",
+                                  variant: TextVariant.bodySmall,
+                                  color: colorScheme.error,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   ],
                 ),
 
@@ -305,8 +350,30 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
                   children: [
                     _buildInfoRow("Employer", widget.application.employerOrganization),
                     _buildInfoRow("Job Title", widget.application.currentJobTitle),
+                    _buildInfoRow(
+                      "Industry Sector",
+                      IndustrySectors.describe(widget.application.industrySectors, widget.application.industrySectorOther),
+                    ),
+                    _buildInfoRow(
+                      "Experience",
+                      widget.application.yearsOfExperience == null ? '-' : '${widget.application.yearsOfExperience} years',
+                    ),
+                    _buildInfoRow("Qualifications", widget.application.professionalQualifications ?? '-'),
+                    _buildInfoRow(
+                      "Education",
+                      [
+                        EducationLevels.describe(widget.application.highestEducationLevel, widget.application.educationLevelOther),
+                        widget.application.fieldOfStudy,
+                        widget.application.institution,
+                        widget.application.yearQualificationObtained,
+                      ].where((p) => p != null && p.isNotEmpty && p != '-').join(', '),
+                    ),
                   ],
                 ),
+
+                Gap(16.h),
+
+                _buildSignedDocumentsCard(context),
 
                 Gap(16.h),
 
@@ -478,6 +545,20 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
           ),
           Gap(12.h),
           _buildInfoRow("Amount", app.formattedPaymentAmount ?? "Not recorded"),
+
+          // Break the total down, so an admin reconciling a transfer can see
+          // exactly which schedule lines make it up.
+          if (app.paymentRegistrationFee != null)
+            _buildInfoRow("  Registration Fee", app.money(app.paymentRegistrationFee!)),
+          if (app.paymentAnnualDues != null)
+            _buildInfoRow("  Annual Dues", app.money(app.paymentAnnualDues!)),
+          if (app.hasOptionalItems)
+            ...app.paymentOptionalItems.map(
+              (item) => _buildInfoRow("  ${item.displayLabel}", app.money(item.amount)),
+            )
+          else if (app.paymentRegistrationFee != null)
+            _buildInfoRow("  Optional items", "None taken"),
+
           if (app.paymentMethod != null) _buildInfoRow("Method", app.paymentMethod == 'momo' ? 'Mobile Money' : 'Paystack'),
           if (app.paymentMomoNumber != null)
             _buildInfoRow("Paid to", "${app.paymentMomoNetwork ?? ''} ${app.paymentMomoNumber}".trim()),
@@ -598,14 +679,101 @@ class _AdminMemberDetailScreenState extends ConsumerState<AdminMemberDetailScree
         verifiedBy: admin.uid,
       );
 
+      // A sign-in password can only be set on the applicant's own account, so
+      // the website emails them to sign in if it has not been sent already.
+      var note = '';
+      if (status == PaymentStatus.verified && widget.application.credentialsIssuedAt == null) {
+        final result = await ref.read(memberCredentialsServiceProvider).requestAsAdmin(widget.application.id);
+        note = switch (result.outcome) {
+          CredentialsOutcome.signInNoticeSent => ' The applicant was asked to sign in to receive their password.',
+          CredentialsOutcome.alreadyIssued || CredentialsOutcome.emailed => ' Their sign-in password was already emailed.',
+          _ => ' The sign-in email could not be sent: ${result.message ?? 'no response'}.',
+        };
+      }
+
       if (!mounted) return;
-      CustomSnackBar.success(context, message: 'Payment ${status.label.toLowerCase()}.');
+      CustomSnackBar.success(context, message: 'Payment ${status.label.toLowerCase()}.$note');
       context.pop();
     } catch (e) {
       if (!mounted) return;
       CustomSnackBar.error(context, message: 'Could not update payment: $e');
     } finally {
       if (mounted) setState(() => _isProcessingPayment = false);
+    }
+  }
+
+  /// The governing documents the applicant accepted. The A4 copies are filed
+  /// in the agreements database and fetched on demand (admins only).
+  Widget _buildSignedDocumentsCard(BuildContext context) {
+    final signed = widget.application.signedDocuments;
+    if (signed.isEmpty) {
+      return _buildInfoCard(context, title: "Signed Agreements", children: [
+        _buildInfoRow("Status", "No signed agreements on this record"),
+      ]);
+    }
+
+    return _buildInfoCard(
+      context,
+      title: "Signed Agreements",
+      children: [
+        for (final type in LegalDocuments.signingOrder)
+          if (signed[type.shortKey] is Map)
+            _buildSignedDocumentRow(type, Map<String, dynamic>.from(signed[type.shortKey] as Map)),
+      ],
+    );
+  }
+
+  Widget _buildSignedDocumentRow(LegalDocumentType type, Map<String, dynamic> packet) {
+    final method = packet['acceptance_method'] == 'signature' ? 'Signed' : 'Ticked';
+    final when = packet['signed_at_display']?.toString() ?? packet['signed_at']?.toString() ?? '';
+
+    return InkWell(
+      onTap: () => _openSignedDocument(type),
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 6.h),
+        child: Row(
+          children: [
+            Icon(Icons.picture_as_pdf_outlined, color: Theme.of(context).colorScheme.primary, size: 20.r),
+            Gap(10.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CustomText(type.title, variant: TextVariant.bodyMedium, fontWeight: FontWeight.w600),
+                  CustomText("$method by ${packet['full_name'] ?? ''} • $when", variant: TextVariant.bodySmall, color: Colors.grey[600]),
+                ],
+              ),
+            ),
+            const Icon(Icons.open_in_new, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSignedDocument(LegalDocumentType type) async {
+    AppDialogs.showLoadingDialog(context, message: 'Fetching signed ${type.title}...');
+    final result = await ref.read(websiteApiServiceProvider).downloadAgreement(
+      memberId: widget.application.id,
+      documentSlug: type.slug,
+    );
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
+
+    final base64Pdf = result.data['pdf_base64']?.toString();
+    if (!result.success || base64Pdf == null) {
+      CustomSnackBar.error(context, message: result.message ?? 'The agreement file was not found.');
+      return;
+    }
+
+    try {
+      final directory = await getTemporaryDirectory();
+      final safeName = widget.application.fullName.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-');
+      final file = File('${directory.path}/CQAAG-${type.slug}-$safeName.pdf');
+      await file.writeAsBytes(base64Decode(base64Pdf));
+      await OpenFilex.open(file.path);
+    } catch (e) {
+      if (mounted) CustomSnackBar.error(context, message: 'Could not open the agreement: $e');
     }
   }
 

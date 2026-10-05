@@ -104,6 +104,10 @@ abstract class AppUser with _$AppUser {
     @Default(false) bool hasAcceptedTerms,
     @Default(false) bool isAdmin,
     String? qcCode,
+
+    /// Set on accounts created for a member with a generated password, so
+    /// they are asked to choose their own on first sign-in.
+    @Default(false) bool mustChangePassword,
   }) = _AppUser;
 
   factory AppUser.fromJson(Map<String, dynamic> json) => _$AppUserFromJson(json);

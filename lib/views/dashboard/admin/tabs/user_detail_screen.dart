@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:gap/gap.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cqaag_app/index.dart';
 
 class AdminUserDetailScreen extends ConsumerStatefulWidget {
@@ -120,20 +120,16 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
               Gap(20.h),
               _buildInfoCard(
                 context,
-                title: "Identity Verification",
+                title: "Ghana Card Verification",
                 children: <Widget>[
-                  _buildInfoRow("Ghana Card Number", _user.verification!.idCardNumber),
+                  _buildGhanaCardRow(context, _user.verification!),
                   Gap(12.h),
-                  CustomText("Documents", variant: TextVariant.bodyMedium, fontWeight: FontWeight.bold),
-                  Gap(8.h),
-                  Row(
-                    children: <Widget>[
-                      _buildDocumentThumbnail(context, "Front", _user.verification!.idCardFrontUrl),
-                      Gap(12.w),
-                      _buildDocumentThumbnail(context, "Back", _user.verification!.idCardBackUrl),
-                      Gap(12.w),
-                      _buildDocumentThumbnail(context, "Selfie", _user.verification!.selfieUrl),
-                    ],
+                  CustomText(
+                    "CQAAG records the Ghana Card number only — no card images or selfies are "
+                    "collected. Verify this number against the National Identification Register "
+                    "before approving.",
+                    variant: TextVariant.bodySmall,
+                    color: Theme.of(context).colorScheme.secondary,
                   ),
                 ],
               ),
@@ -299,49 +295,70 @@ class _AdminUserDetailScreenState extends ConsumerState<AdminUserDetailScreen> {
     );
   }
 
-  Widget _buildDocumentThumbnail(BuildContext context, String label, String url) {
-    return Expanded(
-      child: Column(
-        children: <Widget>[
-          AspectRatio(
-            aspectRatio: 1,
-            child: GestureDetector(
-              onTap: () => _showFullImage(context, url),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8.r),
-                  border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
-                  image: DecorationImage(
-                    image: CachedNetworkImageProvider(url),
-                    fit: BoxFit.cover,
-                  ),
+  /// The Ghana Card number, with a copy action and a structural verdict.
+  ///
+  /// With card images no longer collected, this number is the whole of the
+  /// identity evidence, so an admin needs it exact and needs to be told at a
+  /// glance whether it is even well-formed.
+  Widget _buildGhanaCardRow(BuildContext context, VerificationData verification) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isValid = verification.hasValidNumber;
+    final statusColor = isValid ? AppColors.primaryGreen : colorScheme.error;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        CustomText("Ghana Card Number", variant: TextVariant.bodyMedium, color: colorScheme.secondary),
+        Gap(6.h),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: SelectableText(
+                verification.normalisedNumber,
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
-          ),
-          Gap(4.h),
-          CustomText(label, variant: TextVariant.bodySmall),
-        ],
-      ),
-    );
-  }
-
-  void _showFullImage(BuildContext context, String url) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: GestureDetector(
-          onTap: () => context.pop(),
-          child: InteractiveViewer(
-            child: CachedNetworkImage(
-              imageUrl: url,
-              placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-              errorWidget: (context, url, error) => const Icon(Icons.error, color: Colors.white),
+            IconButton(
+              tooltip: "Copy number",
+              icon: Icon(Icons.copy_outlined, size: 18.r, color: colorScheme.primary),
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: verification.normalisedNumber));
+                if (context.mounted) {
+                  CustomSnackBar.success(context, message: "Ghana Card number copied");
+                }
+              },
             ),
-          ),
+          ],
         ),
-      ),
+        Gap(4.h),
+        Row(
+          children: <Widget>[
+            Icon(isValid ? Icons.check_circle : Icons.error_outline, size: 16.r, color: statusColor),
+            Gap(6.w),
+            Expanded(
+              child: CustomText(
+                isValid
+                    ? "Valid Ghana Card number format."
+                    : "Malformed — does not match ${GhanaCard.placeholder}. Ask the member to re-submit.",
+                variant: TextVariant.bodySmall,
+                color: statusColor,
+              ),
+            ),
+          ],
+        ),
+        if (verification.dateVerified != null) ...[
+          Gap(8.h),
+          CustomText(
+            "Verified ${verification.dateVerified.toString().split('.').first}",
+            variant: TextVariant.bodySmall,
+            color: colorScheme.secondary,
+          ),
+        ],
+      ],
     );
   }
 

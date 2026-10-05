@@ -19,8 +19,6 @@ class PaymentSettingsTab extends ConsumerStatefulWidget {
 }
 
 class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
-  final _feeController = TextEditingController();
-  final _foreignFeeController = TextEditingController();
   final _numberController = TextEditingController();
   final _nameController = TextEditingController();
   MomoNetwork _network = MomoNetwork.mtn;
@@ -29,23 +27,81 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
   bool _hydrated = false;
   PaymentStatus? _selectedStatusFilter;
 
+  /// The fee schedule column currently being edited. The schedule prices every
+  /// line item per category, so it is edited one column at a time rather than
+  /// as a grid that would not fit a phone.
+  FeeCategory _editingCategory = FeeCategory.full;
+
+  /// The schedule as edited, committed to Firestore on save.
+  late FeeSchedule _schedule;
+
+  /// One controller per amount cell, keyed `<section>:<itemKey>:<categoryKey>`.
+  final Map<String, TextEditingController> _amountControllers = {};
+
   @override
   void dispose() {
-    _feeController.dispose();
-    _foreignFeeController.dispose();
     _numberController.dispose();
     _nameController.dispose();
+    for (final controller in _amountControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
   void _hydrate(PaymentSettings settings) {
     if (_hydrated) return;
-    _feeController.text = settings.registrationFee.toStringAsFixed(2);
-    _foreignFeeController.text = settings.foreignRegistrationFee.toStringAsFixed(2);
     _numberController.text = settings.momoNumber;
     _nameController.text = settings.momoAccountName;
     _network = settings.network;
+    _schedule = settings.schedule;
     _hydrated = true;
+  }
+
+  /// Controller for one amount cell, seeded from the schedule on first use.
+  ///
+  /// An unpriced item (a cell the Board has not decided yet) seeds blank rather
+  /// than zero, so "no price set" stays distinguishable from "free".
+  TextEditingController _amountController(String section, String itemKey, double? value) {
+    final key = '$section:$itemKey:${_editingCategory.key}';
+    return _amountControllers.putIfAbsent(
+      key,
+      () => TextEditingController(text: value == null ? '' : value.toStringAsFixed(2)),
+    );
+  }
+
+  /// Reads a cell back, treating blank as "not priced".
+  double? _readAmount(String section, String itemKey) {
+    final text = _amountControllers['$section:$itemKey:${_editingCategory.key}']?.text.trim() ?? '';
+    if (text.isEmpty) return null;
+    return double.tryParse(text);
+  }
+
+  /// Folds every edited cell for the current column back into [_schedule].
+  ///
+  /// Called before switching columns and before saving, so edits to one
+  /// category are not lost when the admin moves to another.
+  void _commitEditedColumn() {
+    final category = _editingCategory;
+
+    final registration = _schedule.registrationComponents
+        .map((item) => item.copyWithAmount(category, _readAmount('reg', item.key) ?? item.amountFor(category)))
+        .toList();
+
+    final optional = _schedule.optionalItems
+        .map((item) => item.copyWithAmount(category, _readAmount('opt', item.key)))
+        .toList();
+
+    final duesText = _amountControllers['dues:annual:${category.key}']?.text.trim();
+    final dues = Map<String, double?>.from(_schedule.annualDues);
+    if (duesText != null) {
+      dues[category.key] = duesText.isEmpty ? null : double.tryParse(duesText);
+    }
+
+    _schedule = _schedule.copyWith(
+      registrationComponents: registration,
+      annualDues: dues,
+      optionalItems: optional,
+    );
   }
 
   @override
@@ -63,14 +119,28 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section 1: Payment Settings Form
+          // Section 1: Mobile Money account
           _buildPaymentSettingsCard(colorScheme, settings),
+
+          Gap(24.h),
+
+          // Section 2: The Board's fee schedule
+          _buildFeeScheduleCard(colorScheme, settings),
+
+          Gap(20.h),
+
+          // One save covers both: they are two halves of the same document.
+          CustomButton(
+            text: _isSaving ? "Saving..." : "Save Payment Settings & Fee Schedule",
+            isLoading: _isSaving,
+            onPressed: _isSaving ? () {} : _save,
+          ),
 
           Gap(32.h),
           const Divider(),
           Gap(24.h),
 
-          // Section 2: Payments Registry & Verification
+          // Section 3: Payments Registry & Verification
           _buildPaymentRegistrySection(colorScheme, applicationsAsync),
 
           Gap(40.h),
@@ -101,7 +171,7 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
               Icon(Icons.payments_outlined, color: colorScheme.primary, size: 24.r),
               Gap(12.w),
               const CustomText(
-                "Payment Settings",
+                "Mobile Money Account",
                 variant: TextVariant.headlineMedium,
                 fontWeight: FontWeight.bold,
               ),
@@ -109,30 +179,12 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
           ),
           Gap(8.h),
           CustomText(
-            "Configure the registration fee and Mobile Money account applicants pay into. "
-            "These settings apply across both the mobile app and website.",
+            "The Mobile Money account applicants pay into. Applies across both the "
+            "mobile app and the website. Fees themselves live in the schedule below.",
             variant: TextVariant.bodySmall,
             color: colorScheme.secondary,
           ),
           Gap(20.h),
-
-          _buildLabel("Registration Fee - Ghanaian (GHS)"),
-          Gap(8.h),
-          TextField(
-            controller: _feeController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: _inputDecoration(colorScheme, prefixText: 'GHS  ', hint: '500.00'),
-          ),
-          Gap(16.h),
-
-          _buildLabel("Registration Fee - Foreign QC (GHS)"),
-          Gap(8.h),
-          TextField(
-            controller: _foreignFeeController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: _inputDecoration(colorScheme, prefixText: 'GHS  ', hint: '1500.00'),
-          ),
-          Gap(16.h),
 
           _buildLabel("Mobile Money Network"),
           Gap(8.h),
@@ -170,14 +222,8 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
             color: colorScheme.secondary,
           ),
 
-          Gap(24.h),
-          CustomButton(
-            text: _isSaving ? "Saving..." : "Save Payment Settings",
-            isLoading: _isSaving,
-            onPressed: _isSaving ? () {} : _save,
-          ),
-
           if (settings.updatedAt != null) ...[
+            Gap(16.h),
             Gap(12.h),
             CustomText(
               "Last updated ${settings.updatedAt.toString().split('.').first}",
@@ -421,6 +467,25 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
                     ),
                   ],
                 ),
+
+                // What the total is actually made of, so an admin can reconcile
+                // an odd-looking amount against the schedule without guessing.
+                if (app.paymentRegistrationFee != null || app.paymentAnnualDues != null) ...[
+                  Gap(6.h),
+                  const Divider(height: 1),
+                  Gap(6.h),
+                  if (app.paymentRegistrationFee != null)
+                    _buildBreakdownRow("Registration Fee", app.money(app.paymentRegistrationFee!)),
+                  if (app.paymentAnnualDues != null)
+                    _buildBreakdownRow("Annual Dues", app.money(app.paymentAnnualDues!)),
+                  if (app.hasOptionalItems)
+                    _buildBreakdownRow(
+                      "Optional items (${app.paymentOptionalItems.map((e) => e.displayLabel).join(', ')})",
+                      app.money(app.paymentOptionalTotal),
+                    )
+                  else
+                    _buildBreakdownRow("Optional items", "None taken"),
+                ],
               ],
             ),
           ),
@@ -500,6 +565,230 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
     );
   }
 
+  /// Editor for the CQAAG Membership Categories, Fees & Dues Schedule.
+  ///
+  /// The schedule is a grid — every line item priced per category — which will
+  /// not fit a phone, so it is edited one category column at a time. Leaving a
+  /// cell blank records "no Board-approved price", which keeps the item off the
+  /// applicant's list rather than offering it free.
+  Widget _buildFeeScheduleCard(ColorScheme colorScheme, PaymentSettings settings) {
+    final category = _editingCategory;
+    final isExempt = category.isExempt;
+
+    return Container(
+      padding: EdgeInsets.all(20.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.table_chart_outlined, color: colorScheme.primary, size: 24.r),
+              Gap(12.w),
+              const Expanded(
+                child: CustomText(
+                  "Fees & Dues Schedule",
+                  variant: TextVariant.headlineMedium,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          Gap(8.h),
+          CustomText(
+            "Registration Fee components, Annual Dues and optional kit items, per "
+            "membership category (Constitution Art. 2, as amended).",
+            variant: TextVariant.bodySmall,
+            color: colorScheme.secondary,
+          ),
+          Gap(16.h),
+
+          // Category selector — switching commits the column being left.
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final option in FeeCategory.values) ...[
+                  ChoiceChip(
+                    label: Text(option.label),
+                    selected: option == category,
+                    onSelected: (selected) {
+                      if (!selected) return;
+                      setState(() {
+                        _commitEditedColumn();
+                        _editingCategory = option;
+                      });
+                    },
+                    selectedColor: colorScheme.primary,
+                    labelStyle: TextStyle(
+                      color: option == category ? Colors.white : colorScheme.onSurface,
+                      fontWeight: option == category ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  Gap(8.w),
+                ],
+              ],
+            ),
+          ),
+          Gap(20.h),
+
+          if (isExempt)
+            Container(
+              padding: EdgeInsets.all(14.r),
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: CustomText(
+                "Honorary Members pay no fees (Constitution Art. 2, Categories), so this "
+                "column is fixed at zero and is not editable.",
+                variant: TextVariant.bodySmall,
+                color: colorScheme.secondary,
+              ),
+            )
+          else ...[
+            _buildScheduleSectionHeader("Registration Fee components", colorScheme),
+            ..._schedule.registrationComponents.map(
+              (item) => _buildAmountField('reg', item, colorScheme),
+            ),
+            Gap(8.h),
+            _buildScheduleTotalRow(
+              "Registration Fee total",
+              settings.money(_schedule.registrationFeeFor(category)),
+              colorScheme,
+            ),
+
+            Gap(20.h),
+            _buildScheduleSectionHeader("Annual Dues", colorScheme),
+            _buildRawAmountField(
+              label: "Annual Dues (inclusive of TCDA recommendation letter, where applicable)",
+              controller: _amountController('dues', 'annual', _schedule.annualDuesFor(category)),
+              colorScheme: colorScheme,
+            ),
+
+            Gap(20.h),
+            _buildScheduleSectionHeader("Optional kit items", colorScheme),
+            CustomText(
+              "Leave blank where the Board has not set a price. Blank and zero items "
+              "are not offered to applicants.",
+              variant: TextVariant.bodySmall,
+              color: colorScheme.secondary,
+            ),
+            Gap(10.h),
+            ..._schedule.optionalItems.map(
+              (item) => _buildAmountField('opt', item, colorScheme),
+            ),
+
+            Gap(16.h),
+            _buildScheduleTotalRow(
+              "Schedule Grand Total (all optional items taken)",
+              settings.money(_schedule.grandTotalFor(category)),
+              colorScheme,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleSectionHeader(String title, ColorScheme colorScheme) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 10.h),
+      child: CustomText(
+        title.toUpperCase(),
+        variant: TextVariant.bodySmall,
+        fontWeight: FontWeight.bold,
+        color: colorScheme.primary,
+      ),
+    );
+  }
+
+  Widget _buildAmountField(String section, FeeLineItem item, ColorScheme colorScheme) {
+    return _buildRawAmountField(
+      label: item.requiresSize ? '${item.label} (size collected at payment)' : item.label,
+      controller: _amountController(section, item.key, item.amountFor(_editingCategory)),
+      colorScheme: colorScheme,
+    );
+  }
+
+  Widget _buildRawAmountField({
+    required String label,
+    required TextEditingController controller,
+    required ColorScheme colorScheme,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            flex: 3,
+            child: CustomText(label, variant: TextVariant.bodySmall),
+          ),
+          Gap(12.w),
+          Expanded(
+            flex: 2,
+            child: TextField(
+              controller: controller,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              textAlign: TextAlign.right,
+              // Rebuild so the totals below follow the edit as it is typed.
+              onChanged: (_) => setState(() {}),
+              decoration: _inputDecoration(colorScheme, hint: 'Not set').copyWith(
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleTotalRow(String label, String amount, ColorScheme colorScheme) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: colorScheme.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: CustomText(label, variant: TextVariant.bodySmall, fontWeight: FontWeight.bold),
+          ),
+          Gap(8.w),
+          CustomText(amount, variant: TextVariant.bodyMedium, fontWeight: FontWeight.bold),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBreakdownRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.only(top: 2.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: CustomText(label, variant: TextVariant.bodySmall)),
+          Gap(8.w),
+          CustomText(value, variant: TextVariant.bodySmall, fontWeight: FontWeight.bold),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLabel(String text) {
     return CustomText(text, variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold);
   }
@@ -564,18 +853,6 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
   }
 
   Future<void> _save() async {
-    final fee = double.tryParse(_feeController.text.trim());
-    if (fee == null || fee <= 0) {
-      CustomSnackBar.error(context, message: 'Enter a registration fee greater than zero.');
-      return;
-    }
-
-    final foreignFee = double.tryParse(_foreignFeeController.text.trim()) ?? 1500.0;
-    if (foreignFee <= 0) {
-      CustomSnackBar.error(context, message: 'Enter a foreign registration fee greater than zero.');
-      return;
-    }
-
     final number = _numberController.text.trim();
     if (number.isEmpty) {
       CustomSnackBar.error(context, message: 'Enter the Mobile Money number applicants should pay into.');
@@ -588,6 +865,24 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
       return;
     }
 
+    // Fold the column the admin is currently looking at back into the schedule
+    // before writing, so the edit they can see on screen is the edit that saves.
+    _commitEditedColumn();
+
+    // A category that owes nothing would leave applicants with no fee to pay,
+    // so this is almost certainly a cleared field rather than a Board decision.
+    for (final category in FeeCategory.values) {
+      if (category.isExempt) continue;
+      if (_schedule.mandatoryTotalFor(category) <= 0) {
+        CustomSnackBar.error(
+          context,
+          message: '${category.label} has no Registration Fee or Annual Dues set. '
+              'Enter an amount before saving.',
+        );
+        return;
+      }
+    }
+
     setState(() => _isSaving = true);
 
     try {
@@ -595,18 +890,17 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
       if (admin == null) throw Exception('Not authenticated');
 
       await ref.read(paymentSettingsServiceProvider).updateSettings(
-        registrationFee: fee,
-        foreignRegistrationFee: foreignFee,
         momoNetwork: _network,
         momoNumber: number,
         momoAccountName: accountName,
         updatedBy: admin.uid,
+        feeSchedule: _schedule,
       );
 
       if (!mounted) return;
       CustomSnackBar.success(
         context,
-        message: 'Payment settings saved. The website and app now use these values.',
+        message: 'Payment settings and fee schedule saved. The website and app now use these values.',
       );
     } catch (e) {
       if (!mounted) return;

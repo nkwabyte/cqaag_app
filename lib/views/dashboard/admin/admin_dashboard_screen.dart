@@ -59,7 +59,7 @@ class AdminDashboardScreen extends ConsumerWidget {
     }
 
     return DefaultTabController(
-      length: 5,
+      length: 7,
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
@@ -75,6 +75,8 @@ class AdminDashboardScreen extends ConsumerWidget {
               Tab(text: "Users"),
               Tab(text: "Members"),
               Tab(text: "Reports"),
+              Tab(child: _ApprovalsTabLabel()),
+              Tab(text: "Kit Orders"),
               Tab(text: "Payments"),
               Tab(text: "System"),
             ],
@@ -85,11 +87,37 @@ class AdminDashboardScreen extends ConsumerWidget {
             UserManagementTab(),
             MembershipManagementTab(),
             ReportsManagementTab(),
+            ExportApprovalsTab(),
+            KitOrdersTab(),
             PaymentSettingsTab(),
             SystemMaintenanceTab(),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// "Approvals" with a count of Export certificates waiting, so a new request
+/// is visible from any admin tab.
+class _ApprovalsTabLabel extends ConsumerWidget {
+  const _ApprovalsTabLabel();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(pendingExportApprovalsProvider).value?.length ?? 0;
+    if (count == 0) return const Text("Approvals");
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text("Approvals"),
+        Gap(6.w),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.h),
+          decoration: BoxDecoration(color: Colors.amber.shade700, borderRadius: BorderRadius.circular(10.r)),
+          child: Text('$count', style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+        ),
+      ],
     );
   }
 }

@@ -65,10 +65,6 @@ class CloudinaryService {
     }
   }
 
-  Future<String?> uploadIdentityDocument(File file) async {
-    return _uploadFile(file, folder: 'Identification');
-  }
-
   Future<String?> uploadMembershipDocument(File file) async {
     return _uploadFile(file, folder: 'Members');
   }
@@ -81,6 +77,12 @@ class CloudinaryService {
   /// documents so it can be retained on a different schedule.
   Future<String?> uploadPaymentEvidence(File file) async {
     return _uploadFile(file, folder: 'Payments');
+  }
+
+  /// The signed association seal stamped on approved Export certificates.
+  /// Same folder the website uses.
+  Future<String?> uploadApprovalSeal(File file) async {
+    return _uploadFile(file, folder: 'ExportApproval');
   }
 
   Future<String?> _uploadFile(File file, {required String folder}) async {

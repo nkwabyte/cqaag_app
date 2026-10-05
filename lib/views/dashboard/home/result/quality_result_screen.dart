@@ -118,7 +118,15 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
             padding: EdgeInsets.all(24.r),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                _buildSectionHeader("Report Information"),
+                if (i.isExport) ...[
+                  _buildApprovalBanner(i),
+                  Gap(16.h),
+                ],
+                if (i.hasReportFee) ...[
+                  _buildReportFeeCard(i),
+                  Gap(16.h),
+                ],
+                _buildSectionHeader("Certificate Information"),
                 _buildReportInfoCard(colorScheme, i),
                 Gap(24.h),
 
@@ -205,7 +213,7 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
   // --- Helper Build Methods ---
   Widget _buildTopBar(BuildContext context) {
     final rawType = widget.inspection.analysisType ?? '';
-    final title = rawType.isNotEmpty ? "RCN Quality - ${rawType.toUpperCase()}" : "Quality Result";
+    final title = rawType.isNotEmpty ? "RCN Certificate - ${rawType.toUpperCase()}" : "Quality Certificate";
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -230,6 +238,126 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
         ),
       ],
     );
+  }
+
+  /// Where an Export certificate stands with the CQAAG approval desk.
+  Widget _buildApprovalBanner(Inspection i) {
+    final approval = i.approval;
+    final (color, icon, title, body) = switch (approval) {
+      CertificateApprovalStatus.approved => (
+        Colors.green.shade800,
+        Icons.verified,
+        'CQAAG approved — valid certificate',
+        'Approved ${i.approvedAtTime == null ? '' : 'on ${AgreementPdfService.formatSignedAt(i.approvedAtTime!)} '}'
+            '${i.approvedByName.isEmpty ? '' : 'by ${i.approvedByName}'}. The certificate carries the association seal.',
+      ),
+      CertificateApprovalStatus.declined => (
+        Colors.red.shade800,
+        Icons.cancel_outlined,
+        'Not approved — not a valid certificate',
+        i.declineReason.isEmpty ? 'The Secretariat declined this certificate.' : 'Reason: ${i.declineReason}',
+      ),
+      _ => (
+        Colors.amber.shade900,
+        Icons.hourglass_top_outlined,
+        'Awaiting CQAAG approval',
+        'This Export certificate is not valid until an administrator approves it. You will be notified of the decision.',
+      ),
+    };
+
+    return Container(
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 28.r),
+          Gap(12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomText(title, variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold, color: color),
+                Gap(4.h),
+                CustomText(body, variant: TextVariant.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportFeeCard(Inspection i) {
+    final status = i.reportFeePayment;
+    final color = switch (status) {
+      PaymentStatus.verified => Colors.green.shade800,
+      PaymentStatus.rejected => Colors.red.shade800,
+      _ => Colors.orange.shade800,
+    };
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.payments_outlined, color: color, size: 20.r),
+          Gap(10.w),
+          Expanded(
+            child: CustomText(
+              "Certificate fee: ${i.reportFeeCurrency} ${i.reportFeeAmount.toStringAsFixed(2)}",
+              variant: TextVariant.bodyMedium,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          CustomText(status.label, variant: TextVariant.bodySmall, color: color, fontWeight: FontWeight.bold),
+          // Admins check the fee evidence here for every paid certificate type.
+          if (ref.watch(currentUserProfileProvider).value?.isAdmin == true && i.reportFeeEvidenceUrl.startsWith('http'))
+            PopupMenuButton<String>(
+              tooltip: 'Certificate fee',
+              onSelected: (action) => _handleFeeAction(i, action),
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'view', child: Text('View evidence')),
+                if (status == PaymentStatus.pendingVerification) ...[
+                  const PopupMenuItem(value: 'verify', child: Text('Verify fee')),
+                  const PopupMenuItem(value: 'reject', child: Text('Reject fee')),
+                ],
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleFeeAction(Inspection i, String action) async {
+    if (action == 'view') {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => Dialog(
+          insetPadding: EdgeInsets.all(16.r),
+          child: InteractiveViewer(child: Image.network(i.reportFeeEvidenceUrl, fit: BoxFit.contain)),
+        ),
+      );
+      return;
+    }
+    final status = action == 'verify' ? PaymentStatus.verified : PaymentStatus.rejected;
+    try {
+      await ref.read(inspectionServiceProvider).setReportFeeStatus(
+        inspectionId: i.id,
+        status: status,
+        adminUid: ref.read(authServiceProvider).currentUser!.uid,
+      );
+      if (mounted) CustomSnackBar.success(context, message: 'Certificate fee ${status.label.toLowerCase()}.');
+    } catch (e) {
+      if (mounted) CustomSnackBar.error(context, message: 'Could not update the fee: $e');
+    }
   }
 
   Widget _buildTcdaAuthorityCard(ColorScheme colorScheme) {
@@ -538,6 +666,12 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
       'cuttingTestPlaceAndDate': i.cuttingTestPlaceAndDate,
       'isAuthorized': i.isAuthorized,
       'authorizedSignature': i.authorizedSignature,
+      'approvalStatus': i.isExport ? i.approval.value : 'not_required',
+      'approvedAt': i.approvedAt,
+      'approvedByName': i.approvedByName,
+      'approvalSealUrl': i.approvalSealUrl,
+      'approvalSealIncludesSignature': i.approvalSealIncludesSignature,
+      'declineReason': i.declineReason,
       'conclusion': i.kor >= 48.0
           ? 'This batch meets all export quality standards for Grade A raw cashew nuts. Approved for shipment.'
           : 'This batch is below standard for export quality.',
@@ -558,7 +692,7 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
       final pdfBytes = await pdfService.generateReport(data);
 
       final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/analysis_report_${i.batchId ?? 'temp'}.pdf');
+      final file = File('${directory.path}/quality_certificate_${i.batchId ?? 'temp'}.pdf');
       await file.writeAsBytes(pdfBytes);
 
       if (!context.mounted) return;
@@ -568,7 +702,9 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
 
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'Analysis Report for Batch ${i.batchId ?? 'N/A'}',
+        text: i.isCertificateValid
+            ? 'Quality Certificate for Batch ${i.batchId ?? 'N/A'}'
+            : 'Quality Certificate for Batch ${i.batchId ?? 'N/A'} (awaiting CQAAG approval — not yet valid)',
         sharePositionOrigin: box != null ? box.localToGlobal(Offset.zero) & box.size : null,
       );
     } catch (e) {
@@ -592,12 +728,12 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
       if (kIsWeb) {
         await Printing.layoutPdf(
           onLayout: (format) async => pdfBytes,
-          name: 'analysis_report_${i.batchId ?? 'temp'}.pdf',
+          name: 'quality_certificate_${i.batchId ?? 'temp'}.pdf',
         );
       } else {
         // Save file to temp directory first
         final directory = await getTemporaryDirectory();
-        final fileName = 'analysis_report_${i.batchId ?? 'temp'}_${DateTime.now().millisecondsSinceEpoch}.pdf';
+        final fileName = 'quality_certificate_${i.batchId ?? 'temp'}_${DateTime.now().millisecondsSinceEpoch}.pdf';
         final file = File('${directory.path}/$fileName');
         await file.writeAsBytes(pdfBytes);
 
@@ -608,7 +744,7 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
         if (context.mounted && filePath != null) {
           CustomSnackBar.success(
             context,
-            message: 'Report saved',
+            message: 'Certificate saved',
             duration: const Duration(seconds: 4),
           );
 
@@ -620,7 +756,7 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
       if (context.mounted) {
         CustomSnackBar.error(
           context,
-          message: 'Failed to save report: $e',
+          message: 'Failed to save certificate: $e',
         );
       }
     }
@@ -639,7 +775,7 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Would you like to sign this report digitally?'),
+            const Text('Would you like to sign this certificate digitally?'),
             const SizedBox(height: 16),
             const Text('Enter your initials (optional):', style: TextStyle(fontSize: 12)),
             const SizedBox(height: 8),

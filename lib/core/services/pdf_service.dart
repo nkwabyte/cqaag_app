@@ -7,6 +7,13 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 class PdfService {
+  PdfService({Future<pw.Font> Function()? regularFont, Future<pw.Font> Function()? boldFont})
+    : _regularFont = regularFont ?? PdfGoogleFonts.openSansRegular,
+      _boldFont = boldFont ?? PdfGoogleFonts.openSansBold;
+
+  final Future<pw.Font> Function() _regularFont;
+  final Future<pw.Font> Function() _boldFont;
+
   Future<Uint8List> generateReport(Map<String, dynamic> data) async {
     final pdf = pw.Document();
 
@@ -25,8 +32,28 @@ class PdfService {
       tcdaLogoImage = pw.MemoryImage(tcdaLogoBytes.buffer.asUint8List());
     } catch (_) {}
 
-    final font = await PdfGoogleFonts.openSansRegular();
-    final fontBold = await PdfGoogleFonts.openSansBold();
+    pw.MemoryImage? ccgLogoImage;
+    try {
+      final ccgLogoBytes = await rootBundle.load('assets/images/ccg_logo.jpeg');
+      ccgLogoImage = pw.MemoryImage(ccgLogoBytes.buffer.asUint8List());
+    } catch (_) {}
+
+    // An approved Export certificate carries the seal copied on at approval:
+    // the signed seal admins uploaded, or failing that the association logo.
+    final approvalStatus = (data['approvalStatus'] ?? 'not_required').toString();
+    pw.ImageProvider? sealImage;
+    if (approvalStatus == 'approved') {
+      final sealUrl = (data['approvalSealUrl'] ?? '').toString();
+      if (sealUrl.startsWith('http')) {
+        try {
+          sealImage = await networkImage(sealUrl);
+        } catch (_) {}
+      }
+      sealImage ??= cqaagLogoImage;
+    }
+
+    final font = await _regularFont();
+    final fontBold = await _boldFont();
 
     final theme = pw.ThemeData.withFont(
       base: font,
@@ -41,12 +68,15 @@ class PdfService {
           theme: theme,
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.all(24),
+          buildForeground: isExport && approvalStatus != 'approved'
+              ? (context) => _buildNotValidWatermark(approvalStatus == 'declined')
+              : null,
         ),
         build: (context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              _buildHeader(logoSvg, cqaagLogoImage, tcdaLogoImage, data, isExport),
+              _buildHeader(logoSvg, ccgLogoImage, tcdaLogoImage, data, isExport),
               pw.SizedBox(height: 8),
               if (isExport) ...[
                 _buildExportInfoBlock(data),
@@ -76,6 +106,8 @@ class PdfService {
               pw.SizedBox(height: 10),
               _buildSignatures(data, isExport),
               if (isExport) ...[
+                pw.SizedBox(height: 8),
+                _buildApprovalBlock(data, approvalStatus, sealImage),
                 pw.SizedBox(height: 4),
                 pw.Text(
                   "*NOTE: Export has to be authorised and required cutting pictures.*",
@@ -100,27 +132,36 @@ class PdfService {
 
   pw.Widget _buildHeader(
     String logoSvg,
-    pw.MemoryImage? cqaagImage,
+    pw.MemoryImage? ccgImage,
     pw.MemoryImage? tcdaImage,
     Map<String, dynamic> data,
     bool isExport,
   ) {
     final rawAnalysisType = (data['analysisType'] ?? '').toString().trim();
-    final String reportHeaderTitle = isExport
-        ? "EXPORT RCN QUALITY REPORT"
+    final String certificateTitle = isExport
+        ? "EXPORT RCN QUALITY CERTIFICATE"
         : (rawAnalysisType.isNotEmpty
-            ? "RCN QUALITY REPORT - ${rawAnalysisType.toUpperCase()}"
-            : "RCN QUALITY REPORT");
+            ? "RCN QUALITY CERTIFICATE - ${rawAnalysisType.toUpperCase()}"
+            : "RCN QUALITY CERTIFICATE");
 
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
+        // Cashew Council of Ghana first, then the association's own logo.
         pw.Container(
-          width: 52,
-          height: 52,
+          width: 46,
+          height: 46,
+          child: ccgImage != null
+              ? pw.Image(ccgImage, fit: pw.BoxFit.contain)
+              : pw.Center(child: pw.Text('CCG', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold))),
+        ),
+        pw.SizedBox(width: 4),
+        pw.Container(
+          width: 46,
+          height: 46,
           child: pw.SvgImage(svg: logoSvg),
         ),
-        pw.SizedBox(width: 8),
+        pw.SizedBox(width: 6),
         pw.Expanded(
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -128,7 +169,7 @@ class PdfService {
               pw.Text(
                 "CASHEW QUALITY ANALYSTS' ASSOCIATION, GHANA (C.Q.A.A.G)",
                 style: pw.TextStyle(
-                  fontSize: 12.5,
+                  fontSize: 11.5,
                   fontWeight: pw.FontWeight.bold,
                   color: PdfColors.green900,
                 ),
@@ -150,7 +191,7 @@ class PdfService {
                 padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 2.5),
                 decoration: const pw.BoxDecoration(color: PdfColors.black),
                 child: pw.Text(
-                  reportHeaderTitle,
+                  certificateTitle,
                   style: pw.TextStyle(
                     fontSize: 10.5,
                     fontWeight: pw.FontWeight.bold,
@@ -161,20 +202,94 @@ class PdfService {
             ],
           ),
         ),
-        pw.SizedBox(width: 8),
+        pw.SizedBox(width: 6),
         if (tcdaImage != null)
           pw.Container(
-            width: 50,
-            height: 50,
+            width: 46,
+            height: 46,
             child: pw.Image(tcdaImage, fit: pw.BoxFit.contain),
           )
         else
-          pw.SizedBox(width: 50),
+          pw.SizedBox(width: 46),
       ],
     );
   }
 
-  /// Standard Quality Report Info Block
+  /// CQAAG APPROVAL block of an Export certificate: the official seal (with
+  /// the president's signature embedded when the signed seal is on file) and
+  /// the date and time of approval.
+  pw.Widget _buildApprovalBlock(Map<String, dynamic> data, String approvalStatus, pw.ImageProvider? seal) {
+    final approved = approvalStatus == 'approved';
+    final declined = approvalStatus == 'declined';
+    final includesSignature = data['approvalSealIncludesSignature'] == true;
+    final approvedAt = DateTime.tryParse((data['approvedAt'] ?? '').toString());
+
+    final statusLine = approved
+        ? 'CQAAG APPROVED — VALID CERTIFICATE'
+        : (declined ? 'NOT APPROVED BY CQAAG — NOT A VALID CERTIFICATE' : 'PENDING CQAAG APPROVAL — NOT YET VALID');
+    final color = approved ? PdfColors.green900 : PdfColors.red900;
+
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(8),
+      decoration: pw.BoxDecoration(border: pw.Border.all(width: 1, color: color)),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.center,
+        children: [
+          if (approved && seal != null) ...[
+            pw.SizedBox(width: 72, height: 72, child: pw.Image(seal, fit: pw.BoxFit.contain)),
+            pw.SizedBox(width: 10),
+          ],
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('CQAAG APPROVAL', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                pw.SizedBox(height: 2),
+                pw.Text(statusLine, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: color)),
+                if (approved) ...[
+                  pw.SizedBox(height: 3),
+                  pw.Text(
+                    'Approved on: ${approvedAt == null ? '-' : AgreementPdfService.formatSignedAt(approvedAt)}',
+                    style: const pw.TextStyle(fontSize: 8.5),
+                  ),
+                  if ((data['approvedByName'] ?? '').toString().isNotEmpty)
+                    pw.Text('Approved by: ${data['approvedByName']}', style: const pw.TextStyle(fontSize: 8.5)),
+                  pw.Text(
+                    includesSignature
+                        ? 'Official seal of the Association with the signature of the President embedded.'
+                        : 'Official seal of the Association.',
+                    style: pw.TextStyle(fontSize: 7.5, fontStyle: pw.FontStyle.italic),
+                  ),
+                ] else if (declined && (data['declineReason'] ?? '').toString().isNotEmpty)
+                  pw.Text('Reason: ${data['declineReason']}', style: const pw.TextStyle(fontSize: 8.5)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildNotValidWatermark(bool declined) {
+    return pw.FullPage(
+      ignoreMargins: true,
+      child: pw.Center(
+        child: pw.Transform.rotate(
+          angle: 0.6,
+          child: pw.Opacity(
+            opacity: 0.12,
+            child: pw.Text(
+              declined ? 'NOT APPROVED' : 'PENDING CQAAG APPROVAL',
+              style: pw.TextStyle(fontSize: 54, fontWeight: pw.FontWeight.bold, color: PdfColors.red900),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Standard Quality Certificate Info Block
   pw.Widget _buildInfoBlock(Map<String, dynamic> data) {
     final qcCode = data['qcCode'] ?? (data['id'] ?? '').toString().toUpperCase();
 
@@ -211,7 +326,7 @@ class PdfService {
     );
   }
 
-  /// Dedicated EXPORT RCN QUALITY REPORT Details Block
+  /// Dedicated EXPORT RCN QUALITY CERTIFICATE Details Block
   pw.Widget _buildExportInfoBlock(Map<String, dynamic> data) {
     final qcCode = data['qcCode'] ?? (data['id'] ?? '').toString().toUpperCase();
 

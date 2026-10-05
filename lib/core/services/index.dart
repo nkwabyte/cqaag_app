@@ -18,3 +18,4 @@
 
 export 'pdf_service.dart';
 export 'subscription_service.dart';
+export 'agreement_pdf_service.dart';

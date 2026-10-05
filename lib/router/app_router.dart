@@ -37,18 +37,17 @@ GoRouter goRouter(Ref ref) {
       final isLoggedIn = currentUser != null;
       final isEmailVerified = currentUser?.emailVerified ?? false;
 
-      // Check guest mode
-      final guestMode = ref.read(guestModeProvider);
-      final isGuest = guestMode == AuthMode.guest;
-
       final isSplash = state.uri.path == '/';
       final isBoarding = state.uri.path == '/${BoardingScreen.id}';
       final isLogin = state.uri.path == '/${LoginScreen.id}';
       final isRegister = state.uri.path == '/${RegisterScreen.id}';
       final isForgotPassword = state.uri.path == '/${ForgotPasswordScreen.id}';
       final isEmailVerification = state.uri.path == '/${EmailVerificationScreen.id}';
-      // Guest-accessible routes (public screens)
-      final guestAccessibleRoutes = [
+      // Routes reachable without a verified sign-in: the membership application
+      // flow and the documents it links to, and the cutting-kit shop guests
+      // can buy from. Everything else requires an account; visitors use the
+      // website.
+      final openRoutes = [
         '/${AboutScreen.id}',
         '/${ContactUsScreen.id}',
         '/${QualityStandardsScreen.id}',
@@ -56,9 +55,6 @@ GoRouter goRouter(Ref ref) {
         '/${ConstitutionScreen.id}',
         '/${TermsAndConditionsScreen.id}',
         '/${PrivacyPolicyScreen.id}',
-        '/${GuestEventsScreen.id}',
-        '/${GuestEventsScreen.id}',
-        '/${GuestEventDetailsScreen.id}',
         '/${ServicesScreen.id}',
         '/${ChaptersScreen.id}',
         '/${MembershipInfoScreen.id}',
@@ -67,39 +63,30 @@ GoRouter goRouter(Ref ref) {
         '/${MembershipPaymentScreen.id}',
         '/${VerificationUploadScreen.id}',
         '/${PartnersScreen.id}',
+        '/${KitPurchaseScreen.id}',
       ];
-      final isGuestAccessible = guestAccessibleRoutes.contains(state.uri.path);
+      final isOpenRoute = openRoutes.contains(state.uri.path);
 
-      final isPublicRoute = isSplash || isBoarding || isLogin || isRegister || isForgotPassword || isEmailVerification || isGuestAccessible;
+      final isPublicRoute = isSplash || isBoarding || isLogin || isRegister || isForgotPassword || isEmailVerification || isOpenRoute;
 
       if (isLoading || hasError) return null;
 
-      // Guest mode logic
-      if (isGuest) {
-        // Allow guest to access dashboard and guest-accessible routes
-        if (state.uri.path == '/${DashboardScreen.id}' || isGuestAccessible || isPublicRoute) {
-          return null;
-        }
-        // Redirect guests trying to access protected routes to dashboard
-        return '/${DashboardScreen.id}';
-      }
-
       if (isLoggedIn) {
-        // Enforce email verification for non-guest users
+        // Enforce email verification
         if (!isEmailVerified) {
-          if (!isEmailVerification && !isSplash && !isGuestAccessible) {
+          if (!isEmailVerification && !isSplash && !isOpenRoute) {
             return '/${EmailVerificationScreen.id}';
           }
           return null;
         }
 
         // If logged in & verified and on auth screens or verification screen, redirect to Dashboard
-        if ((isPublicRoute || isEmailVerification) && !isSplash && !isGuestAccessible) {
+        if ((isPublicRoute || isEmailVerification) && !isSplash && !isOpenRoute) {
           return '/${DashboardScreen.id}';
         }
       } else {
-        // If not logged in and not guest, and on a protected route, redirect to Login
-        if (!isPublicRoute && !isGuestAccessible) {
+        // If not logged in and on a protected route, redirect to Login
+        if (!isPublicRoute) {
           return '/${LoginScreen.id}';
         }
       }
@@ -301,23 +288,19 @@ GoRouter goRouter(Ref ref) {
         },
       ),
       GoRoute(
+        path: '/${KitPurchaseScreen.id}',
+        name: KitPurchaseScreen.id,
+        builder: (context, state) => const KitPurchaseScreen(),
+      ),
+      GoRoute(
+        path: '/${ChangePasswordScreen.id}',
+        name: ChangePasswordScreen.id,
+        builder: (context, state) => const ChangePasswordScreen(),
+      ),
+      GoRoute(
         path: '/${EditProfileScreen.id}',
         name: EditProfileScreen.id,
         builder: (context, state) => const EditProfileScreen(),
-      ),
-      // Guest Events Routes
-      GoRoute(
-        path: '/${GuestEventsScreen.id}',
-        name: GuestEventsScreen.id,
-        builder: (context, state) => const GuestEventsScreen(),
-      ),
-      GoRoute(
-        path: '/${GuestEventDetailsScreen.id}',
-        name: GuestEventDetailsScreen.id,
-        builder: (context, state) {
-          final event = state.extra as Event;
-          return GuestEventDetailsScreen(event: event);
-        },
       ),
     ],
   );

@@ -25,16 +25,39 @@ mixin _$MembershipApplication {
  String get lastName;/// Date of birth (stored as ISO 8601 string)
  String get dateOfBirth;/// Gender
  Gender get gender;/// Nationality
- String get nationality;/// Ghana Card / ID Number
+ String get nationality;/// Place of birth, printed in the identity block of every signed document.
+ String? get placeOfBirth;/// Ghana Card personal ID number, in the form `GHA-#########-#`.
+///
+/// Under current Ghanaian law this number is the only identity evidence
+/// collected — no images of the card are captured or stored — so it is what
+/// an admin verifies the applicant against.
  String? get ghanaCardNumber;/// Primary phone number
  String get phoneNumberPrimary;/// Secondary phone number
  String? get phoneNumberSecondary;/// Email address
  String get emailAddress;/// Residential address
  String get residentialAddress;/// Region/District
- String get regionDistrict;// Professional Information
-/// Current job title
- String get currentJobTitle;/// Employer/Organization
- String get employerOrganization;/// Desired membership category
+ String get regionDistrict;/// Current job title. The website writes `job_title`.
+@JsonKey(readValue: _readJobTitle) String get currentJobTitle;/// Employer/Organization
+ String get employerOrganization;/// Employer type (cashew processor, exporter, trader, aggregator, farmer, laboratory, regulatory, academia, other)
+ String? get employerType;/// Industry sector keys (see [IndustrySectors]), as the website stores them.
+ List<String> get industrySectors;/// Free-text sector, when `other` is among [industrySectors].
+ String? get industrySectorOther;/// Whole years of experience in cashew quality analysis or a related field.
+@JsonKey(fromJson: _intOrNull) int? get yearsOfExperience;/// Professional qualifications / certifications, e.g. TCDA training.
+ String? get professionalQualifications;/// Highest educational qualification key (see [EducationLevels]).
+///
+/// The website nests the education fields in an `education` map; they are
+/// read from there when the flat field is absent, and written to both.
+@JsonKey(readValue: _readEducationLevel) String? get highestEducationLevel;/// What the applicant typed when [highestEducationLevel] is `other`.
+@JsonKey(readValue: _readEducationLevelOther) String? get educationLevelOther;/// Field of study
+@JsonKey(readValue: _readFieldOfStudy) String? get fieldOfStudy;/// Institution the qualification was obtained from
+@JsonKey(readValue: _readInstitution) String? get institution;/// Year qualification was obtained
+@JsonKey(readValue: _readYearObtained, fromJson: _stringOrNull) String? get yearQualificationObtained;/// Passport or national ID number, for Foreign Associate applicants who do
+/// not hold a Ghana Card. Mirrors [ghanaCardNumber] otherwise.
+ String? get nationalIdNumber;/// Consent to the public member directory, given in the Declaration.
+ bool get directoryConsent;/// The accepted governing documents, keyed `agreement`, `ethics`, `terms`,
+/// `privacy` and `declaration` — what was accepted, how, and when. The A4
+/// PDFs themselves are filed in the association's agreements database.
+ Map<String, dynamic> get signedDocuments;/// Desired membership category
  MembershipCategory get membershipCategory;/// Application status
  ApplicationStatus get status;// Timestamps
 /// When the application was created
@@ -52,8 +75,16 @@ mixin _$MembershipApplication {
 // never rewrite what this applicant was actually asked to pay.
 /// How the fee was paid: `momo` or `paystack`
  String? get paymentMethod;/// Verification state: unpaid, pending_verification, verified, rejected
- String get paymentStatus;/// Amount the applicant was asked to pay
- double? get paymentAmount;/// Currency of [paymentAmount]
+ String get paymentStatus;/// Total the applicant was asked to pay: Registration Fee + Annual Dues
+/// + whichever optional kit items they chose.
+ double? get paymentAmount;/// Registration Fee portion of [paymentAmount], per the fee schedule.
+ double? get paymentRegistrationFee;/// Annual Dues portion of [paymentAmount].
+ double? get paymentAnnualDues;/// Total of the optional kit items the applicant chose to take.
+ double get paymentOptionalTotal;/// The optional kit items the applicant chose, priced as at the moment of
+/// choice. Empty when they declined all of them.
+ List<SelectedFeeItem> get paymentOptionalItems;/// The Registration Fee components in force when the applicant was quoted,
+/// snapshotted so a later change to the schedule cannot rewrite history.
+ List<SelectedFeeItem> get paymentRegistrationComponents;/// Currency of [paymentAmount]
  String get paymentCurrency;/// Cloudinary URL of the uploaded payment evidence
  String? get paymentEvidenceUrl;/// Transaction ID supplied by the applicant
  String? get paymentReference;/// Network of the account the fee was sent to
@@ -61,7 +92,8 @@ mixin _$MembershipApplication {
  String? get paymentMomoNumber;/// When the applicant submitted their payment
  DateTime? get paymentSubmittedAt;/// When an admin verified the payment
  DateTime? get paymentVerifiedAt;/// UID of the admin who verified the payment
- String? get paymentVerifiedBy;
+ String? get paymentVerifiedBy;/// When a generated sign-in password was emailed to [emailAddress].
+@JsonKey(fromJson: _dateOrNull) DateTime? get credentialsIssuedAt;
 /// Create a copy of MembershipApplication
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -74,16 +106,16 @@ $MembershipApplicationCopyWith<MembershipApplication> get copyWith => _$Membersh
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MembershipApplication&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.middleName, middleName) || other.middleName == middleName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.nationality, nationality) || other.nationality == nationality)&&(identical(other.ghanaCardNumber, ghanaCardNumber) || other.ghanaCardNumber == ghanaCardNumber)&&(identical(other.phoneNumberPrimary, phoneNumberPrimary) || other.phoneNumberPrimary == phoneNumberPrimary)&&(identical(other.phoneNumberSecondary, phoneNumberSecondary) || other.phoneNumberSecondary == phoneNumberSecondary)&&(identical(other.emailAddress, emailAddress) || other.emailAddress == emailAddress)&&(identical(other.residentialAddress, residentialAddress) || other.residentialAddress == residentialAddress)&&(identical(other.regionDistrict, regionDistrict) || other.regionDistrict == regionDistrict)&&(identical(other.currentJobTitle, currentJobTitle) || other.currentJobTitle == currentJobTitle)&&(identical(other.employerOrganization, employerOrganization) || other.employerOrganization == employerOrganization)&&(identical(other.membershipCategory, membershipCategory) || other.membershipCategory == membershipCategory)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.submittedAt, submittedAt) || other.submittedAt == submittedAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.reviewedAt, reviewedAt) || other.reviewedAt == reviewedAt)&&(identical(other.reviewNotes, reviewNotes) || other.reviewNotes == reviewNotes)&&(identical(other.reviewerId, reviewerId) || other.reviewerId == reviewerId)&&(identical(other.paymentMethod, paymentMethod) || other.paymentMethod == paymentMethod)&&(identical(other.paymentStatus, paymentStatus) || other.paymentStatus == paymentStatus)&&(identical(other.paymentAmount, paymentAmount) || other.paymentAmount == paymentAmount)&&(identical(other.paymentCurrency, paymentCurrency) || other.paymentCurrency == paymentCurrency)&&(identical(other.paymentEvidenceUrl, paymentEvidenceUrl) || other.paymentEvidenceUrl == paymentEvidenceUrl)&&(identical(other.paymentReference, paymentReference) || other.paymentReference == paymentReference)&&(identical(other.paymentMomoNetwork, paymentMomoNetwork) || other.paymentMomoNetwork == paymentMomoNetwork)&&(identical(other.paymentMomoNumber, paymentMomoNumber) || other.paymentMomoNumber == paymentMomoNumber)&&(identical(other.paymentSubmittedAt, paymentSubmittedAt) || other.paymentSubmittedAt == paymentSubmittedAt)&&(identical(other.paymentVerifiedAt, paymentVerifiedAt) || other.paymentVerifiedAt == paymentVerifiedAt)&&(identical(other.paymentVerifiedBy, paymentVerifiedBy) || other.paymentVerifiedBy == paymentVerifiedBy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MembershipApplication&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.middleName, middleName) || other.middleName == middleName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.nationality, nationality) || other.nationality == nationality)&&(identical(other.placeOfBirth, placeOfBirth) || other.placeOfBirth == placeOfBirth)&&(identical(other.ghanaCardNumber, ghanaCardNumber) || other.ghanaCardNumber == ghanaCardNumber)&&(identical(other.phoneNumberPrimary, phoneNumberPrimary) || other.phoneNumberPrimary == phoneNumberPrimary)&&(identical(other.phoneNumberSecondary, phoneNumberSecondary) || other.phoneNumberSecondary == phoneNumberSecondary)&&(identical(other.emailAddress, emailAddress) || other.emailAddress == emailAddress)&&(identical(other.residentialAddress, residentialAddress) || other.residentialAddress == residentialAddress)&&(identical(other.regionDistrict, regionDistrict) || other.regionDistrict == regionDistrict)&&(identical(other.currentJobTitle, currentJobTitle) || other.currentJobTitle == currentJobTitle)&&(identical(other.employerOrganization, employerOrganization) || other.employerOrganization == employerOrganization)&&(identical(other.employerType, employerType) || other.employerType == employerType)&&const DeepCollectionEquality().equals(other.industrySectors, industrySectors)&&(identical(other.industrySectorOther, industrySectorOther) || other.industrySectorOther == industrySectorOther)&&(identical(other.yearsOfExperience, yearsOfExperience) || other.yearsOfExperience == yearsOfExperience)&&(identical(other.professionalQualifications, professionalQualifications) || other.professionalQualifications == professionalQualifications)&&(identical(other.highestEducationLevel, highestEducationLevel) || other.highestEducationLevel == highestEducationLevel)&&(identical(other.educationLevelOther, educationLevelOther) || other.educationLevelOther == educationLevelOther)&&(identical(other.fieldOfStudy, fieldOfStudy) || other.fieldOfStudy == fieldOfStudy)&&(identical(other.institution, institution) || other.institution == institution)&&(identical(other.yearQualificationObtained, yearQualificationObtained) || other.yearQualificationObtained == yearQualificationObtained)&&(identical(other.nationalIdNumber, nationalIdNumber) || other.nationalIdNumber == nationalIdNumber)&&(identical(other.directoryConsent, directoryConsent) || other.directoryConsent == directoryConsent)&&const DeepCollectionEquality().equals(other.signedDocuments, signedDocuments)&&(identical(other.membershipCategory, membershipCategory) || other.membershipCategory == membershipCategory)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.submittedAt, submittedAt) || other.submittedAt == submittedAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.reviewedAt, reviewedAt) || other.reviewedAt == reviewedAt)&&(identical(other.reviewNotes, reviewNotes) || other.reviewNotes == reviewNotes)&&(identical(other.reviewerId, reviewerId) || other.reviewerId == reviewerId)&&(identical(other.paymentMethod, paymentMethod) || other.paymentMethod == paymentMethod)&&(identical(other.paymentStatus, paymentStatus) || other.paymentStatus == paymentStatus)&&(identical(other.paymentAmount, paymentAmount) || other.paymentAmount == paymentAmount)&&(identical(other.paymentRegistrationFee, paymentRegistrationFee) || other.paymentRegistrationFee == paymentRegistrationFee)&&(identical(other.paymentAnnualDues, paymentAnnualDues) || other.paymentAnnualDues == paymentAnnualDues)&&(identical(other.paymentOptionalTotal, paymentOptionalTotal) || other.paymentOptionalTotal == paymentOptionalTotal)&&const DeepCollectionEquality().equals(other.paymentOptionalItems, paymentOptionalItems)&&const DeepCollectionEquality().equals(other.paymentRegistrationComponents, paymentRegistrationComponents)&&(identical(other.paymentCurrency, paymentCurrency) || other.paymentCurrency == paymentCurrency)&&(identical(other.paymentEvidenceUrl, paymentEvidenceUrl) || other.paymentEvidenceUrl == paymentEvidenceUrl)&&(identical(other.paymentReference, paymentReference) || other.paymentReference == paymentReference)&&(identical(other.paymentMomoNetwork, paymentMomoNetwork) || other.paymentMomoNetwork == paymentMomoNetwork)&&(identical(other.paymentMomoNumber, paymentMomoNumber) || other.paymentMomoNumber == paymentMomoNumber)&&(identical(other.paymentSubmittedAt, paymentSubmittedAt) || other.paymentSubmittedAt == paymentSubmittedAt)&&(identical(other.paymentVerifiedAt, paymentVerifiedAt) || other.paymentVerifiedAt == paymentVerifiedAt)&&(identical(other.paymentVerifiedBy, paymentVerifiedBy) || other.paymentVerifiedBy == paymentVerifiedBy)&&(identical(other.credentialsIssuedAt, credentialsIssuedAt) || other.credentialsIssuedAt == credentialsIssuedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,userId,title,firstName,middleName,lastName,dateOfBirth,gender,nationality,ghanaCardNumber,phoneNumberPrimary,phoneNumberSecondary,emailAddress,residentialAddress,regionDistrict,currentJobTitle,employerOrganization,membershipCategory,status,createdAt,submittedAt,updatedAt,reviewedAt,reviewNotes,reviewerId,paymentMethod,paymentStatus,paymentAmount,paymentCurrency,paymentEvidenceUrl,paymentReference,paymentMomoNetwork,paymentMomoNumber,paymentSubmittedAt,paymentVerifiedAt,paymentVerifiedBy]);
+int get hashCode => Object.hashAll([runtimeType,id,userId,title,firstName,middleName,lastName,dateOfBirth,gender,nationality,placeOfBirth,ghanaCardNumber,phoneNumberPrimary,phoneNumberSecondary,emailAddress,residentialAddress,regionDistrict,currentJobTitle,employerOrganization,employerType,const DeepCollectionEquality().hash(industrySectors),industrySectorOther,yearsOfExperience,professionalQualifications,highestEducationLevel,educationLevelOther,fieldOfStudy,institution,yearQualificationObtained,nationalIdNumber,directoryConsent,const DeepCollectionEquality().hash(signedDocuments),membershipCategory,status,createdAt,submittedAt,updatedAt,reviewedAt,reviewNotes,reviewerId,paymentMethod,paymentStatus,paymentAmount,paymentRegistrationFee,paymentAnnualDues,paymentOptionalTotal,const DeepCollectionEquality().hash(paymentOptionalItems),const DeepCollectionEquality().hash(paymentRegistrationComponents),paymentCurrency,paymentEvidenceUrl,paymentReference,paymentMomoNetwork,paymentMomoNumber,paymentSubmittedAt,paymentVerifiedAt,paymentVerifiedBy,credentialsIssuedAt]);
 
 @override
 String toString() {
-  return 'MembershipApplication(id: $id, userId: $userId, title: $title, firstName: $firstName, middleName: $middleName, lastName: $lastName, dateOfBirth: $dateOfBirth, gender: $gender, nationality: $nationality, ghanaCardNumber: $ghanaCardNumber, phoneNumberPrimary: $phoneNumberPrimary, phoneNumberSecondary: $phoneNumberSecondary, emailAddress: $emailAddress, residentialAddress: $residentialAddress, regionDistrict: $regionDistrict, currentJobTitle: $currentJobTitle, employerOrganization: $employerOrganization, membershipCategory: $membershipCategory, status: $status, createdAt: $createdAt, submittedAt: $submittedAt, updatedAt: $updatedAt, reviewedAt: $reviewedAt, reviewNotes: $reviewNotes, reviewerId: $reviewerId, paymentMethod: $paymentMethod, paymentStatus: $paymentStatus, paymentAmount: $paymentAmount, paymentCurrency: $paymentCurrency, paymentEvidenceUrl: $paymentEvidenceUrl, paymentReference: $paymentReference, paymentMomoNetwork: $paymentMomoNetwork, paymentMomoNumber: $paymentMomoNumber, paymentSubmittedAt: $paymentSubmittedAt, paymentVerifiedAt: $paymentVerifiedAt, paymentVerifiedBy: $paymentVerifiedBy)';
+  return 'MembershipApplication(id: $id, userId: $userId, title: $title, firstName: $firstName, middleName: $middleName, lastName: $lastName, dateOfBirth: $dateOfBirth, gender: $gender, nationality: $nationality, placeOfBirth: $placeOfBirth, ghanaCardNumber: $ghanaCardNumber, phoneNumberPrimary: $phoneNumberPrimary, phoneNumberSecondary: $phoneNumberSecondary, emailAddress: $emailAddress, residentialAddress: $residentialAddress, regionDistrict: $regionDistrict, currentJobTitle: $currentJobTitle, employerOrganization: $employerOrganization, employerType: $employerType, industrySectors: $industrySectors, industrySectorOther: $industrySectorOther, yearsOfExperience: $yearsOfExperience, professionalQualifications: $professionalQualifications, highestEducationLevel: $highestEducationLevel, educationLevelOther: $educationLevelOther, fieldOfStudy: $fieldOfStudy, institution: $institution, yearQualificationObtained: $yearQualificationObtained, nationalIdNumber: $nationalIdNumber, directoryConsent: $directoryConsent, signedDocuments: $signedDocuments, membershipCategory: $membershipCategory, status: $status, createdAt: $createdAt, submittedAt: $submittedAt, updatedAt: $updatedAt, reviewedAt: $reviewedAt, reviewNotes: $reviewNotes, reviewerId: $reviewerId, paymentMethod: $paymentMethod, paymentStatus: $paymentStatus, paymentAmount: $paymentAmount, paymentRegistrationFee: $paymentRegistrationFee, paymentAnnualDues: $paymentAnnualDues, paymentOptionalTotal: $paymentOptionalTotal, paymentOptionalItems: $paymentOptionalItems, paymentRegistrationComponents: $paymentRegistrationComponents, paymentCurrency: $paymentCurrency, paymentEvidenceUrl: $paymentEvidenceUrl, paymentReference: $paymentReference, paymentMomoNetwork: $paymentMomoNetwork, paymentMomoNumber: $paymentMomoNumber, paymentSubmittedAt: $paymentSubmittedAt, paymentVerifiedAt: $paymentVerifiedAt, paymentVerifiedBy: $paymentVerifiedBy, credentialsIssuedAt: $credentialsIssuedAt)';
 }
 
 
@@ -94,7 +126,7 @@ abstract mixin class $MembershipApplicationCopyWith<$Res>  {
   factory $MembershipApplicationCopyWith(MembershipApplication value, $Res Function(MembershipApplication) _then) = _$MembershipApplicationCopyWithImpl;
 @useResult
 $Res call({
- String id, String userId, Title title, String firstName, String? middleName, String lastName, String dateOfBirth, Gender gender, String nationality, String? ghanaCardNumber, String phoneNumberPrimary, String? phoneNumberSecondary, String emailAddress, String residentialAddress, String regionDistrict, String currentJobTitle, String employerOrganization, MembershipCategory membershipCategory, ApplicationStatus status, DateTime? createdAt, DateTime? submittedAt, DateTime? updatedAt, DateTime? reviewedAt, String? reviewNotes, String? reviewerId, String? paymentMethod, String paymentStatus, double? paymentAmount, String paymentCurrency, String? paymentEvidenceUrl, String? paymentReference, String? paymentMomoNetwork, String? paymentMomoNumber, DateTime? paymentSubmittedAt, DateTime? paymentVerifiedAt, String? paymentVerifiedBy
+ String id, String userId, Title title, String firstName, String? middleName, String lastName, String dateOfBirth, Gender gender, String nationality, String? placeOfBirth, String? ghanaCardNumber, String phoneNumberPrimary, String? phoneNumberSecondary, String emailAddress, String residentialAddress, String regionDistrict,@JsonKey(readValue: _readJobTitle) String currentJobTitle, String employerOrganization, String? employerType, List<String> industrySectors, String? industrySectorOther,@JsonKey(fromJson: _intOrNull) int? yearsOfExperience, String? professionalQualifications,@JsonKey(readValue: _readEducationLevel) String? highestEducationLevel,@JsonKey(readValue: _readEducationLevelOther) String? educationLevelOther,@JsonKey(readValue: _readFieldOfStudy) String? fieldOfStudy,@JsonKey(readValue: _readInstitution) String? institution,@JsonKey(readValue: _readYearObtained, fromJson: _stringOrNull) String? yearQualificationObtained, String? nationalIdNumber, bool directoryConsent, Map<String, dynamic> signedDocuments, MembershipCategory membershipCategory, ApplicationStatus status, DateTime? createdAt, DateTime? submittedAt, DateTime? updatedAt, DateTime? reviewedAt, String? reviewNotes, String? reviewerId, String? paymentMethod, String paymentStatus, double? paymentAmount, double? paymentRegistrationFee, double? paymentAnnualDues, double paymentOptionalTotal, List<SelectedFeeItem> paymentOptionalItems, List<SelectedFeeItem> paymentRegistrationComponents, String paymentCurrency, String? paymentEvidenceUrl, String? paymentReference, String? paymentMomoNetwork, String? paymentMomoNumber, DateTime? paymentSubmittedAt, DateTime? paymentVerifiedAt, String? paymentVerifiedBy,@JsonKey(fromJson: _dateOrNull) DateTime? credentialsIssuedAt
 });
 
 
@@ -111,7 +143,7 @@ class _$MembershipApplicationCopyWithImpl<$Res>
 
 /// Create a copy of MembershipApplication
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userId = null,Object? title = null,Object? firstName = null,Object? middleName = freezed,Object? lastName = null,Object? dateOfBirth = null,Object? gender = null,Object? nationality = null,Object? ghanaCardNumber = freezed,Object? phoneNumberPrimary = null,Object? phoneNumberSecondary = freezed,Object? emailAddress = null,Object? residentialAddress = null,Object? regionDistrict = null,Object? currentJobTitle = null,Object? employerOrganization = null,Object? membershipCategory = null,Object? status = null,Object? createdAt = freezed,Object? submittedAt = freezed,Object? updatedAt = freezed,Object? reviewedAt = freezed,Object? reviewNotes = freezed,Object? reviewerId = freezed,Object? paymentMethod = freezed,Object? paymentStatus = null,Object? paymentAmount = freezed,Object? paymentCurrency = null,Object? paymentEvidenceUrl = freezed,Object? paymentReference = freezed,Object? paymentMomoNetwork = freezed,Object? paymentMomoNumber = freezed,Object? paymentSubmittedAt = freezed,Object? paymentVerifiedAt = freezed,Object? paymentVerifiedBy = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? userId = null,Object? title = null,Object? firstName = null,Object? middleName = freezed,Object? lastName = null,Object? dateOfBirth = null,Object? gender = null,Object? nationality = null,Object? placeOfBirth = freezed,Object? ghanaCardNumber = freezed,Object? phoneNumberPrimary = null,Object? phoneNumberSecondary = freezed,Object? emailAddress = null,Object? residentialAddress = null,Object? regionDistrict = null,Object? currentJobTitle = null,Object? employerOrganization = null,Object? employerType = freezed,Object? industrySectors = null,Object? industrySectorOther = freezed,Object? yearsOfExperience = freezed,Object? professionalQualifications = freezed,Object? highestEducationLevel = freezed,Object? educationLevelOther = freezed,Object? fieldOfStudy = freezed,Object? institution = freezed,Object? yearQualificationObtained = freezed,Object? nationalIdNumber = freezed,Object? directoryConsent = null,Object? signedDocuments = null,Object? membershipCategory = null,Object? status = null,Object? createdAt = freezed,Object? submittedAt = freezed,Object? updatedAt = freezed,Object? reviewedAt = freezed,Object? reviewNotes = freezed,Object? reviewerId = freezed,Object? paymentMethod = freezed,Object? paymentStatus = null,Object? paymentAmount = freezed,Object? paymentRegistrationFee = freezed,Object? paymentAnnualDues = freezed,Object? paymentOptionalTotal = null,Object? paymentOptionalItems = null,Object? paymentRegistrationComponents = null,Object? paymentCurrency = null,Object? paymentEvidenceUrl = freezed,Object? paymentReference = freezed,Object? paymentMomoNetwork = freezed,Object? paymentMomoNumber = freezed,Object? paymentSubmittedAt = freezed,Object? paymentVerifiedAt = freezed,Object? paymentVerifiedBy = freezed,Object? credentialsIssuedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
@@ -122,7 +154,8 @@ as String?,lastName: null == lastName ? _self.lastName : lastName // ignore: cas
 as String,dateOfBirth: null == dateOfBirth ? _self.dateOfBirth : dateOfBirth // ignore: cast_nullable_to_non_nullable
 as String,gender: null == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable
 as Gender,nationality: null == nationality ? _self.nationality : nationality // ignore: cast_nullable_to_non_nullable
-as String,ghanaCardNumber: freezed == ghanaCardNumber ? _self.ghanaCardNumber : ghanaCardNumber // ignore: cast_nullable_to_non_nullable
+as String,placeOfBirth: freezed == placeOfBirth ? _self.placeOfBirth : placeOfBirth // ignore: cast_nullable_to_non_nullable
+as String?,ghanaCardNumber: freezed == ghanaCardNumber ? _self.ghanaCardNumber : ghanaCardNumber // ignore: cast_nullable_to_non_nullable
 as String?,phoneNumberPrimary: null == phoneNumberPrimary ? _self.phoneNumberPrimary : phoneNumberPrimary // ignore: cast_nullable_to_non_nullable
 as String,phoneNumberSecondary: freezed == phoneNumberSecondary ? _self.phoneNumberSecondary : phoneNumberSecondary // ignore: cast_nullable_to_non_nullable
 as String?,emailAddress: null == emailAddress ? _self.emailAddress : emailAddress // ignore: cast_nullable_to_non_nullable
@@ -130,7 +163,20 @@ as String,residentialAddress: null == residentialAddress ? _self.residentialAddr
 as String,regionDistrict: null == regionDistrict ? _self.regionDistrict : regionDistrict // ignore: cast_nullable_to_non_nullable
 as String,currentJobTitle: null == currentJobTitle ? _self.currentJobTitle : currentJobTitle // ignore: cast_nullable_to_non_nullable
 as String,employerOrganization: null == employerOrganization ? _self.employerOrganization : employerOrganization // ignore: cast_nullable_to_non_nullable
-as String,membershipCategory: null == membershipCategory ? _self.membershipCategory : membershipCategory // ignore: cast_nullable_to_non_nullable
+as String,employerType: freezed == employerType ? _self.employerType : employerType // ignore: cast_nullable_to_non_nullable
+as String?,industrySectors: null == industrySectors ? _self.industrySectors : industrySectors // ignore: cast_nullable_to_non_nullable
+as List<String>,industrySectorOther: freezed == industrySectorOther ? _self.industrySectorOther : industrySectorOther // ignore: cast_nullable_to_non_nullable
+as String?,yearsOfExperience: freezed == yearsOfExperience ? _self.yearsOfExperience : yearsOfExperience // ignore: cast_nullable_to_non_nullable
+as int?,professionalQualifications: freezed == professionalQualifications ? _self.professionalQualifications : professionalQualifications // ignore: cast_nullable_to_non_nullable
+as String?,highestEducationLevel: freezed == highestEducationLevel ? _self.highestEducationLevel : highestEducationLevel // ignore: cast_nullable_to_non_nullable
+as String?,educationLevelOther: freezed == educationLevelOther ? _self.educationLevelOther : educationLevelOther // ignore: cast_nullable_to_non_nullable
+as String?,fieldOfStudy: freezed == fieldOfStudy ? _self.fieldOfStudy : fieldOfStudy // ignore: cast_nullable_to_non_nullable
+as String?,institution: freezed == institution ? _self.institution : institution // ignore: cast_nullable_to_non_nullable
+as String?,yearQualificationObtained: freezed == yearQualificationObtained ? _self.yearQualificationObtained : yearQualificationObtained // ignore: cast_nullable_to_non_nullable
+as String?,nationalIdNumber: freezed == nationalIdNumber ? _self.nationalIdNumber : nationalIdNumber // ignore: cast_nullable_to_non_nullable
+as String?,directoryConsent: null == directoryConsent ? _self.directoryConsent : directoryConsent // ignore: cast_nullable_to_non_nullable
+as bool,signedDocuments: null == signedDocuments ? _self.signedDocuments : signedDocuments // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>,membershipCategory: null == membershipCategory ? _self.membershipCategory : membershipCategory // ignore: cast_nullable_to_non_nullable
 as MembershipCategory,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as ApplicationStatus,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,submittedAt: freezed == submittedAt ? _self.submittedAt : submittedAt // ignore: cast_nullable_to_non_nullable
@@ -141,7 +187,12 @@ as String?,reviewerId: freezed == reviewerId ? _self.reviewerId : reviewerId // 
 as String?,paymentMethod: freezed == paymentMethod ? _self.paymentMethod : paymentMethod // ignore: cast_nullable_to_non_nullable
 as String?,paymentStatus: null == paymentStatus ? _self.paymentStatus : paymentStatus // ignore: cast_nullable_to_non_nullable
 as String,paymentAmount: freezed == paymentAmount ? _self.paymentAmount : paymentAmount // ignore: cast_nullable_to_non_nullable
-as double?,paymentCurrency: null == paymentCurrency ? _self.paymentCurrency : paymentCurrency // ignore: cast_nullable_to_non_nullable
+as double?,paymentRegistrationFee: freezed == paymentRegistrationFee ? _self.paymentRegistrationFee : paymentRegistrationFee // ignore: cast_nullable_to_non_nullable
+as double?,paymentAnnualDues: freezed == paymentAnnualDues ? _self.paymentAnnualDues : paymentAnnualDues // ignore: cast_nullable_to_non_nullable
+as double?,paymentOptionalTotal: null == paymentOptionalTotal ? _self.paymentOptionalTotal : paymentOptionalTotal // ignore: cast_nullable_to_non_nullable
+as double,paymentOptionalItems: null == paymentOptionalItems ? _self.paymentOptionalItems : paymentOptionalItems // ignore: cast_nullable_to_non_nullable
+as List<SelectedFeeItem>,paymentRegistrationComponents: null == paymentRegistrationComponents ? _self.paymentRegistrationComponents : paymentRegistrationComponents // ignore: cast_nullable_to_non_nullable
+as List<SelectedFeeItem>,paymentCurrency: null == paymentCurrency ? _self.paymentCurrency : paymentCurrency // ignore: cast_nullable_to_non_nullable
 as String,paymentEvidenceUrl: freezed == paymentEvidenceUrl ? _self.paymentEvidenceUrl : paymentEvidenceUrl // ignore: cast_nullable_to_non_nullable
 as String?,paymentReference: freezed == paymentReference ? _self.paymentReference : paymentReference // ignore: cast_nullable_to_non_nullable
 as String?,paymentMomoNetwork: freezed == paymentMomoNetwork ? _self.paymentMomoNetwork : paymentMomoNetwork // ignore: cast_nullable_to_non_nullable
@@ -149,7 +200,8 @@ as String?,paymentMomoNumber: freezed == paymentMomoNumber ? _self.paymentMomoNu
 as String?,paymentSubmittedAt: freezed == paymentSubmittedAt ? _self.paymentSubmittedAt : paymentSubmittedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,paymentVerifiedAt: freezed == paymentVerifiedAt ? _self.paymentVerifiedAt : paymentVerifiedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,paymentVerifiedBy: freezed == paymentVerifiedBy ? _self.paymentVerifiedBy : paymentVerifiedBy // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,credentialsIssuedAt: freezed == credentialsIssuedAt ? _self.credentialsIssuedAt : credentialsIssuedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 
@@ -234,10 +286,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String userId,  Title title,  String firstName,  String? middleName,  String lastName,  String dateOfBirth,  Gender gender,  String nationality,  String? ghanaCardNumber,  String phoneNumberPrimary,  String? phoneNumberSecondary,  String emailAddress,  String residentialAddress,  String regionDistrict,  String currentJobTitle,  String employerOrganization,  MembershipCategory membershipCategory,  ApplicationStatus status,  DateTime? createdAt,  DateTime? submittedAt,  DateTime? updatedAt,  DateTime? reviewedAt,  String? reviewNotes,  String? reviewerId,  String? paymentMethod,  String paymentStatus,  double? paymentAmount,  String paymentCurrency,  String? paymentEvidenceUrl,  String? paymentReference,  String? paymentMomoNetwork,  String? paymentMomoNumber,  DateTime? paymentSubmittedAt,  DateTime? paymentVerifiedAt,  String? paymentVerifiedBy)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String userId,  Title title,  String firstName,  String? middleName,  String lastName,  String dateOfBirth,  Gender gender,  String nationality,  String? placeOfBirth,  String? ghanaCardNumber,  String phoneNumberPrimary,  String? phoneNumberSecondary,  String emailAddress,  String residentialAddress,  String regionDistrict, @JsonKey(readValue: _readJobTitle)  String currentJobTitle,  String employerOrganization,  String? employerType,  List<String> industrySectors,  String? industrySectorOther, @JsonKey(fromJson: _intOrNull)  int? yearsOfExperience,  String? professionalQualifications, @JsonKey(readValue: _readEducationLevel)  String? highestEducationLevel, @JsonKey(readValue: _readEducationLevelOther)  String? educationLevelOther, @JsonKey(readValue: _readFieldOfStudy)  String? fieldOfStudy, @JsonKey(readValue: _readInstitution)  String? institution, @JsonKey(readValue: _readYearObtained, fromJson: _stringOrNull)  String? yearQualificationObtained,  String? nationalIdNumber,  bool directoryConsent,  Map<String, dynamic> signedDocuments,  MembershipCategory membershipCategory,  ApplicationStatus status,  DateTime? createdAt,  DateTime? submittedAt,  DateTime? updatedAt,  DateTime? reviewedAt,  String? reviewNotes,  String? reviewerId,  String? paymentMethod,  String paymentStatus,  double? paymentAmount,  double? paymentRegistrationFee,  double? paymentAnnualDues,  double paymentOptionalTotal,  List<SelectedFeeItem> paymentOptionalItems,  List<SelectedFeeItem> paymentRegistrationComponents,  String paymentCurrency,  String? paymentEvidenceUrl,  String? paymentReference,  String? paymentMomoNetwork,  String? paymentMomoNumber,  DateTime? paymentSubmittedAt,  DateTime? paymentVerifiedAt,  String? paymentVerifiedBy, @JsonKey(fromJson: _dateOrNull)  DateTime? credentialsIssuedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MembershipApplication() when $default != null:
-return $default(_that.id,_that.userId,_that.title,_that.firstName,_that.middleName,_that.lastName,_that.dateOfBirth,_that.gender,_that.nationality,_that.ghanaCardNumber,_that.phoneNumberPrimary,_that.phoneNumberSecondary,_that.emailAddress,_that.residentialAddress,_that.regionDistrict,_that.currentJobTitle,_that.employerOrganization,_that.membershipCategory,_that.status,_that.createdAt,_that.submittedAt,_that.updatedAt,_that.reviewedAt,_that.reviewNotes,_that.reviewerId,_that.paymentMethod,_that.paymentStatus,_that.paymentAmount,_that.paymentCurrency,_that.paymentEvidenceUrl,_that.paymentReference,_that.paymentMomoNetwork,_that.paymentMomoNumber,_that.paymentSubmittedAt,_that.paymentVerifiedAt,_that.paymentVerifiedBy);case _:
+return $default(_that.id,_that.userId,_that.title,_that.firstName,_that.middleName,_that.lastName,_that.dateOfBirth,_that.gender,_that.nationality,_that.placeOfBirth,_that.ghanaCardNumber,_that.phoneNumberPrimary,_that.phoneNumberSecondary,_that.emailAddress,_that.residentialAddress,_that.regionDistrict,_that.currentJobTitle,_that.employerOrganization,_that.employerType,_that.industrySectors,_that.industrySectorOther,_that.yearsOfExperience,_that.professionalQualifications,_that.highestEducationLevel,_that.educationLevelOther,_that.fieldOfStudy,_that.institution,_that.yearQualificationObtained,_that.nationalIdNumber,_that.directoryConsent,_that.signedDocuments,_that.membershipCategory,_that.status,_that.createdAt,_that.submittedAt,_that.updatedAt,_that.reviewedAt,_that.reviewNotes,_that.reviewerId,_that.paymentMethod,_that.paymentStatus,_that.paymentAmount,_that.paymentRegistrationFee,_that.paymentAnnualDues,_that.paymentOptionalTotal,_that.paymentOptionalItems,_that.paymentRegistrationComponents,_that.paymentCurrency,_that.paymentEvidenceUrl,_that.paymentReference,_that.paymentMomoNetwork,_that.paymentMomoNumber,_that.paymentSubmittedAt,_that.paymentVerifiedAt,_that.paymentVerifiedBy,_that.credentialsIssuedAt);case _:
   return orElse();
 
 }
@@ -255,10 +307,10 @@ return $default(_that.id,_that.userId,_that.title,_that.firstName,_that.middleNa
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String userId,  Title title,  String firstName,  String? middleName,  String lastName,  String dateOfBirth,  Gender gender,  String nationality,  String? ghanaCardNumber,  String phoneNumberPrimary,  String? phoneNumberSecondary,  String emailAddress,  String residentialAddress,  String regionDistrict,  String currentJobTitle,  String employerOrganization,  MembershipCategory membershipCategory,  ApplicationStatus status,  DateTime? createdAt,  DateTime? submittedAt,  DateTime? updatedAt,  DateTime? reviewedAt,  String? reviewNotes,  String? reviewerId,  String? paymentMethod,  String paymentStatus,  double? paymentAmount,  String paymentCurrency,  String? paymentEvidenceUrl,  String? paymentReference,  String? paymentMomoNetwork,  String? paymentMomoNumber,  DateTime? paymentSubmittedAt,  DateTime? paymentVerifiedAt,  String? paymentVerifiedBy)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String userId,  Title title,  String firstName,  String? middleName,  String lastName,  String dateOfBirth,  Gender gender,  String nationality,  String? placeOfBirth,  String? ghanaCardNumber,  String phoneNumberPrimary,  String? phoneNumberSecondary,  String emailAddress,  String residentialAddress,  String regionDistrict, @JsonKey(readValue: _readJobTitle)  String currentJobTitle,  String employerOrganization,  String? employerType,  List<String> industrySectors,  String? industrySectorOther, @JsonKey(fromJson: _intOrNull)  int? yearsOfExperience,  String? professionalQualifications, @JsonKey(readValue: _readEducationLevel)  String? highestEducationLevel, @JsonKey(readValue: _readEducationLevelOther)  String? educationLevelOther, @JsonKey(readValue: _readFieldOfStudy)  String? fieldOfStudy, @JsonKey(readValue: _readInstitution)  String? institution, @JsonKey(readValue: _readYearObtained, fromJson: _stringOrNull)  String? yearQualificationObtained,  String? nationalIdNumber,  bool directoryConsent,  Map<String, dynamic> signedDocuments,  MembershipCategory membershipCategory,  ApplicationStatus status,  DateTime? createdAt,  DateTime? submittedAt,  DateTime? updatedAt,  DateTime? reviewedAt,  String? reviewNotes,  String? reviewerId,  String? paymentMethod,  String paymentStatus,  double? paymentAmount,  double? paymentRegistrationFee,  double? paymentAnnualDues,  double paymentOptionalTotal,  List<SelectedFeeItem> paymentOptionalItems,  List<SelectedFeeItem> paymentRegistrationComponents,  String paymentCurrency,  String? paymentEvidenceUrl,  String? paymentReference,  String? paymentMomoNetwork,  String? paymentMomoNumber,  DateTime? paymentSubmittedAt,  DateTime? paymentVerifiedAt,  String? paymentVerifiedBy, @JsonKey(fromJson: _dateOrNull)  DateTime? credentialsIssuedAt)  $default,) {final _that = this;
 switch (_that) {
 case _MembershipApplication():
-return $default(_that.id,_that.userId,_that.title,_that.firstName,_that.middleName,_that.lastName,_that.dateOfBirth,_that.gender,_that.nationality,_that.ghanaCardNumber,_that.phoneNumberPrimary,_that.phoneNumberSecondary,_that.emailAddress,_that.residentialAddress,_that.regionDistrict,_that.currentJobTitle,_that.employerOrganization,_that.membershipCategory,_that.status,_that.createdAt,_that.submittedAt,_that.updatedAt,_that.reviewedAt,_that.reviewNotes,_that.reviewerId,_that.paymentMethod,_that.paymentStatus,_that.paymentAmount,_that.paymentCurrency,_that.paymentEvidenceUrl,_that.paymentReference,_that.paymentMomoNetwork,_that.paymentMomoNumber,_that.paymentSubmittedAt,_that.paymentVerifiedAt,_that.paymentVerifiedBy);case _:
+return $default(_that.id,_that.userId,_that.title,_that.firstName,_that.middleName,_that.lastName,_that.dateOfBirth,_that.gender,_that.nationality,_that.placeOfBirth,_that.ghanaCardNumber,_that.phoneNumberPrimary,_that.phoneNumberSecondary,_that.emailAddress,_that.residentialAddress,_that.regionDistrict,_that.currentJobTitle,_that.employerOrganization,_that.employerType,_that.industrySectors,_that.industrySectorOther,_that.yearsOfExperience,_that.professionalQualifications,_that.highestEducationLevel,_that.educationLevelOther,_that.fieldOfStudy,_that.institution,_that.yearQualificationObtained,_that.nationalIdNumber,_that.directoryConsent,_that.signedDocuments,_that.membershipCategory,_that.status,_that.createdAt,_that.submittedAt,_that.updatedAt,_that.reviewedAt,_that.reviewNotes,_that.reviewerId,_that.paymentMethod,_that.paymentStatus,_that.paymentAmount,_that.paymentRegistrationFee,_that.paymentAnnualDues,_that.paymentOptionalTotal,_that.paymentOptionalItems,_that.paymentRegistrationComponents,_that.paymentCurrency,_that.paymentEvidenceUrl,_that.paymentReference,_that.paymentMomoNetwork,_that.paymentMomoNumber,_that.paymentSubmittedAt,_that.paymentVerifiedAt,_that.paymentVerifiedBy,_that.credentialsIssuedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -275,10 +327,10 @@ return $default(_that.id,_that.userId,_that.title,_that.firstName,_that.middleNa
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String userId,  Title title,  String firstName,  String? middleName,  String lastName,  String dateOfBirth,  Gender gender,  String nationality,  String? ghanaCardNumber,  String phoneNumberPrimary,  String? phoneNumberSecondary,  String emailAddress,  String residentialAddress,  String regionDistrict,  String currentJobTitle,  String employerOrganization,  MembershipCategory membershipCategory,  ApplicationStatus status,  DateTime? createdAt,  DateTime? submittedAt,  DateTime? updatedAt,  DateTime? reviewedAt,  String? reviewNotes,  String? reviewerId,  String? paymentMethod,  String paymentStatus,  double? paymentAmount,  String paymentCurrency,  String? paymentEvidenceUrl,  String? paymentReference,  String? paymentMomoNetwork,  String? paymentMomoNumber,  DateTime? paymentSubmittedAt,  DateTime? paymentVerifiedAt,  String? paymentVerifiedBy)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String userId,  Title title,  String firstName,  String? middleName,  String lastName,  String dateOfBirth,  Gender gender,  String nationality,  String? placeOfBirth,  String? ghanaCardNumber,  String phoneNumberPrimary,  String? phoneNumberSecondary,  String emailAddress,  String residentialAddress,  String regionDistrict, @JsonKey(readValue: _readJobTitle)  String currentJobTitle,  String employerOrganization,  String? employerType,  List<String> industrySectors,  String? industrySectorOther, @JsonKey(fromJson: _intOrNull)  int? yearsOfExperience,  String? professionalQualifications, @JsonKey(readValue: _readEducationLevel)  String? highestEducationLevel, @JsonKey(readValue: _readEducationLevelOther)  String? educationLevelOther, @JsonKey(readValue: _readFieldOfStudy)  String? fieldOfStudy, @JsonKey(readValue: _readInstitution)  String? institution, @JsonKey(readValue: _readYearObtained, fromJson: _stringOrNull)  String? yearQualificationObtained,  String? nationalIdNumber,  bool directoryConsent,  Map<String, dynamic> signedDocuments,  MembershipCategory membershipCategory,  ApplicationStatus status,  DateTime? createdAt,  DateTime? submittedAt,  DateTime? updatedAt,  DateTime? reviewedAt,  String? reviewNotes,  String? reviewerId,  String? paymentMethod,  String paymentStatus,  double? paymentAmount,  double? paymentRegistrationFee,  double? paymentAnnualDues,  double paymentOptionalTotal,  List<SelectedFeeItem> paymentOptionalItems,  List<SelectedFeeItem> paymentRegistrationComponents,  String paymentCurrency,  String? paymentEvidenceUrl,  String? paymentReference,  String? paymentMomoNetwork,  String? paymentMomoNumber,  DateTime? paymentSubmittedAt,  DateTime? paymentVerifiedAt,  String? paymentVerifiedBy, @JsonKey(fromJson: _dateOrNull)  DateTime? credentialsIssuedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _MembershipApplication() when $default != null:
-return $default(_that.id,_that.userId,_that.title,_that.firstName,_that.middleName,_that.lastName,_that.dateOfBirth,_that.gender,_that.nationality,_that.ghanaCardNumber,_that.phoneNumberPrimary,_that.phoneNumberSecondary,_that.emailAddress,_that.residentialAddress,_that.regionDistrict,_that.currentJobTitle,_that.employerOrganization,_that.membershipCategory,_that.status,_that.createdAt,_that.submittedAt,_that.updatedAt,_that.reviewedAt,_that.reviewNotes,_that.reviewerId,_that.paymentMethod,_that.paymentStatus,_that.paymentAmount,_that.paymentCurrency,_that.paymentEvidenceUrl,_that.paymentReference,_that.paymentMomoNetwork,_that.paymentMomoNumber,_that.paymentSubmittedAt,_that.paymentVerifiedAt,_that.paymentVerifiedBy);case _:
+return $default(_that.id,_that.userId,_that.title,_that.firstName,_that.middleName,_that.lastName,_that.dateOfBirth,_that.gender,_that.nationality,_that.placeOfBirth,_that.ghanaCardNumber,_that.phoneNumberPrimary,_that.phoneNumberSecondary,_that.emailAddress,_that.residentialAddress,_that.regionDistrict,_that.currentJobTitle,_that.employerOrganization,_that.employerType,_that.industrySectors,_that.industrySectorOther,_that.yearsOfExperience,_that.professionalQualifications,_that.highestEducationLevel,_that.educationLevelOther,_that.fieldOfStudy,_that.institution,_that.yearQualificationObtained,_that.nationalIdNumber,_that.directoryConsent,_that.signedDocuments,_that.membershipCategory,_that.status,_that.createdAt,_that.submittedAt,_that.updatedAt,_that.reviewedAt,_that.reviewNotes,_that.reviewerId,_that.paymentMethod,_that.paymentStatus,_that.paymentAmount,_that.paymentRegistrationFee,_that.paymentAnnualDues,_that.paymentOptionalTotal,_that.paymentOptionalItems,_that.paymentRegistrationComponents,_that.paymentCurrency,_that.paymentEvidenceUrl,_that.paymentReference,_that.paymentMomoNetwork,_that.paymentMomoNumber,_that.paymentSubmittedAt,_that.paymentVerifiedAt,_that.paymentVerifiedBy,_that.credentialsIssuedAt);case _:
   return null;
 
 }
@@ -288,9 +340,9 @@ return $default(_that.id,_that.userId,_that.title,_that.firstName,_that.middleNa
 
 /// @nodoc
 
-@JsonSerializable(fieldRename: FieldRename.snake)
+@JsonSerializable(fieldRename: FieldRename.snake, explicitToJson: true)
 class _MembershipApplication extends MembershipApplication {
-  const _MembershipApplication({required this.id, required this.userId, required this.title, required this.firstName, this.middleName, required this.lastName, required this.dateOfBirth, required this.gender, required this.nationality, this.ghanaCardNumber, required this.phoneNumberPrimary, this.phoneNumberSecondary, required this.emailAddress, required this.residentialAddress, required this.regionDistrict, required this.currentJobTitle, required this.employerOrganization, required this.membershipCategory, this.status = ApplicationStatus.draft, this.createdAt, this.submittedAt, this.updatedAt, this.reviewedAt, this.reviewNotes, this.reviewerId, this.paymentMethod, this.paymentStatus = 'unpaid', this.paymentAmount, this.paymentCurrency = 'GHS', this.paymentEvidenceUrl, this.paymentReference, this.paymentMomoNetwork, this.paymentMomoNumber, this.paymentSubmittedAt, this.paymentVerifiedAt, this.paymentVerifiedBy}): super._();
+  const _MembershipApplication({required this.id, required this.userId, required this.title, required this.firstName, this.middleName, required this.lastName, required this.dateOfBirth, required this.gender, required this.nationality, this.placeOfBirth, this.ghanaCardNumber, required this.phoneNumberPrimary, this.phoneNumberSecondary, required this.emailAddress, required this.residentialAddress, required this.regionDistrict, @JsonKey(readValue: _readJobTitle) required this.currentJobTitle, required this.employerOrganization, this.employerType, final  List<String> industrySectors = const <String>[], this.industrySectorOther, @JsonKey(fromJson: _intOrNull) this.yearsOfExperience, this.professionalQualifications, @JsonKey(readValue: _readEducationLevel) this.highestEducationLevel, @JsonKey(readValue: _readEducationLevelOther) this.educationLevelOther, @JsonKey(readValue: _readFieldOfStudy) this.fieldOfStudy, @JsonKey(readValue: _readInstitution) this.institution, @JsonKey(readValue: _readYearObtained, fromJson: _stringOrNull) this.yearQualificationObtained, this.nationalIdNumber, this.directoryConsent = false, final  Map<String, dynamic> signedDocuments = const <String, dynamic>{}, required this.membershipCategory, this.status = ApplicationStatus.draft, this.createdAt, this.submittedAt, this.updatedAt, this.reviewedAt, this.reviewNotes, this.reviewerId, this.paymentMethod, this.paymentStatus = 'unpaid', this.paymentAmount, this.paymentRegistrationFee, this.paymentAnnualDues, this.paymentOptionalTotal = 0.0, final  List<SelectedFeeItem> paymentOptionalItems = const <SelectedFeeItem>[], final  List<SelectedFeeItem> paymentRegistrationComponents = const <SelectedFeeItem>[], this.paymentCurrency = 'GHS', this.paymentEvidenceUrl, this.paymentReference, this.paymentMomoNetwork, this.paymentMomoNumber, this.paymentSubmittedAt, this.paymentVerifiedAt, this.paymentVerifiedBy, @JsonKey(fromJson: _dateOrNull) this.credentialsIssuedAt}): _industrySectors = industrySectors,_signedDocuments = signedDocuments,_paymentOptionalItems = paymentOptionalItems,_paymentRegistrationComponents = paymentRegistrationComponents,super._();
   factory _MembershipApplication.fromJson(Map<String, dynamic> json) => _$MembershipApplicationFromJson(json);
 
 /// Unique application ID
@@ -312,7 +364,13 @@ class _MembershipApplication extends MembershipApplication {
 @override final  Gender gender;
 /// Nationality
 @override final  String nationality;
-/// Ghana Card / ID Number
+/// Place of birth, printed in the identity block of every signed document.
+@override final  String? placeOfBirth;
+/// Ghana Card personal ID number, in the form `GHA-#########-#`.
+///
+/// Under current Ghanaian law this number is the only identity evidence
+/// collected — no images of the card are captured or stored — so it is what
+/// an admin verifies the applicant against.
 @override final  String? ghanaCardNumber;
 /// Primary phone number
 @override final  String phoneNumberPrimary;
@@ -324,11 +382,58 @@ class _MembershipApplication extends MembershipApplication {
 @override final  String residentialAddress;
 /// Region/District
 @override final  String regionDistrict;
-// Professional Information
-/// Current job title
-@override final  String currentJobTitle;
+/// Current job title. The website writes `job_title`.
+@override@JsonKey(readValue: _readJobTitle) final  String currentJobTitle;
 /// Employer/Organization
 @override final  String employerOrganization;
+/// Employer type (cashew processor, exporter, trader, aggregator, farmer, laboratory, regulatory, academia, other)
+@override final  String? employerType;
+/// Industry sector keys (see [IndustrySectors]), as the website stores them.
+ final  List<String> _industrySectors;
+/// Industry sector keys (see [IndustrySectors]), as the website stores them.
+@override@JsonKey() List<String> get industrySectors {
+  if (_industrySectors is EqualUnmodifiableListView) return _industrySectors;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_industrySectors);
+}
+
+/// Free-text sector, when `other` is among [industrySectors].
+@override final  String? industrySectorOther;
+/// Whole years of experience in cashew quality analysis or a related field.
+@override@JsonKey(fromJson: _intOrNull) final  int? yearsOfExperience;
+/// Professional qualifications / certifications, e.g. TCDA training.
+@override final  String? professionalQualifications;
+/// Highest educational qualification key (see [EducationLevels]).
+///
+/// The website nests the education fields in an `education` map; they are
+/// read from there when the flat field is absent, and written to both.
+@override@JsonKey(readValue: _readEducationLevel) final  String? highestEducationLevel;
+/// What the applicant typed when [highestEducationLevel] is `other`.
+@override@JsonKey(readValue: _readEducationLevelOther) final  String? educationLevelOther;
+/// Field of study
+@override@JsonKey(readValue: _readFieldOfStudy) final  String? fieldOfStudy;
+/// Institution the qualification was obtained from
+@override@JsonKey(readValue: _readInstitution) final  String? institution;
+/// Year qualification was obtained
+@override@JsonKey(readValue: _readYearObtained, fromJson: _stringOrNull) final  String? yearQualificationObtained;
+/// Passport or national ID number, for Foreign Associate applicants who do
+/// not hold a Ghana Card. Mirrors [ghanaCardNumber] otherwise.
+@override final  String? nationalIdNumber;
+/// Consent to the public member directory, given in the Declaration.
+@override@JsonKey() final  bool directoryConsent;
+/// The accepted governing documents, keyed `agreement`, `ethics`, `terms`,
+/// `privacy` and `declaration` — what was accepted, how, and when. The A4
+/// PDFs themselves are filed in the association's agreements database.
+ final  Map<String, dynamic> _signedDocuments;
+/// The accepted governing documents, keyed `agreement`, `ethics`, `terms`,
+/// `privacy` and `declaration` — what was accepted, how, and when. The A4
+/// PDFs themselves are filed in the association's agreements database.
+@override@JsonKey() Map<String, dynamic> get signedDocuments {
+  if (_signedDocuments is EqualUnmodifiableMapView) return _signedDocuments;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_signedDocuments);
+}
+
 /// Desired membership category
 @override final  MembershipCategory membershipCategory;
 /// Application status
@@ -357,8 +462,37 @@ class _MembershipApplication extends MembershipApplication {
 @override final  String? paymentMethod;
 /// Verification state: unpaid, pending_verification, verified, rejected
 @override@JsonKey() final  String paymentStatus;
-/// Amount the applicant was asked to pay
+/// Total the applicant was asked to pay: Registration Fee + Annual Dues
+/// + whichever optional kit items they chose.
 @override final  double? paymentAmount;
+/// Registration Fee portion of [paymentAmount], per the fee schedule.
+@override final  double? paymentRegistrationFee;
+/// Annual Dues portion of [paymentAmount].
+@override final  double? paymentAnnualDues;
+/// Total of the optional kit items the applicant chose to take.
+@override@JsonKey() final  double paymentOptionalTotal;
+/// The optional kit items the applicant chose, priced as at the moment of
+/// choice. Empty when they declined all of them.
+ final  List<SelectedFeeItem> _paymentOptionalItems;
+/// The optional kit items the applicant chose, priced as at the moment of
+/// choice. Empty when they declined all of them.
+@override@JsonKey() List<SelectedFeeItem> get paymentOptionalItems {
+  if (_paymentOptionalItems is EqualUnmodifiableListView) return _paymentOptionalItems;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_paymentOptionalItems);
+}
+
+/// The Registration Fee components in force when the applicant was quoted,
+/// snapshotted so a later change to the schedule cannot rewrite history.
+ final  List<SelectedFeeItem> _paymentRegistrationComponents;
+/// The Registration Fee components in force when the applicant was quoted,
+/// snapshotted so a later change to the schedule cannot rewrite history.
+@override@JsonKey() List<SelectedFeeItem> get paymentRegistrationComponents {
+  if (_paymentRegistrationComponents is EqualUnmodifiableListView) return _paymentRegistrationComponents;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_paymentRegistrationComponents);
+}
+
 /// Currency of [paymentAmount]
 @override@JsonKey() final  String paymentCurrency;
 /// Cloudinary URL of the uploaded payment evidence
@@ -375,6 +509,8 @@ class _MembershipApplication extends MembershipApplication {
 @override final  DateTime? paymentVerifiedAt;
 /// UID of the admin who verified the payment
 @override final  String? paymentVerifiedBy;
+/// When a generated sign-in password was emailed to [emailAddress].
+@override@JsonKey(fromJson: _dateOrNull) final  DateTime? credentialsIssuedAt;
 
 /// Create a copy of MembershipApplication
 /// with the given fields replaced by the non-null parameter values.
@@ -389,16 +525,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MembershipApplication&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.middleName, middleName) || other.middleName == middleName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.nationality, nationality) || other.nationality == nationality)&&(identical(other.ghanaCardNumber, ghanaCardNumber) || other.ghanaCardNumber == ghanaCardNumber)&&(identical(other.phoneNumberPrimary, phoneNumberPrimary) || other.phoneNumberPrimary == phoneNumberPrimary)&&(identical(other.phoneNumberSecondary, phoneNumberSecondary) || other.phoneNumberSecondary == phoneNumberSecondary)&&(identical(other.emailAddress, emailAddress) || other.emailAddress == emailAddress)&&(identical(other.residentialAddress, residentialAddress) || other.residentialAddress == residentialAddress)&&(identical(other.regionDistrict, regionDistrict) || other.regionDistrict == regionDistrict)&&(identical(other.currentJobTitle, currentJobTitle) || other.currentJobTitle == currentJobTitle)&&(identical(other.employerOrganization, employerOrganization) || other.employerOrganization == employerOrganization)&&(identical(other.membershipCategory, membershipCategory) || other.membershipCategory == membershipCategory)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.submittedAt, submittedAt) || other.submittedAt == submittedAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.reviewedAt, reviewedAt) || other.reviewedAt == reviewedAt)&&(identical(other.reviewNotes, reviewNotes) || other.reviewNotes == reviewNotes)&&(identical(other.reviewerId, reviewerId) || other.reviewerId == reviewerId)&&(identical(other.paymentMethod, paymentMethod) || other.paymentMethod == paymentMethod)&&(identical(other.paymentStatus, paymentStatus) || other.paymentStatus == paymentStatus)&&(identical(other.paymentAmount, paymentAmount) || other.paymentAmount == paymentAmount)&&(identical(other.paymentCurrency, paymentCurrency) || other.paymentCurrency == paymentCurrency)&&(identical(other.paymentEvidenceUrl, paymentEvidenceUrl) || other.paymentEvidenceUrl == paymentEvidenceUrl)&&(identical(other.paymentReference, paymentReference) || other.paymentReference == paymentReference)&&(identical(other.paymentMomoNetwork, paymentMomoNetwork) || other.paymentMomoNetwork == paymentMomoNetwork)&&(identical(other.paymentMomoNumber, paymentMomoNumber) || other.paymentMomoNumber == paymentMomoNumber)&&(identical(other.paymentSubmittedAt, paymentSubmittedAt) || other.paymentSubmittedAt == paymentSubmittedAt)&&(identical(other.paymentVerifiedAt, paymentVerifiedAt) || other.paymentVerifiedAt == paymentVerifiedAt)&&(identical(other.paymentVerifiedBy, paymentVerifiedBy) || other.paymentVerifiedBy == paymentVerifiedBy));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MembershipApplication&&(identical(other.id, id) || other.id == id)&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.title, title) || other.title == title)&&(identical(other.firstName, firstName) || other.firstName == firstName)&&(identical(other.middleName, middleName) || other.middleName == middleName)&&(identical(other.lastName, lastName) || other.lastName == lastName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.gender, gender) || other.gender == gender)&&(identical(other.nationality, nationality) || other.nationality == nationality)&&(identical(other.placeOfBirth, placeOfBirth) || other.placeOfBirth == placeOfBirth)&&(identical(other.ghanaCardNumber, ghanaCardNumber) || other.ghanaCardNumber == ghanaCardNumber)&&(identical(other.phoneNumberPrimary, phoneNumberPrimary) || other.phoneNumberPrimary == phoneNumberPrimary)&&(identical(other.phoneNumberSecondary, phoneNumberSecondary) || other.phoneNumberSecondary == phoneNumberSecondary)&&(identical(other.emailAddress, emailAddress) || other.emailAddress == emailAddress)&&(identical(other.residentialAddress, residentialAddress) || other.residentialAddress == residentialAddress)&&(identical(other.regionDistrict, regionDistrict) || other.regionDistrict == regionDistrict)&&(identical(other.currentJobTitle, currentJobTitle) || other.currentJobTitle == currentJobTitle)&&(identical(other.employerOrganization, employerOrganization) || other.employerOrganization == employerOrganization)&&(identical(other.employerType, employerType) || other.employerType == employerType)&&const DeepCollectionEquality().equals(other._industrySectors, _industrySectors)&&(identical(other.industrySectorOther, industrySectorOther) || other.industrySectorOther == industrySectorOther)&&(identical(other.yearsOfExperience, yearsOfExperience) || other.yearsOfExperience == yearsOfExperience)&&(identical(other.professionalQualifications, professionalQualifications) || other.professionalQualifications == professionalQualifications)&&(identical(other.highestEducationLevel, highestEducationLevel) || other.highestEducationLevel == highestEducationLevel)&&(identical(other.educationLevelOther, educationLevelOther) || other.educationLevelOther == educationLevelOther)&&(identical(other.fieldOfStudy, fieldOfStudy) || other.fieldOfStudy == fieldOfStudy)&&(identical(other.institution, institution) || other.institution == institution)&&(identical(other.yearQualificationObtained, yearQualificationObtained) || other.yearQualificationObtained == yearQualificationObtained)&&(identical(other.nationalIdNumber, nationalIdNumber) || other.nationalIdNumber == nationalIdNumber)&&(identical(other.directoryConsent, directoryConsent) || other.directoryConsent == directoryConsent)&&const DeepCollectionEquality().equals(other._signedDocuments, _signedDocuments)&&(identical(other.membershipCategory, membershipCategory) || other.membershipCategory == membershipCategory)&&(identical(other.status, status) || other.status == status)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.submittedAt, submittedAt) || other.submittedAt == submittedAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.reviewedAt, reviewedAt) || other.reviewedAt == reviewedAt)&&(identical(other.reviewNotes, reviewNotes) || other.reviewNotes == reviewNotes)&&(identical(other.reviewerId, reviewerId) || other.reviewerId == reviewerId)&&(identical(other.paymentMethod, paymentMethod) || other.paymentMethod == paymentMethod)&&(identical(other.paymentStatus, paymentStatus) || other.paymentStatus == paymentStatus)&&(identical(other.paymentAmount, paymentAmount) || other.paymentAmount == paymentAmount)&&(identical(other.paymentRegistrationFee, paymentRegistrationFee) || other.paymentRegistrationFee == paymentRegistrationFee)&&(identical(other.paymentAnnualDues, paymentAnnualDues) || other.paymentAnnualDues == paymentAnnualDues)&&(identical(other.paymentOptionalTotal, paymentOptionalTotal) || other.paymentOptionalTotal == paymentOptionalTotal)&&const DeepCollectionEquality().equals(other._paymentOptionalItems, _paymentOptionalItems)&&const DeepCollectionEquality().equals(other._paymentRegistrationComponents, _paymentRegistrationComponents)&&(identical(other.paymentCurrency, paymentCurrency) || other.paymentCurrency == paymentCurrency)&&(identical(other.paymentEvidenceUrl, paymentEvidenceUrl) || other.paymentEvidenceUrl == paymentEvidenceUrl)&&(identical(other.paymentReference, paymentReference) || other.paymentReference == paymentReference)&&(identical(other.paymentMomoNetwork, paymentMomoNetwork) || other.paymentMomoNetwork == paymentMomoNetwork)&&(identical(other.paymentMomoNumber, paymentMomoNumber) || other.paymentMomoNumber == paymentMomoNumber)&&(identical(other.paymentSubmittedAt, paymentSubmittedAt) || other.paymentSubmittedAt == paymentSubmittedAt)&&(identical(other.paymentVerifiedAt, paymentVerifiedAt) || other.paymentVerifiedAt == paymentVerifiedAt)&&(identical(other.paymentVerifiedBy, paymentVerifiedBy) || other.paymentVerifiedBy == paymentVerifiedBy)&&(identical(other.credentialsIssuedAt, credentialsIssuedAt) || other.credentialsIssuedAt == credentialsIssuedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,userId,title,firstName,middleName,lastName,dateOfBirth,gender,nationality,ghanaCardNumber,phoneNumberPrimary,phoneNumberSecondary,emailAddress,residentialAddress,regionDistrict,currentJobTitle,employerOrganization,membershipCategory,status,createdAt,submittedAt,updatedAt,reviewedAt,reviewNotes,reviewerId,paymentMethod,paymentStatus,paymentAmount,paymentCurrency,paymentEvidenceUrl,paymentReference,paymentMomoNetwork,paymentMomoNumber,paymentSubmittedAt,paymentVerifiedAt,paymentVerifiedBy]);
+int get hashCode => Object.hashAll([runtimeType,id,userId,title,firstName,middleName,lastName,dateOfBirth,gender,nationality,placeOfBirth,ghanaCardNumber,phoneNumberPrimary,phoneNumberSecondary,emailAddress,residentialAddress,regionDistrict,currentJobTitle,employerOrganization,employerType,const DeepCollectionEquality().hash(_industrySectors),industrySectorOther,yearsOfExperience,professionalQualifications,highestEducationLevel,educationLevelOther,fieldOfStudy,institution,yearQualificationObtained,nationalIdNumber,directoryConsent,const DeepCollectionEquality().hash(_signedDocuments),membershipCategory,status,createdAt,submittedAt,updatedAt,reviewedAt,reviewNotes,reviewerId,paymentMethod,paymentStatus,paymentAmount,paymentRegistrationFee,paymentAnnualDues,paymentOptionalTotal,const DeepCollectionEquality().hash(_paymentOptionalItems),const DeepCollectionEquality().hash(_paymentRegistrationComponents),paymentCurrency,paymentEvidenceUrl,paymentReference,paymentMomoNetwork,paymentMomoNumber,paymentSubmittedAt,paymentVerifiedAt,paymentVerifiedBy,credentialsIssuedAt]);
 
 @override
 String toString() {
-  return 'MembershipApplication(id: $id, userId: $userId, title: $title, firstName: $firstName, middleName: $middleName, lastName: $lastName, dateOfBirth: $dateOfBirth, gender: $gender, nationality: $nationality, ghanaCardNumber: $ghanaCardNumber, phoneNumberPrimary: $phoneNumberPrimary, phoneNumberSecondary: $phoneNumberSecondary, emailAddress: $emailAddress, residentialAddress: $residentialAddress, regionDistrict: $regionDistrict, currentJobTitle: $currentJobTitle, employerOrganization: $employerOrganization, membershipCategory: $membershipCategory, status: $status, createdAt: $createdAt, submittedAt: $submittedAt, updatedAt: $updatedAt, reviewedAt: $reviewedAt, reviewNotes: $reviewNotes, reviewerId: $reviewerId, paymentMethod: $paymentMethod, paymentStatus: $paymentStatus, paymentAmount: $paymentAmount, paymentCurrency: $paymentCurrency, paymentEvidenceUrl: $paymentEvidenceUrl, paymentReference: $paymentReference, paymentMomoNetwork: $paymentMomoNetwork, paymentMomoNumber: $paymentMomoNumber, paymentSubmittedAt: $paymentSubmittedAt, paymentVerifiedAt: $paymentVerifiedAt, paymentVerifiedBy: $paymentVerifiedBy)';
+  return 'MembershipApplication(id: $id, userId: $userId, title: $title, firstName: $firstName, middleName: $middleName, lastName: $lastName, dateOfBirth: $dateOfBirth, gender: $gender, nationality: $nationality, placeOfBirth: $placeOfBirth, ghanaCardNumber: $ghanaCardNumber, phoneNumberPrimary: $phoneNumberPrimary, phoneNumberSecondary: $phoneNumberSecondary, emailAddress: $emailAddress, residentialAddress: $residentialAddress, regionDistrict: $regionDistrict, currentJobTitle: $currentJobTitle, employerOrganization: $employerOrganization, employerType: $employerType, industrySectors: $industrySectors, industrySectorOther: $industrySectorOther, yearsOfExperience: $yearsOfExperience, professionalQualifications: $professionalQualifications, highestEducationLevel: $highestEducationLevel, educationLevelOther: $educationLevelOther, fieldOfStudy: $fieldOfStudy, institution: $institution, yearQualificationObtained: $yearQualificationObtained, nationalIdNumber: $nationalIdNumber, directoryConsent: $directoryConsent, signedDocuments: $signedDocuments, membershipCategory: $membershipCategory, status: $status, createdAt: $createdAt, submittedAt: $submittedAt, updatedAt: $updatedAt, reviewedAt: $reviewedAt, reviewNotes: $reviewNotes, reviewerId: $reviewerId, paymentMethod: $paymentMethod, paymentStatus: $paymentStatus, paymentAmount: $paymentAmount, paymentRegistrationFee: $paymentRegistrationFee, paymentAnnualDues: $paymentAnnualDues, paymentOptionalTotal: $paymentOptionalTotal, paymentOptionalItems: $paymentOptionalItems, paymentRegistrationComponents: $paymentRegistrationComponents, paymentCurrency: $paymentCurrency, paymentEvidenceUrl: $paymentEvidenceUrl, paymentReference: $paymentReference, paymentMomoNetwork: $paymentMomoNetwork, paymentMomoNumber: $paymentMomoNumber, paymentSubmittedAt: $paymentSubmittedAt, paymentVerifiedAt: $paymentVerifiedAt, paymentVerifiedBy: $paymentVerifiedBy, credentialsIssuedAt: $credentialsIssuedAt)';
 }
 
 
@@ -409,7 +545,7 @@ abstract mixin class _$MembershipApplicationCopyWith<$Res> implements $Membershi
   factory _$MembershipApplicationCopyWith(_MembershipApplication value, $Res Function(_MembershipApplication) _then) = __$MembershipApplicationCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String userId, Title title, String firstName, String? middleName, String lastName, String dateOfBirth, Gender gender, String nationality, String? ghanaCardNumber, String phoneNumberPrimary, String? phoneNumberSecondary, String emailAddress, String residentialAddress, String regionDistrict, String currentJobTitle, String employerOrganization, MembershipCategory membershipCategory, ApplicationStatus status, DateTime? createdAt, DateTime? submittedAt, DateTime? updatedAt, DateTime? reviewedAt, String? reviewNotes, String? reviewerId, String? paymentMethod, String paymentStatus, double? paymentAmount, String paymentCurrency, String? paymentEvidenceUrl, String? paymentReference, String? paymentMomoNetwork, String? paymentMomoNumber, DateTime? paymentSubmittedAt, DateTime? paymentVerifiedAt, String? paymentVerifiedBy
+ String id, String userId, Title title, String firstName, String? middleName, String lastName, String dateOfBirth, Gender gender, String nationality, String? placeOfBirth, String? ghanaCardNumber, String phoneNumberPrimary, String? phoneNumberSecondary, String emailAddress, String residentialAddress, String regionDistrict,@JsonKey(readValue: _readJobTitle) String currentJobTitle, String employerOrganization, String? employerType, List<String> industrySectors, String? industrySectorOther,@JsonKey(fromJson: _intOrNull) int? yearsOfExperience, String? professionalQualifications,@JsonKey(readValue: _readEducationLevel) String? highestEducationLevel,@JsonKey(readValue: _readEducationLevelOther) String? educationLevelOther,@JsonKey(readValue: _readFieldOfStudy) String? fieldOfStudy,@JsonKey(readValue: _readInstitution) String? institution,@JsonKey(readValue: _readYearObtained, fromJson: _stringOrNull) String? yearQualificationObtained, String? nationalIdNumber, bool directoryConsent, Map<String, dynamic> signedDocuments, MembershipCategory membershipCategory, ApplicationStatus status, DateTime? createdAt, DateTime? submittedAt, DateTime? updatedAt, DateTime? reviewedAt, String? reviewNotes, String? reviewerId, String? paymentMethod, String paymentStatus, double? paymentAmount, double? paymentRegistrationFee, double? paymentAnnualDues, double paymentOptionalTotal, List<SelectedFeeItem> paymentOptionalItems, List<SelectedFeeItem> paymentRegistrationComponents, String paymentCurrency, String? paymentEvidenceUrl, String? paymentReference, String? paymentMomoNetwork, String? paymentMomoNumber, DateTime? paymentSubmittedAt, DateTime? paymentVerifiedAt, String? paymentVerifiedBy,@JsonKey(fromJson: _dateOrNull) DateTime? credentialsIssuedAt
 });
 
 
@@ -426,7 +562,7 @@ class __$MembershipApplicationCopyWithImpl<$Res>
 
 /// Create a copy of MembershipApplication
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userId = null,Object? title = null,Object? firstName = null,Object? middleName = freezed,Object? lastName = null,Object? dateOfBirth = null,Object? gender = null,Object? nationality = null,Object? ghanaCardNumber = freezed,Object? phoneNumberPrimary = null,Object? phoneNumberSecondary = freezed,Object? emailAddress = null,Object? residentialAddress = null,Object? regionDistrict = null,Object? currentJobTitle = null,Object? employerOrganization = null,Object? membershipCategory = null,Object? status = null,Object? createdAt = freezed,Object? submittedAt = freezed,Object? updatedAt = freezed,Object? reviewedAt = freezed,Object? reviewNotes = freezed,Object? reviewerId = freezed,Object? paymentMethod = freezed,Object? paymentStatus = null,Object? paymentAmount = freezed,Object? paymentCurrency = null,Object? paymentEvidenceUrl = freezed,Object? paymentReference = freezed,Object? paymentMomoNetwork = freezed,Object? paymentMomoNumber = freezed,Object? paymentSubmittedAt = freezed,Object? paymentVerifiedAt = freezed,Object? paymentVerifiedBy = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? userId = null,Object? title = null,Object? firstName = null,Object? middleName = freezed,Object? lastName = null,Object? dateOfBirth = null,Object? gender = null,Object? nationality = null,Object? placeOfBirth = freezed,Object? ghanaCardNumber = freezed,Object? phoneNumberPrimary = null,Object? phoneNumberSecondary = freezed,Object? emailAddress = null,Object? residentialAddress = null,Object? regionDistrict = null,Object? currentJobTitle = null,Object? employerOrganization = null,Object? employerType = freezed,Object? industrySectors = null,Object? industrySectorOther = freezed,Object? yearsOfExperience = freezed,Object? professionalQualifications = freezed,Object? highestEducationLevel = freezed,Object? educationLevelOther = freezed,Object? fieldOfStudy = freezed,Object? institution = freezed,Object? yearQualificationObtained = freezed,Object? nationalIdNumber = freezed,Object? directoryConsent = null,Object? signedDocuments = null,Object? membershipCategory = null,Object? status = null,Object? createdAt = freezed,Object? submittedAt = freezed,Object? updatedAt = freezed,Object? reviewedAt = freezed,Object? reviewNotes = freezed,Object? reviewerId = freezed,Object? paymentMethod = freezed,Object? paymentStatus = null,Object? paymentAmount = freezed,Object? paymentRegistrationFee = freezed,Object? paymentAnnualDues = freezed,Object? paymentOptionalTotal = null,Object? paymentOptionalItems = null,Object? paymentRegistrationComponents = null,Object? paymentCurrency = null,Object? paymentEvidenceUrl = freezed,Object? paymentReference = freezed,Object? paymentMomoNetwork = freezed,Object? paymentMomoNumber = freezed,Object? paymentSubmittedAt = freezed,Object? paymentVerifiedAt = freezed,Object? paymentVerifiedBy = freezed,Object? credentialsIssuedAt = freezed,}) {
   return _then(_MembershipApplication(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
@@ -437,7 +573,8 @@ as String?,lastName: null == lastName ? _self.lastName : lastName // ignore: cas
 as String,dateOfBirth: null == dateOfBirth ? _self.dateOfBirth : dateOfBirth // ignore: cast_nullable_to_non_nullable
 as String,gender: null == gender ? _self.gender : gender // ignore: cast_nullable_to_non_nullable
 as Gender,nationality: null == nationality ? _self.nationality : nationality // ignore: cast_nullable_to_non_nullable
-as String,ghanaCardNumber: freezed == ghanaCardNumber ? _self.ghanaCardNumber : ghanaCardNumber // ignore: cast_nullable_to_non_nullable
+as String,placeOfBirth: freezed == placeOfBirth ? _self.placeOfBirth : placeOfBirth // ignore: cast_nullable_to_non_nullable
+as String?,ghanaCardNumber: freezed == ghanaCardNumber ? _self.ghanaCardNumber : ghanaCardNumber // ignore: cast_nullable_to_non_nullable
 as String?,phoneNumberPrimary: null == phoneNumberPrimary ? _self.phoneNumberPrimary : phoneNumberPrimary // ignore: cast_nullable_to_non_nullable
 as String,phoneNumberSecondary: freezed == phoneNumberSecondary ? _self.phoneNumberSecondary : phoneNumberSecondary // ignore: cast_nullable_to_non_nullable
 as String?,emailAddress: null == emailAddress ? _self.emailAddress : emailAddress // ignore: cast_nullable_to_non_nullable
@@ -445,7 +582,20 @@ as String,residentialAddress: null == residentialAddress ? _self.residentialAddr
 as String,regionDistrict: null == regionDistrict ? _self.regionDistrict : regionDistrict // ignore: cast_nullable_to_non_nullable
 as String,currentJobTitle: null == currentJobTitle ? _self.currentJobTitle : currentJobTitle // ignore: cast_nullable_to_non_nullable
 as String,employerOrganization: null == employerOrganization ? _self.employerOrganization : employerOrganization // ignore: cast_nullable_to_non_nullable
-as String,membershipCategory: null == membershipCategory ? _self.membershipCategory : membershipCategory // ignore: cast_nullable_to_non_nullable
+as String,employerType: freezed == employerType ? _self.employerType : employerType // ignore: cast_nullable_to_non_nullable
+as String?,industrySectors: null == industrySectors ? _self._industrySectors : industrySectors // ignore: cast_nullable_to_non_nullable
+as List<String>,industrySectorOther: freezed == industrySectorOther ? _self.industrySectorOther : industrySectorOther // ignore: cast_nullable_to_non_nullable
+as String?,yearsOfExperience: freezed == yearsOfExperience ? _self.yearsOfExperience : yearsOfExperience // ignore: cast_nullable_to_non_nullable
+as int?,professionalQualifications: freezed == professionalQualifications ? _self.professionalQualifications : professionalQualifications // ignore: cast_nullable_to_non_nullable
+as String?,highestEducationLevel: freezed == highestEducationLevel ? _self.highestEducationLevel : highestEducationLevel // ignore: cast_nullable_to_non_nullable
+as String?,educationLevelOther: freezed == educationLevelOther ? _self.educationLevelOther : educationLevelOther // ignore: cast_nullable_to_non_nullable
+as String?,fieldOfStudy: freezed == fieldOfStudy ? _self.fieldOfStudy : fieldOfStudy // ignore: cast_nullable_to_non_nullable
+as String?,institution: freezed == institution ? _self.institution : institution // ignore: cast_nullable_to_non_nullable
+as String?,yearQualificationObtained: freezed == yearQualificationObtained ? _self.yearQualificationObtained : yearQualificationObtained // ignore: cast_nullable_to_non_nullable
+as String?,nationalIdNumber: freezed == nationalIdNumber ? _self.nationalIdNumber : nationalIdNumber // ignore: cast_nullable_to_non_nullable
+as String?,directoryConsent: null == directoryConsent ? _self.directoryConsent : directoryConsent // ignore: cast_nullable_to_non_nullable
+as bool,signedDocuments: null == signedDocuments ? _self._signedDocuments : signedDocuments // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>,membershipCategory: null == membershipCategory ? _self.membershipCategory : membershipCategory // ignore: cast_nullable_to_non_nullable
 as MembershipCategory,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as ApplicationStatus,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,submittedAt: freezed == submittedAt ? _self.submittedAt : submittedAt // ignore: cast_nullable_to_non_nullable
@@ -456,7 +606,12 @@ as String?,reviewerId: freezed == reviewerId ? _self.reviewerId : reviewerId // 
 as String?,paymentMethod: freezed == paymentMethod ? _self.paymentMethod : paymentMethod // ignore: cast_nullable_to_non_nullable
 as String?,paymentStatus: null == paymentStatus ? _self.paymentStatus : paymentStatus // ignore: cast_nullable_to_non_nullable
 as String,paymentAmount: freezed == paymentAmount ? _self.paymentAmount : paymentAmount // ignore: cast_nullable_to_non_nullable
-as double?,paymentCurrency: null == paymentCurrency ? _self.paymentCurrency : paymentCurrency // ignore: cast_nullable_to_non_nullable
+as double?,paymentRegistrationFee: freezed == paymentRegistrationFee ? _self.paymentRegistrationFee : paymentRegistrationFee // ignore: cast_nullable_to_non_nullable
+as double?,paymentAnnualDues: freezed == paymentAnnualDues ? _self.paymentAnnualDues : paymentAnnualDues // ignore: cast_nullable_to_non_nullable
+as double?,paymentOptionalTotal: null == paymentOptionalTotal ? _self.paymentOptionalTotal : paymentOptionalTotal // ignore: cast_nullable_to_non_nullable
+as double,paymentOptionalItems: null == paymentOptionalItems ? _self._paymentOptionalItems : paymentOptionalItems // ignore: cast_nullable_to_non_nullable
+as List<SelectedFeeItem>,paymentRegistrationComponents: null == paymentRegistrationComponents ? _self._paymentRegistrationComponents : paymentRegistrationComponents // ignore: cast_nullable_to_non_nullable
+as List<SelectedFeeItem>,paymentCurrency: null == paymentCurrency ? _self.paymentCurrency : paymentCurrency // ignore: cast_nullable_to_non_nullable
 as String,paymentEvidenceUrl: freezed == paymentEvidenceUrl ? _self.paymentEvidenceUrl : paymentEvidenceUrl // ignore: cast_nullable_to_non_nullable
 as String?,paymentReference: freezed == paymentReference ? _self.paymentReference : paymentReference // ignore: cast_nullable_to_non_nullable
 as String?,paymentMomoNetwork: freezed == paymentMomoNetwork ? _self.paymentMomoNetwork : paymentMomoNetwork // ignore: cast_nullable_to_non_nullable
@@ -464,7 +619,8 @@ as String?,paymentMomoNumber: freezed == paymentMomoNumber ? _self.paymentMomoNu
 as String?,paymentSubmittedAt: freezed == paymentSubmittedAt ? _self.paymentSubmittedAt : paymentSubmittedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,paymentVerifiedAt: freezed == paymentVerifiedAt ? _self.paymentVerifiedAt : paymentVerifiedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,paymentVerifiedBy: freezed == paymentVerifiedBy ? _self.paymentVerifiedBy : paymentVerifiedBy // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,credentialsIssuedAt: freezed == credentialsIssuedAt ? _self.credentialsIssuedAt : credentialsIssuedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 

@@ -165,7 +165,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ref.read(authControllerProvider.notifier).signIn(email, password).then((_) {
                                 // Check if sign in was successful
                                 if (context.mounted && !ref.read(authControllerProvider).hasError) {
-                                  ref.read(guestModeProvider.notifier).disableGuestMode();
                                   ref.invalidate(currentUserProfileProvider);
                                   CustomSnackBar.success(
                                     context,
@@ -244,23 +243,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             CustomButton(
                               text: "Apply for Membership",
                               backgroundColor: Colors.green.shade800,
-                              onPressed: () {
-                                context.pushNamed(MembershipApplicationScreen.id);
-                              },
+                              onPressed: () => _explainApplying(context),
                             ),
 
                             Gap(16.h),
 
-                            // Guest Mode Button
+                            // Guests can buy quality cutting kits without an account.
+                            CustomButton(
+                              text: "Purchase Quality Cutting Kits",
+                              variant: ButtonVariant.outlined,
+                              borderColor: colorScheme.primary,
+                              leadingIcon: Icon(Icons.shopping_bag_outlined, size: 18.r, color: colorScheme.primary),
+                              onPressed: () => context.pushNamed(KitPurchaseScreen.id),
+                            ),
+
+                            Gap(16.h),
+
+                            // Visitors without an account browse the website instead
                             CustomButton(
                               text: "Continue as Guest",
                               variant: ButtonVariant.outlined,
                               borderColor: colorScheme.secondary,
-                              onPressed: () {
-                                // Enable guest mode
-                                ref.read(guestModeProvider.notifier).enableGuestMode();
-                                // Navigate to guest dashboard
-                                context.go('/${GuestHomeScreen.id}');
+                              trailingIcon: Icon(Icons.open_in_new, size: 18.r, color: colorScheme.secondary),
+                              onPressed: () async {
+                                final opened = await WebsiteLauncher.open();
+                                if (!opened && context.mounted) {
+                                  CustomSnackBar.error(
+                                    context,
+                                    message: 'Could not open the C.Q.A.A.G website.',
+                                  );
+                                }
                               },
                             ),
                           ],
@@ -270,6 +282,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Applying is done from an account, so the application, the signed
+  /// agreements and the payment stay together, as on the website.
+  void _explainApplying(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.all(24.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.card_membership_outlined, color: Colors.green.shade800, size: 44.r),
+            Gap(12.h),
+            const CustomText("Apply for Membership", variant: TextVariant.headlineMedium, fontWeight: FontWeight.bold),
+            Gap(8.h),
+            CustomText(
+              "1. Create an account with the email you want on your membership, or sign in.\n"
+              "2. Open Profile → Membership Application, fill it in and sign the agreements.\n"
+              "3. You are emailed when the Secretariat decides. Once approved, pay to activate — "
+              "a sign-in password is then emailed to your application address.",
+              variant: TextVariant.bodyMedium,
+              color: Colors.grey.shade700,
+            ),
+            Gap(20.h),
+            CustomButton(
+              text: "Create Account",
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                context.pushNamed(RegisterScreen.id);
+              },
+            ),
+            Gap(10.h),
+            CustomButton(
+              text: "I already have an account",
+              variant: ButtonVariant.outlined,
+              onPressed: () => Navigator.of(sheetContext).pop(),
             ),
           ],
         ),

@@ -32,13 +32,7 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
 
   String? _selectedAnalysisType;
 
-  static const List<String> analysisTypes = [
-    'Arrival Upcountry Warehouse',
-    'Dispatch',
-    'Arrival Port Warehouse',
-    'Arbitration',
-    'Export',
-  ];
+  static const List<String> analysisTypes = AnalysisTypes.all;
 
   @override
   void initState() {
