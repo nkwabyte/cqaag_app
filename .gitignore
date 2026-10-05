@@ -41,6 +41,9 @@ secrets/
 *.xlsx
 **/*.xlsx
 
+*.docx
+**/*.docx
+
 
 # Keystore & Signing Secrets
 key.properties

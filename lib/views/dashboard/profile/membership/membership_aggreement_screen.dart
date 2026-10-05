@@ -284,11 +284,8 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
 
   void _handleDecline() {
     final user = ref.read(authServiceProvider).currentUser;
-    final isGuest = user == null || ref.read(guestModeProvider) == AuthMode.guest;
-    if (isGuest) {
-      ref.read(guestModeProvider.notifier).enableGuestMode();
-    }
-    context.goNamed(DashboardScreen.id);
+    // Signed-out applicants go back to the login screen.
+    context.goNamed(user == null ? LoginScreen.id : DashboardScreen.id);
   }
 
   Future<void> _handleAcceptAndSubmit() async {
@@ -328,7 +325,7 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
 
       if (!mounted) return;
 
-      _showSubmissionSuccessDialog(isGuest: user == null);
+      _showSubmissionSuccessDialog(isSignedIn: user != null);
     } catch (e) {
       if (!mounted) return;
       CustomSnackBar.error(
@@ -343,7 +340,7 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
     }
   }
 
-  void _showSubmissionSuccessDialog({required bool isGuest}) {
+  void _showSubmissionSuccessDialog({required bool isSignedIn}) {
     showModalBottomSheet(
       context: context,
       isDismissible: false,
@@ -397,13 +394,10 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
               ),
               Gap(24.h),
               CustomButton(
-                text: "Return to Home",
+                text: isSignedIn ? "Return to Home" : "Return to Login",
                 onPressed: () {
                   Navigator.of(bottomSheetContext).pop();
-                  if (isGuest) {
-                    ref.read(guestModeProvider.notifier).enableGuestMode();
-                  }
-                  context.goNamed(DashboardScreen.id);
+                  context.goNamed(isSignedIn ? DashboardScreen.id : LoginScreen.id);
                 },
               ),
             ],

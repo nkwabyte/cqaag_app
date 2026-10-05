@@ -165,7 +165,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ref.read(authControllerProvider.notifier).signIn(email, password).then((_) {
                                 // Check if sign in was successful
                                 if (context.mounted && !ref.read(authControllerProvider).hasError) {
-                                  ref.read(guestModeProvider.notifier).disableGuestMode();
                                   ref.invalidate(currentUserProfileProvider);
                                   CustomSnackBar.success(
                                     context,
@@ -251,16 +250,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                             Gap(16.h),
 
-                            // Guest Mode Button
+                            // Visitors without an account browse the website instead
                             CustomButton(
                               text: "Continue as Guest",
                               variant: ButtonVariant.outlined,
                               borderColor: colorScheme.secondary,
-                              onPressed: () {
-                                // Enable guest mode
-                                ref.read(guestModeProvider.notifier).enableGuestMode();
-                                // Navigate to guest dashboard
-                                context.go('/${GuestHomeScreen.id}');
+                              trailingIcon: Icon(Icons.open_in_new, size: 18.r, color: colorScheme.secondary),
+                              onPressed: () async {
+                                final opened = await WebsiteLauncher.open();
+                                if (!opened && context.mounted) {
+                                  CustomSnackBar.error(
+                                    context,
+                                    message: 'Could not open the C.Q.A.A.G website.',
+                                  );
+                                }
                               },
                             ),
                           ],

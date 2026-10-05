@@ -57,9 +57,7 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final user = ref.watch(currentUserProfileProvider).value;
-    final guestMode = ref.watch(guestModeProvider);
-    final isGuest = user == null || guestMode == AuthMode.guest;
-    final isMember = user != null && !isGuest && (user.membershipStatus == MembershipStatus.verified);
+    final isMember = user != null && user.membershipStatus == MembershipStatus.verified;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -119,7 +117,7 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
                         ),
                         Gap(6.w),
                         CustomText(
-                          isMember ? "Verified Member Access" : "Guest Access Mode",
+                          isMember ? "Verified Member Access" : "Standard Access",
                           variant: TextVariant.bodySmall,
                           color: Colors.white,
                           fontWeight: FontWeight.w600,

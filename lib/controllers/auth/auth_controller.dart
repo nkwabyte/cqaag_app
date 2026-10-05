@@ -1,6 +1,5 @@
 import 'package:cqaag_app/services/index.dart';
 import 'package:cqaag_app/models/user/app_user.dart';
-import 'package:cqaag_app/controllers/auth/guest_mode_provider.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'auth_controller.g.dart';
@@ -16,7 +15,6 @@ class AuthController extends _$AuthController {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final user = await ref.read(authServiceProvider).signInWithEmailAndPassword(email, password);
-      ref.read(guestModeProvider.notifier).disableGuestMode();
       ref.invalidate(currentUserProfileProvider);
       return user;
     });
@@ -43,7 +41,6 @@ class AuthController extends _$AuthController {
               phoneNumber: phoneNumber,
               isAdmin: isAdmin,
             );
-        ref.read(guestModeProvider.notifier).disableGuestMode();
         ref.invalidate(currentUserProfileProvider);
         return user;
       },
@@ -59,7 +56,6 @@ class AuthController extends _$AuthController {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       await ref.read(authServiceProvider).signOut();
-      ref.read(guestModeProvider.notifier).disableGuestMode();
       ref.invalidate(currentUserProfileProvider);
     });
   }

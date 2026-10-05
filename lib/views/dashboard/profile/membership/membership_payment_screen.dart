@@ -852,11 +852,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
           title: 'Application Submitted',
         );
 
-        if (user != null) {
-          context.goNamed(DashboardScreen.id);
-        } else {
-          context.goNamed(GuestHomeScreen.id);
-        }
+        context.goNamed(user != null ? DashboardScreen.id : LoginScreen.id);
       }
     } catch (e) {
       if (!mounted) return;

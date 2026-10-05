@@ -73,8 +73,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       // Show loading dialog
       AppDialogs.showLoading(context);
 
-      // Disable guest mode & invalidate user profile
-      ref.read(guestModeProvider.notifier).disableGuestMode();
+      // Invalidate user profile
       ref.invalidate(currentUserProfileProvider);
 
       // Sign out via auth controller
