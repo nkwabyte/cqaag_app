@@ -7,7 +7,7 @@ enum ButtonVariant { filled, outlined }
 
 class CustomButton extends StatelessWidget {
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final ButtonVariant variant;
   final Color? backgroundColor;
   final Color? textColor;
@@ -24,7 +24,7 @@ class CustomButton extends StatelessWidget {
   const CustomButton({
     super.key,
     required this.text,
-    required this.onPressed,
+    this.onPressed,
     this.variant = ButtonVariant.filled,
     this.backgroundColor,
     this.textColor,
@@ -43,18 +43,30 @@ class CustomButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final bool isEnabled = onPressed != null && !isLoading;
 
     // Determine colors based on variant and user input
     final bool isOutlined = variant == ButtonVariant.outlined;
 
-    final Color effectiveBgColor = backgroundColor ?? (isOutlined ? Colors.transparent : colorScheme.primary);
+    final Color effectiveBgColor = backgroundColor ??
+        (isOutlined
+            ? Colors.transparent
+            : (isEnabled
+                ? colorScheme.primary
+                : colorScheme.primary.withValues(alpha: 0.38)));
 
-    final Color effectiveTextColor = textColor ?? (isOutlined ? colorScheme.primary : colorScheme.onPrimary);
+    final Color effectiveTextColor = textColor ??
+        (isOutlined
+            ? (isEnabled ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.38))
+            : (isEnabled ? colorScheme.onPrimary : colorScheme.onPrimary.withValues(alpha: 0.7)));
 
-    final Color effectiveBorderColor = borderColor ?? (isOutlined ? colorScheme.primary : Colors.transparent);
+    final Color effectiveBorderColor = borderColor ??
+        (isOutlined
+            ? (isEnabled ? colorScheme.primary : colorScheme.outline.withValues(alpha: 0.38))
+            : Colors.transparent);
 
     return InkWell(
-      onTap: isLoading ? null : onPressed,
+      onTap: isEnabled ? onPressed : null,
       borderRadius: BorderRadius.circular(borderRadius ?? 12.r),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),

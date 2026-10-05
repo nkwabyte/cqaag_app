@@ -3,7 +3,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:uuid/uuid.dart' as uuid_pkg;
 import 'package:cqaag_app/index.dart';
+import 'package:cqaag_app/models/membership/membership_category.dart' as membership_models;
 
 class MembershipAgreementScreen extends ConsumerStatefulWidget {
   static const String id = 'membership_agreement_screen';
@@ -16,6 +18,9 @@ class MembershipAgreementScreen extends ConsumerStatefulWidget {
 }
 
 class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementScreen> {
+  bool _hasAgreed = false;
+  bool _isSubmitting = false;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -28,12 +33,12 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
           // 1. Curved Focused Header
           Container(
             width: double.infinity,
-            padding: EdgeInsets.fromLTRB(20.w, 60.h, 20.w, 40.h),
+            padding: EdgeInsets.fromLTRB(20.w, 60.h, 20.w, 36.h),
             decoration: BoxDecoration(
-              color: colorScheme.onSurface, // darkRed
+              color: colorScheme.onSurface,
               borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(50.r),
-                bottomRight: Radius.circular(50.r),
+                bottomLeft: Radius.circular(44.r),
+                bottomRight: Radius.circular(44.r),
               ),
             ),
             child: Column(
@@ -46,89 +51,157 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
                     children: [
                       Icon(Icons.arrow_back, color: Colors.white, size: 20.r),
                       Gap(8.w),
-                      const CustomText("Back", color: Colors.white),
+                      const CustomText("Back to Application", color: Colors.white),
                     ],
                   ),
                 ),
-                Gap(24.h),
+                Gap(20.h),
                 const CustomText(
-                  "Membership Agreement",
-                  variant: TextVariant.displaySmall,
+                  "Membership Agreement & Code of Conduct",
+                  variant: TextVariant.headlineMedium,
                   color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
-                Gap(8.h),
+                Gap(6.h),
                 CustomText(
-                  "Effective Date: January 05, 2026",
+                  "Official Statutory Governance • C.Q.A.A.G Constitution",
                   variant: TextVariant.bodySmall,
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: Colors.white.withValues(alpha: 0.75),
                 ),
               ],
             ),
           ),
 
-          // 2. Agreement Content
+          // 2. Full Scrollable Agreement & Ethics Content
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(24.r),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CustomText(
-                    "This Agreement is entered into between C.Q.A.A.G and you upon submission and approval of your membership application.",
-                    variant: TextVariant.bodyLarge,
-                    color: colorScheme.secondary,
-                  ),
-                  Gap(24.h),
-
-                  _buildLegalSection(
-                    "1. Membership Categories",
-                    "C.Q.A.A.G offers Full, National Associate, Foreign Associate, Corporate, and Honorary memberships. Eligibility, rights, and benefits for each category are subject to approval by the Membership Committee.",
-                  ),
-
-                  _buildLegalSection(
-                    "2. Member Benefits",
-                    "Members in good standing enjoy access to training programs, workshops, certification courses, networking opportunities, and exclusive industry research.",
-                  ),
-
-                  _buildLegalSection(
-                    "3. Membership Obligations",
-                    "You agree to uphold high professional standards, comply with the Code of Conduct, pay the registration fee and annual dues promptly as set out in the Board's fee schedule, and promote the objectives of C.Q.A.A.G.",
-                  ),
-
-                  _buildLegalSection(
-                    "4. Code of Conduct",
-                    "Members must act with integrity and professionalism, avoid conflicts of interest, and maintain confidentiality of sensitive industry information.",
-                  ),
-
-                  _buildLegalSection(
-                    "5. Term and Termination",
-                    "Membership runs for one year and terminates upon non-payment of fees or breach of the Code of Conduct or Association Constitution.",
-                  ),
-
-                  Gap(10.h),
-                  const Divider(),
-                  Gap(24.h),
-
-                  // Final Declaration Section
                   Container(
                     padding: EdgeInsets.all(16.r),
                     decoration: BoxDecoration(
-                      color: colorScheme.primary.withValues(alpha: 0.05),
+                      color: AppColors.primaryGreen.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(color: colorScheme.primary.withValues(alpha: 0.1)),
+                      border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const CustomText(
-                          "Declaration",
-                          variant: TextVariant.headlineMedium,
+                        CustomText(
+                          "Preamble & Binding Obligation",
+                          variant: TextVariant.headlineSmall,
                           fontWeight: FontWeight.bold,
+                          color: AppColors.primaryGreen,
                         ),
                         Gap(8.h),
-                        const CustomText(
-                          "I hereby apply for membership and confirm that the information provided is true. I agree to abide by the C.Q.A.A.G Constitution, Code of Conduct, and Membership Agreement.",
+                        CustomText(
+                          "This Agreement constitutes a binding legal and professional covenant between the Cashew Quality Analysts' Association, Ghana (C.Q.A.A.G) and you as an applicant or member. Membership in CQAAG requires unreserved commitment to the Association's Constitution, the statutory mandates of the Tree Crops Development Authority (TCDA), and the rigorous ethical code governing the cashew sector in Ghana and West Africa.",
                           variant: TextVariant.bodyMedium,
+                          textAlign: TextAlign.justify,
+                          color: Colors.grey.shade900,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Gap(24.h),
+
+                  _buildLegalSection(
+                    "Section 1: Membership Categories & Entitlements",
+                    "1.1 Categories: Membership is organized into Full Members, National Associate Members, Foreign Associate Members, Corporate Members, and Honorary Members per Constitution Article 2.\n\n"
+                    "1.2 Voting & Office: Only Full Members in good financial standing hold the constitutional right to vote and stand for executive office.\n\n"
+                    "1.3 Statutory Licensing: Full and Foreign Associate Members in good standing are eligible for formal recommendation to the Tree Crops Development Authority (TCDA) for licensing to practice nationwide.",
+                  ),
+
+                  _buildLegalSection(
+                    "Section 2: Professional Standards & Quality Benchmarking",
+                    "2.1 Scientific Rigor: Every member shall conduct raw cashew nut (RCN) quality analysis strictly adhering to verified testing protocols (Moisture Content determination ≤ 10%, Out-turn Ratio/KOR calculation, Defect Analysis < 85g, and Kernel Count between 160–180 kernels/kg).\n\n"
+                    "2.2 Independent Sampling: Analysts must adhere to random, representative sampling techniques in warehouse and farmgate environments, rejecting cherry-picked samples or falsified lot assessments.",
+                  ),
+
+                  _buildLegalSection(
+                    "Section 3: Comprehensive Code of Ethics (Disciplinary Enforcement)",
+                    "3.1 Article 1 - Integrity & Impartiality:\n"
+                    "• Members shall carry out every analysis with uncompromising honesty and independence.\n"
+                    "• Members shall strictly decline any gift, cash payment, commission, favor, or inducement intended to alter or influence quality results.\n"
+                    "• Any conflict of interest must be disclosed immediately to the Secretariat.\n\n"
+                    "3.2 Article 2 - Anti-Collusion & Trade Ethics:\n"
+                    "• Analysts shall never collude with buyers, traders, aggregators, or sellers to under-grade or over-grade cashew parcels.\n"
+                    "• Falsification of KOR or moisture certificates constitutes immediate grounds for professional disqualification.\n\n"
+                    "3.3 Article 3 - Disciplinary Jurisdiction & Sanctions:\n"
+                    "• All members submit to the investigative authority of the CQAAG Disciplinary Committee.\n"
+                    "• Penalties for ethical breach include formal censure, fines, immediate revocation of Association credentials, withdrawal of TCDA licensing recommendations, and blacklisting from all national buying centers.",
+                  ),
+
+                  _buildLegalSection(
+                    "Section 4: Financial Obligations & Annual Dues",
+                    "4.1 Fee Schedule: Members agree to promptly pay the prescribed one-time registration fee and recurrent annual dues according to the approved schedule of fees set by the General Assembly.\n\n"
+                    "4.2 Arrears & Suspension: Failure to settle annual dues within sixty (60) days of the renewal notice results in automatic suspension of certified analyst status, active listing removal, and loss of member benefits.",
+                  ),
+
+                  _buildLegalSection(
+                    "Section 5: Data Protection & Verification Consent",
+                    "5.1 Identity Validation: The applicant grants explicit consent to CQAAG to verify submitted identity data against national registers (including the National Identification Authority / Ghana Card portal) in accordance with the Data Protection Act, 2012 (Act 843).\n\n"
+                    "5.2 Member Directory: Approved members will be published on the official national registry for buyer and stakeholder verification.",
+                  ),
+
+                  Gap(12.h),
+                  const Divider(),
+                  Gap(16.h),
+
+                  // Mandatory Checkbox Declaration
+                  Container(
+                    padding: EdgeInsets.all(16.r),
+                    decoration: BoxDecoration(
+                      color: _hasAgreed
+                          ? AppColors.primaryGreen.withValues(alpha: 0.08)
+                          : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(14.r),
+                      border: Border.all(
+                        color: _hasAgreed
+                            ? AppColors.primaryGreen
+                            : Colors.grey.shade300,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Checkbox(
+                          value: _hasAgreed,
+                          activeColor: AppColors.primaryGreen,
+                          onChanged: (val) {
+                            setState(() {
+                              _hasAgreed = val ?? false;
+                            });
+                          },
+                        ),
+                        Gap(8.w),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              setState(() {
+                                _hasAgreed = !_hasAgreed;
+                              });
+                            },
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CustomText(
+                                  "Solemn Declaration & Confirmation",
+                                  variant: TextVariant.bodyLarge,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                Gap(4.h),
+                                CustomText(
+                                  "I certify that all information submitted in my application is true and complete. I have read, understood, and solemnly agree to abide by the C.Q.A.A.G Constitution, Code of Ethics, and Membership Agreement. I submit to the authority of the Disciplinary Committee in all professional matters.",
+                                  variant: TextVariant.bodySmall,
+                                  color: Colors.grey.shade800,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -139,50 +212,50 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
             ),
           ),
 
-          // 3. Sticky Acceptance Footer - Only show when there's application data
-          if (widget.applicationData.isNotEmpty)
-            Container(
-              padding: EdgeInsets.all(24.r),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CustomButton(
-                    text: "Accept & Continue to Payment",
-                    onPressed: _handleAcceptAndContinue,
-                  ),
-                  Gap(12.h),
-                  OutlinedButton(
-                    onPressed: _handleDecline,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: Size(double.infinity, 50.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      side: BorderSide(
-                        color: colorScheme.error,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: CustomText(
-                      "Decline",
-                      variant: TextVariant.bodyLarge,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.error,
-                    ),
-                  ),
-                ],
-              ),
+          // 3. Sticky Action Footer
+          Container(
+            padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 24.h),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, -4),
+                ),
+              ],
             ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CustomButton(
+                  text: _isSubmitting ? "Submitting Application..." : "Accept & Submit Application",
+                  isLoading: _isSubmitting,
+                  onPressed: (_hasAgreed && !_isSubmitting) ? () => _handleAcceptAndSubmit() : null,
+                ),
+                Gap(10.h),
+                OutlinedButton(
+                  onPressed: _isSubmitting ? null : _handleDecline,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: Size(double.infinity, 48.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    side: BorderSide(
+                      color: colorScheme.error.withValues(alpha: 0.6),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: CustomText(
+                    "Decline & Exit",
+                    variant: TextVariant.bodyMedium,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.error,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -196,31 +269,230 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
           title,
           variant: TextVariant.headlineMedium,
           fontWeight: FontWeight.bold,
+          color: AppColors.darkRed,
         ),
         Gap(8.h),
         CustomText(
           content,
           variant: TextVariant.bodyMedium,
-          textAlign: TextAlign.justify,
+          textAlign: TextAlign.left,
         ),
-        Gap(24.h),
+        Gap(20.h),
       ],
     );
   }
 
   void _handleDecline() {
+    final user = ref.read(authServiceProvider).currentUser;
+    final isGuest = user == null || ref.read(guestModeProvider) == AuthMode.guest;
+    if (isGuest) {
+      ref.read(guestModeProvider.notifier).enableGuestMode();
+    }
     context.goNamed(DashboardScreen.id);
   }
 
-  /// Accepting the agreement moves the applicant on to the payment step; the
-  /// application itself is written there, once the fee is known.
-  ///
-  /// Nothing is persisted here, so an applicant who backs out of payment does
-  /// not leave a half-made membership record behind.
-  void _handleAcceptAndContinue() {
-    context.pushNamed(
-      MembershipPaymentScreen.id,
-      extra: Map<String, dynamic>.from(widget.applicationData),
+  Future<void> _handleAcceptAndSubmit() async {
+    if (!_hasAgreed) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final user = ref.read(authServiceProvider).currentUser;
+      final applicantEmail = widget.applicationData['email'] as String? ?? (user?.email ?? '');
+      final applicantUserId = user?.uid ?? 'guest_${const uuid_pkg.Uuid().v4().substring(0, 8)}';
+      final settings = ref.read(paymentSettingsProvider).value ?? PaymentSettings.defaults;
+      final category = _parseMembershipCategory(widget.applicationData['membership_category'] as String?);
+      final feeCategory = FeeCategory.fromMembership(category);
+      final quote = settings.schedule.quote(feeCategory);
+
+      final application = _buildApplication(
+        userId: applicantUserId,
+        userEmail: applicantEmail,
+        settings: settings,
+        quote: quote,
+        category: category,
+      );
+
+      await ref.read(membershipServiceProvider).submitApplication(application);
+
+      // If registered user, update user profile state
+      if (user != null) {
+        final ghanaCardNumber = application.ghanaCardNumber;
+        await ref.read(userServiceProvider).updateUserData(user.uid, {
+          'membership_status': 'applied',
+          if (ghanaCardNumber != null)
+            'verification': VerificationData(idCardNumber: ghanaCardNumber).toJson(),
+          'verification_status': VerificationStatus.pending.value,
+        });
+      }
+
+      if (!mounted) return;
+
+      _showSubmissionSuccessDialog(isGuest: user == null);
+    } catch (e) {
+      if (!mounted) return;
+      CustomSnackBar.error(
+        context,
+        message: 'Failed to submit application: ${e.toString()}',
+        title: 'Submission Failed',
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  void _showSubmissionSuccessDialog({required bool isGuest}) {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (bottomSheetContext) {
+        return Padding(
+          padding: EdgeInsets.all(24.r),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_circle_outline, color: AppColors.primaryGreen, size: 54.r),
+              Gap(14.h),
+              const CustomText(
+                "Application Submitted for Review",
+                variant: TextVariant.headlineMedium,
+                fontWeight: FontWeight.bold,
+                textAlign: TextAlign.center,
+              ),
+              Gap(8.h),
+              CustomText(
+                "Your membership application and verification credentials have been successfully delivered to the C.Q.A.A.G Secretariat.",
+                variant: TextVariant.bodyMedium,
+                color: Colors.grey.shade700,
+                textAlign: TextAlign.center,
+              ),
+              Gap(14.h),
+              Container(
+                padding: EdgeInsets.all(14.r),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryGreen.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12.r),
+                  border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.2)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline, color: AppColors.primaryGreen, size: 20.r),
+                    Gap(10.w),
+                    Expanded(
+                      child: CustomText(
+                        "Stage 1 Review: The Secretariat is reviewing your KYC and qualification details. Upon first approval, you will receive an in-app prompt to complete your registration payment.",
+                        variant: TextVariant.bodySmall,
+                        color: AppColors.primaryGreen,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Gap(24.h),
+              CustomButton(
+                text: "Return to Home",
+                onPressed: () {
+                  Navigator.of(bottomSheetContext).pop();
+                  if (isGuest) {
+                    ref.read(guestModeProvider.notifier).enableGuestMode();
+                  }
+                  context.goNamed(DashboardScreen.id);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  MembershipApplication _buildApplication({
+    required String userId,
+    required String userEmail,
+    required PaymentSettings settings,
+    required FeeQuote quote,
+    required MembershipCategory category,
+  }) {
+    final formData = widget.applicationData;
+
+    final titleStr = (formData['title'] as String?)?.toLowerCase() ?? 'mr';
+    final title = membership_models.Title.values.firstWhere(
+      (t) => t.name == titleStr,
+      orElse: () => membership_models.Title.mr,
+    );
+
+    final dobDateTime = formData['dob'] as DateTime?;
+    final dateOfBirth = dobDateTime?.toIso8601String() ?? DateTime.now().toIso8601String();
+    final now = DateTime.now();
+
+    return MembershipApplication(
+      id: const uuid_pkg.Uuid().v4(),
+      userId: userId,
+      title: title,
+      firstName: formData['first_name'] as String? ?? '',
+      lastName: formData['last_name'] as String? ?? '',
+      dateOfBirth: dateOfBirth,
+      gender: _parseGender(formData['gender'] as String?),
+      nationality: formData['nationality'] as String? ?? 'Ghanaian',
+      ghanaCardNumber: GhanaCard.normalise(formData['ghana_card_number'] as String?),
+      phoneNumberPrimary: formData['phone'] as String? ?? '',
+      emailAddress: userEmail,
+      residentialAddress: formData['address'] as String? ?? '',
+      regionDistrict: formData['region'] as String? ?? '',
+      currentJobTitle: formData['job_title'] as String? ?? '',
+      employerOrganization: formData['employer'] as String? ?? '',
+      employerType: formData['employer_type'] as String?,
+      highestEducationLevel: formData['highest_education_level'] as String?,
+      fieldOfStudy: formData['field_of_study'] as String?,
+      yearQualificationObtained: formData['year_qualification_obtained']?.toString(),
+      membershipCategory: category,
+      status: ApplicationStatus.submitted,
+      createdAt: now,
+      submittedAt: now,
+      paymentMethod: PaymentMethod.momo.value,
+      paymentStatus: PaymentStatus.unpaid.value,
+      paymentAmount: quote.total,
+      paymentRegistrationFee: quote.registrationFee,
+      paymentAnnualDues: quote.annualDues,
+      paymentOptionalTotal: quote.optionalTotal,
+      paymentOptionalItems: quote.optionalItems,
+      paymentRegistrationComponents: quote.registrationComponents,
+      paymentCurrency: settings.currency,
+      paymentMomoNetwork: settings.network.value,
+      paymentMomoNumber: settings.momoNumber,
+    );
+  }
+
+  Gender _parseGender(String? genderStr) {
+    final lower = genderStr?.toLowerCase().trim();
+    if (lower == 'female') return Gender.female;
+    if (lower == 'other' || lower == 'prefer not to say' || lower == 'prefer_not_to_say') {
+      return Gender.preferNotToSay;
+    }
+    return Gender.male;
+  }
+
+  MembershipCategory _parseMembershipCategory(String? categoryStr) {
+    final lower = categoryStr?.toLowerCase().trim() ?? '';
+    if (lower.contains('foreign') || lower == 'full_foreign') {
+      return MembershipCategory.fullForeign;
+    }
+    if (lower.contains('associate')) {
+      return MembershipCategory.associate;
+    }
+    if (lower.contains('corporate')) {
+      return MembershipCategory.corporate;
+    }
+    if (lower.contains('honorary')) {
+      return MembershipCategory.honorary;
+    }
+    return MembershipCategory.full;
   }
 }

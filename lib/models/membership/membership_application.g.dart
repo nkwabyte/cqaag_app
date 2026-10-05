@@ -26,6 +26,10 @@ _MembershipApplication _$MembershipApplicationFromJson(
   regionDistrict: json['region_district'] as String,
   currentJobTitle: json['current_job_title'] as String,
   employerOrganization: json['employer_organization'] as String,
+  employerType: json['employer_type'] as String?,
+  highestEducationLevel: json['highest_education_level'] as String?,
+  fieldOfStudy: json['field_of_study'] as String?,
+  yearQualificationObtained: json['year_qualification_obtained'] as String?,
   membershipCategory: $enumDecode(
     _$MembershipCategoryEnumMap,
     json['membership_category'],
@@ -99,6 +103,10 @@ Map<String, dynamic> _$MembershipApplicationToJson(
   'region_district': instance.regionDistrict,
   'current_job_title': instance.currentJobTitle,
   'employer_organization': instance.employerOrganization,
+  'employer_type': instance.employerType,
+  'highest_education_level': instance.highestEducationLevel,
+  'field_of_study': instance.fieldOfStudy,
+  'year_qualification_obtained': instance.yearQualificationObtained,
   'membership_category':
       _$MembershipCategoryEnumMap[instance.membershipCategory]!,
   'status': _$ApplicationStatusEnumMap[instance.status]!,

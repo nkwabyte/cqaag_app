@@ -35,6 +35,11 @@ class GuestHomeScreen extends StatelessWidget {
 
               Gap(40.h),
 
+              // Official Services & Inspection Request Banner
+              _buildServicesAndInspectionBanner(context),
+
+              Gap(40.h),
+
               // Vision, Mission, Core Values, Impact Goals
               _buildVisionMissionSection(context),
 
@@ -236,6 +241,77 @@ class GuestHomeScreen extends StatelessWidget {
               onPressed: () {
                 context.pushNamed(QualityStandardsScreen.id);
               },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServicesAndInspectionBanner(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 24.w),
+      child: Container(
+        padding: EdgeInsets.all(24.r),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.18)),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(14.r),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryGreen.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.assignment_turned_in_outlined, color: AppColors.primaryGreen, size: 30.r),
+                ),
+                Gap(16.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const CustomText(
+                        'Quality Inspection & Services',
+                        variant: TextVariant.headlineSmall,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      Gap(4.h),
+                      CustomText(
+                        'Book on-site cashew batch testing or explore arbitration, training, and licensing.',
+                        variant: TextVariant.bodySmall,
+                        color: Colors.grey.shade700,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            Gap(20.h),
+            Row(
+              children: [
+                Expanded(
+                  child: CustomButton(
+                    text: 'Explore Services',
+                    backgroundColor: AppColors.primaryGreen,
+                    textColor: Colors.white,
+                    onPressed: () {
+                      context.pushNamed(ServicesScreen.id);
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         ),

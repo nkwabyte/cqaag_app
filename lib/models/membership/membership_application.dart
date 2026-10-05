@@ -61,12 +61,23 @@ abstract class MembershipApplication with _$MembershipApplication {
     /// Region/District
     required String regionDistrict,
 
-    // Professional Information
     /// Current job title
     required String currentJobTitle,
 
     /// Employer/Organization
     required String employerOrganization,
+
+    /// Employer type (cashew processor, exporter, trader, aggregator, farmer, laboratory, regulatory, academia, other)
+    String? employerType,
+
+    /// Highest educational level obtained
+    String? highestEducationLevel,
+
+    /// Field of study
+    String? fieldOfStudy,
+
+    /// Year qualification was obtained
+    String? yearQualificationObtained,
 
     /// Desired membership category
     required MembershipCategory membershipCategory,

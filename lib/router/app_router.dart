@@ -65,6 +65,7 @@ GoRouter goRouter(Ref ref) {
         '/${MembershipApplicationScreen.id}',
         '/${MembershipAgreementScreen.id}',
         '/${MembershipPaymentScreen.id}',
+        '/${GuestHomeScreen.id}',
         '/${VerificationUploadScreen.id}',
         '/${PartnersScreen.id}',
       ];
@@ -236,6 +237,11 @@ GoRouter goRouter(Ref ref) {
           }
           return TraceabilityScreen(inspection: extra);
         },
+      ),
+      GoRoute(
+        path: '/${GuestHomeScreen.id}',
+        name: GuestHomeScreen.id,
+        builder: (context, state) => const DashboardScreen(),
       ),
       // Profile/Membership routes
       GoRoute(
