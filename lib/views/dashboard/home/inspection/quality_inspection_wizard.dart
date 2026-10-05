@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:cqaag_app/index.dart';
 import 'package:cqaag_app/views/dashboard/home/inspection/preview_and_confirm_step.dart';
+import 'package:cqaag_app/views/dashboard/home/inspection/report_fee_field.dart';
 
 class QualityInspectionWizard extends ConsumerStatefulWidget {
   static const String id = 'quality_inspection_wizard';
@@ -105,6 +106,27 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
       final hasInternet = await ref.read(connectivityServiceProvider).hasInternetAccess();
       final cloudinary = ref.read(cloudinaryServiceProvider);
       List<String> uploadedImageUrls = [];
+
+      final analysisType = formData['analysis_type'] as String? ?? '';
+      final feeRequired = AnalysisTypes.requiresPayment(analysisType);
+      final needsApproval = AnalysisTypes.requiresApproval(analysisType);
+
+      // Paid and approval-bound certificates go straight to the Secretariat,
+      // so they cannot wait in the offline queue.
+      if ((feeRequired || needsApproval) && !hasInternet) {
+        throw Exception('$analysisType certificates need an internet connection to submit the fee and send for completion.');
+      }
+
+      final feeInput = formData[ReportFeeField.fieldName] as ReportFeeInput?;
+      var feeEvidenceUrl = '';
+      if (feeRequired) {
+        final evidence = feeInput?.evidence;
+        if (evidence == null) {
+          throw Exception('Upload evidence of the certificate fee on the Preview step before submitting.');
+        }
+        feeEvidenceUrl = await cloudinary.uploadPaymentEvidence(evidence) ??
+            (throw Exception('Could not upload the certificate fee evidence. Please try again.'));
+      }
 
       Future<String> processPhoto(File file, String label) async {
         if (hasInternet) {
@@ -210,7 +232,10 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
       final userProfile = ref.read(currentUserProfileProvider).value;
       final persistentQcCode = userProfile?.effectiveQcCode ?? IdUtils.getPermanentQcId(userId: user.uid);
 
-      final isExport = (formData['analysis_type'] as String? ?? '').toLowerCase().contains('export');
+      final isExport = needsApproval;
+      final settings = ref.read(paymentSettingsProvider).value ?? PaymentSettings.defaults;
+      final nowIso = DateTime.now().toUtc().toIso8601String();
+      final inspectorName = userProfile != null ? '${userProfile.firstName} ${userProfile.lastName}'.trim() : null;
 
       final inspection = Inspection(
         id: _docId,
@@ -270,10 +295,30 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         imageUrls: uploadedImageUrls,
         cuttingImageUrls: uploadedImageUrls,
         notes: formData['notes'] as String?,
-        status: hasInternet ? InspectionStatus.completed : InspectionStatus.pendingSync,
+        inspectorName: inspectorName,
+        inspectorEmail: user.email,
+
+        // Certificate fee, checked by the Secretariat.
+        reportFeeAmount: feeRequired ? AnalysisTypes.reportFeeCedis : 0,
+        reportFeeCurrency: settings.currency,
+        reportFeeStatus: feeRequired ? PaymentStatus.pendingVerification.value : 'not_required',
+        reportFeeEvidenceUrl: feeEvidenceUrl,
+        reportFeeReference: feeRequired ? (feeInput?.reference ?? '') : '',
+        reportFeeMomoNetwork: feeRequired ? settings.network.value : '',
+        reportFeeMomoNumber: feeRequired ? settings.momoNumber : '',
+        reportFeeMomoAccountName: feeRequired ? settings.momoAccountName : '',
+        reportFeePaidAt: feeRequired ? nowIso : '',
+
+        // Export certificates wait at the CQAAG approval desk.
+        approvalStatus: needsApproval ? CertificateApprovalStatus.pending.value : CertificateApprovalStatus.notRequired.value,
+        approvalRequestedAt: needsApproval ? nowIso : '',
+
+        status: needsApproval
+            ? InspectionStatus.pendingApproval
+            : (hasInternet ? InspectionStatus.completed : InspectionStatus.pendingSync),
         createdAt: widget.existingInspection?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
-        completedAt: hasInternet ? DateTime.now() : null,
+        completedAt: hasInternet && !needsApproval ? DateTime.now() : null,
       );
 
       if (!mounted) {
@@ -287,14 +332,28 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         await controller.createInspection(inspection);
       }
 
+      // Tell the Secretariat a certificate is waiting in the approval lineup.
+      var noticeNote = '';
+      if (needsApproval) {
+        final notice = await ref.read(websiteApiServiceProvider).requestExportApproval(inspection.id);
+        if (!notice.success) {
+          noticeNote = ' The approval lineup has the request; the Secretariat email could not be sent.';
+        }
+      }
+
       if (!mounted) return;
 
       Navigator.of(context, rootNavigator: true).pop();
 
+      final feeNote = feeRequired
+          ? ' The ${settings.money(AnalysisTypes.reportFeeCedis)} certificate fee awaits Secretariat verification.'
+          : '';
       CustomSnackBar.success(
         context,
-        message: 'Inspection completed and saved successfully!',
-        title: 'Success',
+        message: needsApproval
+            ? 'Sent for CQAAG approval. It is not a valid certificate until an administrator approves it.$feeNote$noticeNote'
+            : 'Certificate completed and saved successfully!$feeNote',
+        title: needsApproval ? 'Sent for approval' : 'Success',
       );
 
       context.pushReplacementNamed(
@@ -467,6 +526,13 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
     );
   }
 
+  String get _submitLabel {
+    final type = _formKey.currentState?.fields['analysis_type']?.value as String?;
+    if (AnalysisTypes.requiresApproval(type)) return "Send for CQAAG Approval";
+    if (AnalysisTypes.requiresPayment(type)) return "Submit Certificate";
+    return "Submit Inspection";
+  }
+
   Widget _buildBottomAction(ColorScheme colorScheme) {
     final isPreviewStep = _currentStep == 4;
 
@@ -488,7 +554,7 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
             child: CustomButton(
               text: _isSubmitting
                   ? "Submitting..."
-                  : (isPreviewStep ? "Submit Inspection" : "Continue"),
+                  : (isPreviewStep ? _submitLabel : "Continue"),
               leadingIcon: isPreviewStep && !_isSubmitting ? const Icon(Icons.check, color: Colors.white) : null,
               onPressed: _isSubmitting ? () {} : _nextStep,
             ),

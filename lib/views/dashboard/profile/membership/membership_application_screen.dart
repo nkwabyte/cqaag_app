@@ -22,40 +22,153 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
   /// Drives the fee preview below the category dropdown.
   MembershipCategory _selectedCategory = MembershipCategory.full;
 
+  /// Whether to show the free-text "Other" boxes.
+  bool _otherSectorSelected = false;
+  bool _otherEducationSelected = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // A revised application may already have "Other" ticked.
+    final previous = ref.read(membershipControllerProvider).value?.myApplication;
+    if (previous != null && previous.status == ApplicationStatus.rejected) {
+      _otherSectorSelected = previous.industrySectors.contains('other');
+      _otherEducationSelected = previous.highestEducationLevel == 'other';
+    }
+  }
+
   void _navigateToNextStep() {
-    if (_formKey.currentState?.saveAndValidate() ?? false) {
-      final formData = Map<String, dynamic>.from(_formKey.currentState!.value);
-      final user = ref.read(currentUserProfileProvider).value;
+    // Applications, their signed documents and the later sign-in password are
+    // all tied to an account, as on the website.
+    if (ref.read(authServiceProvider).currentUser == null) {
+      _showSignInRequired();
+      return;
+    }
 
-      final isAlreadyVerifiedOrPending = user?.verificationStatus == VerificationStatus.verified ||
-          user?.verificationStatus == VerificationStatus.pending ||
-          user?.verification != null;
-
-      // A member who already has a valid Ghana Card number on file is not asked
-      // for it again; anything else — including a number stored before the
-      // format was enforced — goes back through verification.
-      final existingNumber = user?.verification?.idCardNumber;
-      final hasUsableNumber = isAlreadyVerifiedOrPending && GhanaCard.isValid(existingNumber);
-
-      if (hasUsableNumber) {
-        formData['ghana_card_number'] = GhanaCard.normalise(existingNumber);
-
-        context.pushNamed(
-          MembershipAgreementScreen.id,
-          extra: formData,
-        );
-      } else {
-        context.pushNamed(
-          VerificationUploadScreen.id,
-          extra: formData,
-        );
-      }
-    } else {
+    if (!(_formKey.currentState?.saveAndValidate() ?? false)) {
       CustomSnackBar.error(
         context,
-        message: 'Please complete all required fields (Category, Date of Birth, Gender, etc.) before proceeding.',
+        message: 'Please complete all required fields (Category, Date of Birth, Industry Sector, Qualifications, etc.) before proceeding.',
       );
+      return;
     }
+
+    final formData = Map<String, dynamic>.from(_formKey.currentState!.value);
+    final problem = _profileProblem(formData);
+    if (problem != null) {
+      CustomSnackBar.error(context, message: problem);
+      return;
+    }
+
+    // Foreign Associate applicants identify with a national ID or passport,
+    // which needs no Ghana Card check.
+    if (_selectedCategory == MembershipCategory.fullForeign) {
+      formData['national_id_number'] = (formData['national_id_number'] as String?)?.trim();
+      context.pushNamed(MembershipAgreementScreen.id, extra: formData);
+      return;
+    }
+
+    final user = ref.read(currentUserProfileProvider).value;
+    final isAlreadyVerifiedOrPending = user?.verificationStatus == VerificationStatus.verified ||
+        user?.verificationStatus == VerificationStatus.pending ||
+        user?.verification != null;
+
+    // A member who already has a valid Ghana Card number on file is not asked
+    // for it again; anything else — including a number stored before the
+    // format was enforced — goes back through verification.
+    final existingNumber = user?.verification?.idCardNumber;
+    final hasUsableNumber = isAlreadyVerifiedOrPending && GhanaCard.isValid(existingNumber);
+
+    if (hasUsableNumber) {
+      formData['ghana_card_number'] = GhanaCard.normalise(existingNumber);
+      context.pushNamed(MembershipAgreementScreen.id, extra: formData);
+    } else {
+      context.pushNamed(VerificationUploadScreen.id, extra: formData);
+    }
+  }
+
+  /// Checks the website applies too, beyond what each field validates alone.
+  String? _profileProblem(Map<String, dynamic> formData) {
+    final dob = formData['dob'] as DateTime?;
+    if (dob == null || _ageOn(dob, DateTime.now()) < 18) {
+      return 'Applicants must be at least 18 years of age.';
+    }
+
+    final sectors = List<String>.from(formData['industry_sectors'] as List? ?? const []);
+    if (sectors.isEmpty) return 'Select at least one industry sector.';
+    if (sectors.contains('other') && ((formData['industry_sector_other'] as String?)?.trim().length ?? 0) < 2) {
+      return 'Name the other industry sector.';
+    }
+
+    if (formData['education_level'] == 'other' && ((formData['education_level_other'] as String?)?.trim().length ?? 0) < 2) {
+      return 'Name the other educational qualification.';
+    }
+
+    final yearObtained = int.tryParse('${formData['year_qualification_obtained'] ?? ''}');
+    if (yearObtained == null || yearObtained < 1950 || yearObtained > DateTime.now().year) {
+      return 'Enter the year the qualification was obtained.';
+    }
+
+    final ghanaian = RegExp('ghana', caseSensitive: false).hasMatch((formData['nationality'] as String?) ?? '');
+    if ((_selectedCategory == MembershipCategory.full || _selectedCategory == MembershipCategory.associate) && !ghanaian) {
+      return 'Full Members and National Associate Members must be Ghanaian nationals.';
+    }
+    if (_selectedCategory == MembershipCategory.fullForeign && ghanaian) {
+      return 'Foreign Associate Membership is for analysts who are not Ghanaian nationals.';
+    }
+    if (_selectedCategory == MembershipCategory.fullForeign && ((formData['national_id_number'] as String?)?.trim().length ?? 0) < 4) {
+      return 'Enter the national ID or passport number for this application.';
+    }
+    return null;
+  }
+
+  static int _ageOn(DateTime dob, DateTime today) {
+    var age = today.year - dob.year;
+    if (today.month < dob.month || (today.month == dob.month && today.day < dob.day)) age--;
+    return age;
+  }
+
+  void _showSignInRequired() {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.all(24.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_person_outlined, color: AppColors.primaryGreen, size: 44.r),
+            Gap(12.h),
+            const CustomText("Sign in to apply", variant: TextVariant.headlineMedium, fontWeight: FontWeight.bold),
+            Gap(8.h),
+            CustomText(
+              "Your application, the agreements you sign and your membership payment are kept on your CQAAG account. "
+              "Create an account with the email address you want on your membership, or sign in, then apply from your Profile.",
+              variant: TextVariant.bodyMedium,
+              textAlign: TextAlign.center,
+              color: Colors.grey.shade700,
+            ),
+            Gap(20.h),
+            CustomButton(
+              text: "Create Account",
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                context.goNamed(RegisterScreen.id);
+              },
+            ),
+            Gap(10.h),
+            CustomButton(
+              text: "Sign In",
+              variant: ButtonVariant.outlined,
+              onPressed: () {
+                Navigator.of(sheetContext).pop();
+                context.goNamed(LoginScreen.id);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -68,7 +181,27 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
             user?.verificationStatus == VerificationStatus.pending) &&
         GhanaCard.isValid(user?.verification?.idCardNumber);
 
-    final initialValues = {
+    // A rejected applicant revises their previous application.
+    final previous = ref.watch(membershipControllerProvider).value?.myApplication;
+    final revising = previous != null && previous.status == ApplicationStatus.rejected ? previous : null;
+
+    final initialValues = <String, dynamic>{
+      if (revising != null) ...{
+        'place_of_birth': revising.placeOfBirth,
+        'address': revising.residentialAddress,
+        'region': revising.regionDistrict,
+        'employer': revising.employerOrganization,
+        'industry_sectors': revising.industrySectors,
+        'industry_sector_other': revising.industrySectorOther,
+        'experience': revising.yearsOfExperience?.toString(),
+        'professional_qualifications': revising.professionalQualifications,
+        'education_level': EducationLevels.labels.containsKey(revising.highestEducationLevel) ? revising.highestEducationLevel : null,
+        'education_level_other': revising.educationLevelOther,
+        'field_of_study': revising.fieldOfStudy,
+        'institution': revising.institution,
+        'year_qualification_obtained': revising.yearQualificationObtained,
+        'national_id_number': revising.nationalIdNumber,
+      },
       'membership_category': MembershipCategory.full.value,
       'title': 'Mr',
       'first_name': user?.firstName ?? '',
@@ -137,6 +270,14 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     Gap(16.h),
                     _buildDatePicker("Date of Birth", "dob", colorScheme),
                     Gap(16.h),
+                    CustomTextField(
+                      name: 'place_of_birth',
+                      label: "Place of Birth",
+                      hint: "e.g. Wenchi, Bono Region",
+                      prefixIcon: Icons.place_outlined,
+                      validator: FormBuilderValidators.required(errorText: 'Enter your place of birth'),
+                    ),
+                    Gap(16.h),
                     const CustomTextField(
                       name: 'nationality',
                       label: "Nationality",
@@ -150,6 +291,13 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                         variant: TextVariant.bodySmall,
                         color: colorScheme.primary,
                       ),
+                      Gap(16.h),
+                      const CustomTextField(
+                        name: 'national_id_number',
+                        label: "National ID / Passport Number",
+                        hint: "Passport or national ID number",
+                        prefixIcon: Icons.badge_outlined,
+                      ),
                     ],
                     Gap(16.h),
                     _buildGenderDropdown(colorScheme),
@@ -162,13 +310,9 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                       prefixIcon: Icons.phone_outlined,
                     ),
                     Gap(16.h),
-                    const CustomTextField(
-                      name: 'email',
-                      label: "Email Address",
-                      hint: "e.g. john.doe@example.com",
-                      keyboardType: TextInputType.emailAddress,
-                      prefixIcon: Icons.email_outlined,
-                    ),
+                    // The application email is the account's: decisions and the
+                    // generated sign-in password are sent only to it.
+                    _buildAccountEmail(colorScheme, user?.email),
                     Gap(16.h),
                     const CustomTextField(
                       name: 'address',
@@ -201,42 +345,70 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                       prefixIcon: Icons.business_outlined,
                     ),
                     Gap(16.h),
-                    _buildEmployerTypeDropdown(colorScheme),
+                    _buildIndustrySectors(colorScheme),
 
                     Gap(30.h),
                     // Section 4: Professional Qualifications
-                    _buildSectionTitle("4. Professional Qualifications"),
-                    _buildEducationLevelDropdown(colorScheme),
+                    _buildSectionTitle("4. Experience & Qualifications"),
+                    CustomTextField(
+                      name: 'experience',
+                      label: "Years of Experience in Cashew Quality Analysis / Related Field",
+                      hint: "e.g. 5",
+                      keyboardType: TextInputType.number,
+                      prefixIcon: Icons.timeline_outlined,
+                      validator: FormBuilderValidators.compose([
+                        FormBuilderValidators.required(errorText: 'Enter your years of experience'),
+                        FormBuilderValidators.integer(errorText: 'Enter whole years'),
+                        FormBuilderValidators.min(0),
+                        FormBuilderValidators.max(70),
+                      ]),
+                    ),
                     Gap(16.h),
-                    const CustomTextField(
+                    CustomTextField(
+                      name: 'professional_qualifications',
+                      label: "Professional Qualifications / Certifications",
+                      hint: "e.g. TCDA training, lab technician certificate",
+                      prefixIcon: Icons.workspace_premium_outlined,
+                      maxLines: 3,
+                      validator: FormBuilderValidators.required(errorText: 'List your qualifications, or write "None"'),
+                    ),
+                    Gap(16.h),
+                    _buildEducationLevel(colorScheme),
+                    Gap(16.h),
+                    CustomTextField(
                       name: 'field_of_study',
-                      label: "Field of Study / Specialization",
+                      label: "Field of Study",
                       hint: "e.g. Agricultural Science, Food Technology, Agronomy",
                       prefixIcon: Icons.school_outlined,
+                      validator: FormBuilderValidators.required(errorText: 'Enter your field of study'),
+                    ),
+                    Gap(16.h),
+                    CustomTextField(
+                      name: 'institution',
+                      label: "Institution",
+                      hint: "e.g. University of Ghana",
+                      prefixIcon: Icons.account_balance_outlined,
+                      validator: FormBuilderValidators.required(errorText: 'Enter the institution'),
                     ),
                     Gap(16.h),
                     CustomTextField(
                       name: 'year_qualification_obtained',
-                      label: "Year Qualification Obtained",
+                      label: "Year Obtained",
                       hint: "e.g. 2021",
                       keyboardType: TextInputType.number,
                       prefixIcon: Icons.calendar_today_outlined,
-                      validator: FormBuilderValidators.numeric(),
-                    ),
-                    Gap(16.h),
-                    CustomTextField(
-                      name: 'experience',
-                      label: "Years of Experience in Cashew Quality",
-                      hint: "e.g. 5",
-                      keyboardType: TextInputType.number,
-                      prefixIcon: Icons.timeline_outlined,
-                      validator: FormBuilderValidators.numeric(),
+                      validator: FormBuilderValidators.compose([
+                        FormBuilderValidators.required(errorText: 'Enter the year obtained'),
+                        FormBuilderValidators.integer(),
+                      ]),
                     ),
 
                     Gap(40.h),
                     // Action Button to proceed to Agreement
                     CustomButton(
-                      text: hasUsableNumber ? "Review & Sign Agreement" : "Continue to Ghana Card Verification",
+                      text: hasUsableNumber || _selectedCategory == MembershipCategory.fullForeign
+                          ? "Review & Sign Agreements"
+                          : "Continue to Ghana Card Verification",
                       onPressed: _navigateToNextStep,
                     ),
                     Gap(40.h),
@@ -285,6 +457,39 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAccountEmail(ColorScheme colorScheme, String? email) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const CustomText("Email Address", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+        Gap(8.h),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: colorScheme.secondary.withValues(alpha: 0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.email_outlined, color: colorScheme.secondary),
+              Gap(12.w),
+              Expanded(child: CustomText(email ?? 'Sign in to apply', variant: TextVariant.bodyMedium)),
+              Icon(Icons.lock_outline, size: 16.r, color: colorScheme.secondary),
+            ],
+          ),
+        ),
+        Gap(4.h),
+        CustomText(
+          "Your account email. Decisions and your sign-in password are sent here.",
+          variant: TextVariant.bodySmall,
+          color: colorScheme.secondary,
+        ),
+      ],
     );
   }
 
@@ -430,61 +635,80 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
     );
   }
 
-  Widget _buildEmployerTypeDropdown(ColorScheme colorScheme) {
-    return FormBuilderDropdown<String>(
-      name: 'employer_type',
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white,
-        labelText: "Employer Sector / Type",
-        prefixIcon: Icon(Icons.apartment_outlined, color: colorScheme.secondary),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: colorScheme.secondary.withValues(alpha: 0.3)),
-        ),
+  InputDecoration _groupDecoration(ColorScheme colorScheme) {
+    return InputDecoration(
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12.r),
+        borderSide: BorderSide(color: colorScheme.secondary.withValues(alpha: 0.3)),
       ),
-      hint: const CustomText("Select employer sector", variant: TextVariant.bodyMedium),
-      items: const [
-        'Cashew Processor',
-        'Exporter',
-        'Trader / Buying Agent',
-        'Aggregator',
-        'Farmer / Cooperative',
-        'Testing Laboratory',
-        'Regulatory Agency (TCDA, MOFA, GEPA)',
-        'Academia & Research',
-        'Other',
-      ].map((sector) => DropdownMenuItem(value: sector, child: CustomText(sector))).toList(),
-      validator: FormBuilderValidators.required(),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
     );
   }
 
-  Widget _buildEducationLevelDropdown(ColorScheme colorScheme) {
-    return FormBuilderDropdown<String>(
-      name: 'highest_education_level',
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white,
-        labelText: "Highest Educational Level",
-        prefixIcon: Icon(Icons.school_outlined, color: colorScheme.secondary),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.r),
-          borderSide: BorderSide(color: colorScheme.secondary.withValues(alpha: 0.3)),
+  /// Industry Sector, multi-select, with a free-text "Other".
+  Widget _buildIndustrySectors(ColorScheme colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const CustomText("Industry Sector", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+        Gap(4.h),
+        CustomText("Tick every sector you work in.", variant: TextVariant.bodySmall, color: colorScheme.secondary),
+        Gap(8.h),
+        FormBuilderCheckboxGroup<String>(
+          name: 'industry_sectors',
+          decoration: _groupDecoration(colorScheme),
+          activeColor: colorScheme.primary,
+          orientation: OptionsOrientation.vertical,
+          options: IndustrySectors.labels.entries
+              .map((e) => FormBuilderFieldOption(value: e.key, child: CustomText(e.value)))
+              .toList(),
+          onChanged: (values) => setState(() => _otherSectorSelected = values?.contains('other') ?? false),
+          validator: FormBuilderValidators.minLength(1, errorText: 'Select at least one industry sector'),
         ),
-      ),
-      hint: const CustomText("Select educational level", variant: TextVariant.bodyMedium),
-      items: const [
-        'WASSCE / Senior High School (SHS)',
-        'Diploma / HND',
-        'Bachelor\'s Degree (BSc / BA)',
-        'Master\'s Degree (MSc / MPhil / MBA)',
-        'Doctorate (PhD)',
-        'Professional QC Certification',
-        'Other',
-      ].map((level) => DropdownMenuItem(value: level, child: CustomText(level))).toList(),
-      validator: FormBuilderValidators.required(),
+        if (_otherSectorSelected) ...[
+          Gap(12.h),
+          const CustomTextField(
+            name: 'industry_sector_other',
+            label: "Other sector",
+            hint: "Name the sector",
+            prefixIcon: Icons.edit_outlined,
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Highest Educational Qualification, with a free-text "Other".
+  Widget _buildEducationLevel(ColorScheme colorScheme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const CustomText("Highest Educational Qualification", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+        Gap(8.h),
+        FormBuilderRadioGroup<String>(
+          name: 'education_level',
+          decoration: _groupDecoration(colorScheme),
+          activeColor: colorScheme.primary,
+          orientation: OptionsOrientation.vertical,
+          options: EducationLevels.labels.entries
+              .map((e) => FormBuilderFieldOption(value: e.key, child: CustomText(e.value)))
+              .toList(),
+          onChanged: (value) => setState(() => _otherEducationSelected = value == 'other'),
+          validator: FormBuilderValidators.required(errorText: 'Select your highest qualification'),
+        ),
+        if (_otherEducationSelected) ...[
+          Gap(12.h),
+          const CustomTextField(
+            name: 'education_level_other',
+            label: "Other qualification",
+            hint: "Name the qualification",
+            prefixIcon: Icons.edit_outlined,
+          ),
+        ],
+      ],
     );
   }
 

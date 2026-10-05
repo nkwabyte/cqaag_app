@@ -9,7 +9,9 @@ part 'membership_application.g.dart';
 abstract class MembershipApplication with _$MembershipApplication {
   const MembershipApplication._();
 
-  @JsonSerializable(fieldRename: FieldRename.snake)
+  // explicitToJson: the nested fee items and agreement records must be maps,
+  // not objects, or Firestore rejects the write.
+  @JsonSerializable(fieldRename: FieldRename.snake, explicitToJson: true)
   const factory MembershipApplication({
     /// Unique application ID
     required String id,
@@ -39,6 +41,9 @@ abstract class MembershipApplication with _$MembershipApplication {
     /// Nationality
     required String nationality,
 
+    /// Place of birth, printed in the identity block of every signed document.
+    String? placeOfBirth,
+
     /// Ghana Card personal ID number, in the form `GHA-#########-#`.
     ///
     /// Under current Ghanaian law this number is the only identity evidence
@@ -61,8 +66,8 @@ abstract class MembershipApplication with _$MembershipApplication {
     /// Region/District
     required String regionDistrict,
 
-    /// Current job title
-    required String currentJobTitle,
+    /// Current job title. The website writes `job_title`.
+    @JsonKey(readValue: _readJobTitle) required String currentJobTitle,
 
     /// Employer/Organization
     required String employerOrganization,
@@ -70,14 +75,47 @@ abstract class MembershipApplication with _$MembershipApplication {
     /// Employer type (cashew processor, exporter, trader, aggregator, farmer, laboratory, regulatory, academia, other)
     String? employerType,
 
-    /// Highest educational level obtained
-    String? highestEducationLevel,
+    /// Industry sector keys (see [IndustrySectors]), as the website stores them.
+    @Default(<String>[]) List<String> industrySectors,
+
+    /// Free-text sector, when `other` is among [industrySectors].
+    String? industrySectorOther,
+
+    /// Whole years of experience in cashew quality analysis or a related field.
+    @JsonKey(fromJson: _intOrNull) int? yearsOfExperience,
+
+    /// Professional qualifications / certifications, e.g. TCDA training.
+    String? professionalQualifications,
+
+    /// Highest educational qualification key (see [EducationLevels]).
+    ///
+    /// The website nests the education fields in an `education` map; they are
+    /// read from there when the flat field is absent, and written to both.
+    @JsonKey(readValue: _readEducationLevel) String? highestEducationLevel,
+
+    /// What the applicant typed when [highestEducationLevel] is `other`.
+    @JsonKey(readValue: _readEducationLevelOther) String? educationLevelOther,
 
     /// Field of study
-    String? fieldOfStudy,
+    @JsonKey(readValue: _readFieldOfStudy) String? fieldOfStudy,
+
+    /// Institution the qualification was obtained from
+    @JsonKey(readValue: _readInstitution) String? institution,
 
     /// Year qualification was obtained
-    String? yearQualificationObtained,
+    @JsonKey(readValue: _readYearObtained, fromJson: _stringOrNull) String? yearQualificationObtained,
+
+    /// Passport or national ID number, for Foreign Associate applicants who do
+    /// not hold a Ghana Card. Mirrors [ghanaCardNumber] otherwise.
+    String? nationalIdNumber,
+
+    /// Consent to the public member directory, given in the Declaration.
+    @Default(false) bool directoryConsent,
+
+    /// The accepted governing documents, keyed `agreement`, `ethics`, `terms`,
+    /// `privacy` and `declaration` — what was accepted, how, and when. The A4
+    /// PDFs themselves are filed in the association's agreements database.
+    @Default(<String, dynamic>{}) Map<String, dynamic> signedDocuments,
 
     /// Desired membership category
     required MembershipCategory membershipCategory,
@@ -161,6 +199,9 @@ abstract class MembershipApplication with _$MembershipApplication {
 
     /// UID of the admin who verified the payment
     String? paymentVerifiedBy,
+
+    /// When a generated sign-in password was emailed to [emailAddress].
+    @JsonKey(fromJson: _dateOrNull) DateTime? credentialsIssuedAt,
   }) = _MembershipApplication;
 
   factory MembershipApplication.fromJson(Map<String, dynamic> json) => _$MembershipApplicationFromJson(json);
@@ -187,9 +228,109 @@ abstract class MembershipApplication with _$MembershipApplication {
   /// Whether the applicant took any optional kit items.
   bool get hasOptionalItems => paymentOptionalItems.isNotEmpty;
 
+  /// Short reference quoted in emails, used with the email address to find the
+  /// application again when paying.
+  String get reference => id.replaceAll('-', '').substring(0, 8).toUpperCase();
+
+  /// Applicant's full name, as printed on signed documents.
+  String get fullName => [firstName, middleName, lastName].where((p) => p != null && p.trim().isNotEmpty).join(' ');
+
+  /// Whether the applicant still owes the membership fee: Honorary Members
+  /// and zero-amount records never do, and a payment awaiting verification
+  /// counts as paid unless it is rejected.
+  bool get isFeeDue {
+    if (membershipCategory == MembershipCategory.honorary) return false;
+    if ((paymentAmount ?? 1) <= 0) return false;
+    return payment == PaymentStatus.unpaid || payment == PaymentStatus.rejected;
+  }
+
+  /// Whether a generated sign-in password may be emailed now: the application
+  /// is approved and nothing more is owed. Mirrors the website's rule.
+  bool get mayReceiveCredentials => status == ApplicationStatus.approved && !isFeeDue;
+
+  /// The ID used in the identity block: Ghana Card, else national ID/passport.
+  String? get identityNumber => ghanaCardNumber ?? nationalIdNumber;
+
   /// Whether the recorded Ghana Card number is structurally valid.
   ///
   /// Surfaced to admins so a malformed number is obvious at a glance rather
   /// than only failing when it is checked against the national register.
   bool get hasValidGhanaCardNumber => GhanaCard.isValid(ghanaCardNumber);
+}
+
+Object? _readJobTitle(Map<dynamic, dynamic> json, String key) => json[key] ?? json['job_title'] ?? '';
+
+Object? _readEducation(Map<dynamic, dynamic> json, String flatKey, String nestedKey) {
+  final flat = json[flatKey];
+  if (flat != null) return flat;
+  final education = json['education'];
+  return education is Map ? education[nestedKey] : null;
+}
+
+Object? _readEducationLevel(Map<dynamic, dynamic> json, String key) => _readEducation(json, key, 'level');
+Object? _readEducationLevelOther(Map<dynamic, dynamic> json, String key) => _readEducation(json, key, 'level_other');
+Object? _readFieldOfStudy(Map<dynamic, dynamic> json, String key) => _readEducation(json, key, 'field_of_study');
+Object? _readInstitution(Map<dynamic, dynamic> json, String key) => _readEducation(json, key, 'institution');
+Object? _readYearObtained(Map<dynamic, dynamic> json, String key) => _readEducation(json, key, 'year_obtained');
+
+int? _intOrNull(Object? value) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value.trim());
+  return null;
+}
+
+String? _stringOrNull(Object? value) {
+  if (value == null) return null;
+  if (value is num) return value.toInt().toString();
+  final text = value.toString().trim();
+  return text.isEmpty ? null : text;
+}
+
+/// The website writes empty strings for dates it has not set yet.
+DateTime? _dateOrNull(Object? value) {
+  if (value is String && value.isNotEmpty) return DateTime.tryParse(value);
+  return null;
+}
+
+/// Industry sectors offered on the application, keyed as the website stores them.
+class IndustrySectors {
+  IndustrySectors._();
+
+  static const Map<String, String> labels = {
+    'cashew_processing': 'Cashew Processing',
+    'export': 'Export',
+    'trader_farming': 'Trader / Aggregators / Farming',
+    'laboratory': 'Laboratory',
+    'regulatory': 'Regulatory',
+    'academia': 'Academia',
+    'other': 'Other',
+  };
+
+  /// Human readable list, with the typed "Other" sector spelled out.
+  static String describe(List<String> keys, String? other) {
+    final names = keys.where((k) => k != 'other').map((k) => labels[k] ?? k).toList();
+    if (keys.contains('other')) {
+      names.add(other != null && other.trim().isNotEmpty ? 'Other: ${other.trim()}' : 'Other');
+    }
+    return names.isEmpty ? '-' : names.join(', ');
+  }
+}
+
+/// Highest educational qualifications offered, keyed as the website stores them.
+class EducationLevels {
+  EducationLevels._();
+
+  static const Map<String, String> labels = {
+    'diploma': 'Diploma',
+    'bachelor': 'Bachelor’s Degree',
+    'master': 'Master’s Degree',
+    'phd': 'PhD',
+    'other': 'Other',
+  };
+
+  static String describe(String? level, String? other) {
+    if (level == null || level.isEmpty) return '-';
+    if (level == 'other') return (other != null && other.trim().isNotEmpty) ? other.trim() : 'Other';
+    return labels[level] ?? level;
+  }
 }

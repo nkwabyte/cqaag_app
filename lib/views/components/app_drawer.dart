@@ -131,6 +131,16 @@ class AppDrawer extends ConsumerWidget {
                       _buildDrawerItem(
                         context: context,
                         colorScheme: colorScheme,
+                        icon: Icons.shopping_bag_outlined,
+                        title: 'Quality Cutting Kits',
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.pushNamed(KitPurchaseScreen.id);
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context: context,
+                        colorScheme: colorScheme,
                         icon: Icons.verified_outlined,
                         title: 'Quality Standards',
                         onTap: () {

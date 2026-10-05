@@ -29,3 +29,4 @@ export 'privacy_policy_screen.dart';
 export 'notifications_screen.dart';
 
 export 'chapters_screen.dart';
+export 'kit_purchase_screen.dart';

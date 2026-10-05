@@ -9,10 +9,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:uuid/uuid.dart' as uuid_pkg;
 
 import 'package:cqaag_app/index.dart';
-import 'package:cqaag_app/models/membership/membership_category.dart' as membership_models;
 
-/// Final step of registration: see the fee broken down, choose which optional
-/// kit items to take, then pay.
+/// Paying for an approved membership: see the fee broken down, choose which
+/// optional quality cutting kit items to take, then pay.
+///
+/// Applications are reviewed before anything is paid, so this screen always
+/// works on an existing, approved application (`existing_application_id`).
+/// Once the payment is submitted, a generated sign-in password is emailed to
+/// the address on the application.
 ///
 /// The fee is assembled here rather than fixed earlier in the flow, because
 /// what an applicant owes is not one number: it is the Registration Fee, plus
@@ -50,10 +54,37 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
     super.dispose();
   }
 
-  bool get _isUploadingForExistingApp => widget.applicationData['existing_application_id'] != null;
+  String? get _applicationId => widget.applicationData['existing_application_id'] as String?;
 
-  MembershipCategory get _category =>
-      _parseMembershipCategory(widget.applicationData['membership_category'] as String?);
+  /// The application being paid for, loaded so the fee is quoted for its own
+  /// category rather than assumed.
+  MembershipApplication? _application;
+  bool _isLoadingApplication = true;
+
+  MembershipCategory get _category => _application?.membershipCategory ?? MembershipCategory.full;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadApplication();
+  }
+
+  Future<void> _loadApplication() async {
+    final id = _applicationId;
+    final application = id == null ? null : await ref.read(membershipServiceProvider).getApplicationById(id);
+    if (!mounted) return;
+    setState(() {
+      _application = application;
+      _isLoadingApplication = false;
+      // Keep whatever kit items they picked before, if they come back.
+      for (final item in application?.paymentOptionalItems ?? const <SelectedFeeItem>[]) {
+        _selectedOptionalKeys.add(item.key);
+        if (item.size != null) {
+          _sizeControllers.putIfAbsent(item.key, () => TextEditingController(text: item.size));
+        }
+      }
+    });
+  }
 
   /// Builds the applicant's quote from what they have selected.
   FeeQuote _quote(PaymentSettings settings) {
@@ -80,6 +111,24 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
     final colorScheme = theme.colorScheme;
     final settingsAsync = ref.watch(paymentSettingsProvider);
 
+    if (_isLoadingApplication) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_application == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Membership Payment')),
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24.r),
+            child: const CustomText(
+              'This membership application could not be found. Open your Profile and try again.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     // Defaults keep the screen usable even if settings/payment cannot be read.
     final settings = settingsAsync.value ?? PaymentSettings.defaults;
     final quote = _quote(settings);
@@ -104,18 +153,16 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
                     Gap(24.h),
                   ],
 
-                  CustomText(
-                    _isUploadingForExistingApp ? "Upload Payment Evidence" : "Choose how to pay",
+                  const CustomText(
+                    "Choose how to pay",
                     variant: TextVariant.headlineMedium,
                     fontWeight: FontWeight.bold,
                   ),
                   Gap(8.h),
                   CustomText(
                     isExempt
-                        ? "Honorary Members pay no fees. Submit your application to finish."
-                        : (_isUploadingForExistingApp
-                            ? "Upload evidence of your Mobile Money payment to complete verification of your membership application."
-                            : "You can upload your Mobile Money payment evidence now, or skip and upload it later from your profile."),
+                        ? "Honorary Members pay no fees. Continue to have your sign-in password emailed."
+                        : "Pay by Mobile Money and upload the evidence. Once it is submitted, a sign-in password is emailed to your application address.",
                     variant: TextVariant.bodyMedium,
                     color: colorScheme.secondary,
                   ),
@@ -155,17 +202,6 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
                     isLoading: _isSubmitting,
                     onPressed: _isSubmitting ? () {} : () => _handleSubmit(settings),
                   ),
-                  if (!_isUploadingForExistingApp && _evidenceFile == null && !isExempt) ...[
-                    Gap(12.h),
-                    Center(
-                      child: CustomText(
-                        "Payment is optional right now. You can upload evidence anytime from your Profile.",
-                        variant: TextVariant.bodySmall,
-                        color: colorScheme.secondary,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
                   Gap(40.h),
                 ],
               ),
@@ -178,9 +214,8 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
 
   String _submitLabel(bool isExempt) {
     if (_isSubmitting) return "Submitting...";
-    if (isExempt) return "Submit Application";
-    if (_evidenceFile != null) return "Submit Application with Evidence";
-    return _isUploadingForExistingApp ? "Upload Evidence" : "Submit Application (Pay Later)";
+    if (isExempt) return "Email My Sign-in Password";
+    return "Submit Payment";
   }
 
   Widget _buildHeader(ColorScheme colorScheme, String formattedTotal, bool isExempt) {
@@ -209,7 +244,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
             ),
           ),
           Gap(24.h),
-          const CustomText("Registration Payment", variant: TextVariant.displaySmall, color: Colors.white),
+          const CustomText("Membership Payment", variant: TextVariant.displaySmall, color: Colors.white),
           Gap(8.h),
           CustomText(
             isExempt ? "No fees payable" : "Amount due: $formattedTotal",
@@ -349,8 +384,8 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
     );
   }
 
-  /// Kit items the applicant may take or decline. Nothing here is charged
-  /// unless it is ticked.
+  /// Quality cutting kit items the applicant may take or decline. Nothing here
+  /// is charged unless it is ticked.
   Widget _buildOptionalItems(ColorScheme colorScheme, PaymentSettings settings) {
     final feeCategory = FeeCategory.fromMembership(_category);
     final available = settings.schedule.optionalItemsFor(feeCategory);
@@ -373,7 +408,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
               Icon(Icons.checkroom_outlined, color: colorScheme.primary, size: 22.r),
               Gap(10.w),
               const Expanded(
-                child: CustomText("Optional Kit Items", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+                child: CustomText("Quality Cutting Kits (Optional)", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -589,7 +624,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
             "1. Send the exact amount from your Mobile Money wallet.\n"
             "2. Use your full name as the reference.\n"
             "3. Screenshot the confirmation message.\n"
-            "4. Upload it below for verification (or upload later).",
+            "4. Upload it below for verification.",
             variant: TextVariant.bodySmall,
             color: colorScheme.secondary,
           ),
@@ -629,7 +664,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const CustomText("Payment evidence", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
-            CustomText("(Optional)", variant: TextVariant.bodySmall, color: colorScheme.secondary),
+            CustomText("(Required)", variant: TextVariant.bodySmall, color: colorScheme.secondary),
           ],
         ),
         Gap(8.h),
@@ -652,7 +687,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
                       Icon(Icons.receipt_long_outlined, size: 36.r, color: colorScheme.secondary),
                       Gap(8.h),
                       CustomText(
-                        "Take a photo or upload your payment screenshot\n(You can also skip and upload later from your profile)",
+                        "Take a photo or upload your payment screenshot",
                         variant: TextVariant.bodySmall,
                         color: colorScheme.secondary,
                         textAlign: TextAlign.center,
@@ -719,7 +754,7 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
   }
 
   Future<void> _handleMtnMomoPush(PaymentSettings settings, FeeQuote quote) async {
-    final phone = widget.applicationData['phone'] as String? ?? '';
+    final phone = _application?.phoneNumberPrimary ?? '';
     if (phone.isEmpty) {
       CustomSnackBar.error(context, message: 'Please provide a valid phone number for MTN MoMo.');
       return;
@@ -769,11 +804,11 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
   }
 
   Future<void> _handleSubmit(PaymentSettings settings) async {
-    final existingAppId = widget.applicationData['existing_application_id'] as String?;
+    final application = _application!;
     final evidence = _evidenceFile;
     final quote = _quote(settings);
 
-    if (existingAppId != null && evidence == null && !quote.isExempt) {
+    if (!quote.isExempt && evidence == null) {
       CustomSnackBar.error(context, message: 'Please upload evidence of your Mobile Money payment.');
       return;
     }
@@ -789,172 +824,51 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
     setState(() => _isSubmitting = true);
 
     try {
-      final user = ref.read(authServiceProvider).currentUser;
-      final applicantEmail = widget.applicationData['email'] as String? ?? (user?.email ?? '');
-      final applicantUserId = user?.uid ?? 'guest_${const uuid_pkg.Uuid().v4().substring(0, 8)}';
-
-      String? evidenceUrl;
-      if (evidence != null) {
-        evidenceUrl = await ref.read(cloudinaryServiceProvider).uploadPaymentEvidence(evidence);
+      if (!quote.isExempt) {
+        final evidenceUrl = await ref.read(cloudinaryServiceProvider).uploadPaymentEvidence(evidence!);
         if (evidenceUrl == null) {
           throw Exception('Could not upload your payment evidence. Please try again.');
         }
-      }
 
-      if (existingAppId != null && evidenceUrl != null) {
-        // Updating existing unpaid application with payment evidence
         await ref.read(membershipServiceProvider).submitPaymentEvidence(
-          applicationId: existingAppId,
+          applicationId: application.id,
           evidenceUrl: evidenceUrl,
           reference: _referenceController.text.trim().isEmpty ? null : _referenceController.text.trim(),
           settings: settings,
           quote: quote,
         );
-
-        if (!mounted) return;
-
-        CustomSnackBar.success(
-          context,
-          message: 'Payment evidence submitted successfully! An administrator will verify it shortly.',
-          title: 'Evidence Uploaded',
-        );
-        context.goNamed(DashboardScreen.id);
-      } else {
-        // Submitting new application (guest or logged-in user)
-        final application = _buildApplication(
-          userId: applicantUserId,
-          userEmail: applicantEmail,
-          settings: settings,
-          quote: quote,
-          evidenceUrl: evidenceUrl,
-        );
-
-        await ref.read(membershipServiceProvider).submitApplication(application);
-
-        // Record the Ghana Card number on the user's profile, so KYC review and
-        // the application read the same number.
-        final ghanaCardNumber = application.ghanaCardNumber;
-        if (user != null && ghanaCardNumber != null) {
-          await ref.read(userServiceProvider).updateUserData(user.uid, {
-            'membership_status': 'applied',
-            'verification': VerificationData(idCardNumber: ghanaCardNumber).toJson(),
-            'verification_status': VerificationStatus.pending.value,
-          });
-        }
-
-        if (!mounted) return;
-
-        CustomSnackBar.success(
-          context,
-          message: user != null
-              ? 'Your application was submitted. An administrator will verify it shortly.'
-              : 'Membership application submitted successfully! Once approved by admin, you can create your account.',
-          title: 'Application Submitted',
-        );
-
-        context.goNamed(user != null ? DashboardScreen.id : LoginScreen.id);
       }
+
+      // With payment submitted, the website emails a generated sign-in
+      // password to the application address.
+      final credentials = await ref.read(memberCredentialsServiceProvider).requestForApplicant(application.id);
+      if (!mounted) return;
+
+      if (credentials.isDone) {
+        CustomSnackBar.success(
+          context,
+          title: quote.isExempt ? 'Password emailed' : 'Payment submitted',
+          message: 'A sign-in password has been emailed to ${application.emailAddress}. You can change it in your Profile after signing in.',
+        );
+      } else {
+        CustomSnackBar.warning(
+          context,
+          title: quote.isExempt ? 'Not sent yet' : 'Payment submitted',
+          message: credentials.message ?? 'The sign-in password email could not be sent yet. You can retry from your Profile.',
+        );
+      }
+      context.goNamed(DashboardScreen.id);
     } catch (e) {
       if (!mounted) return;
       CustomSnackBar.error(
         context,
-        message: 'Failed to submit application: ${e.toString()}',
+        message: 'Failed to submit payment: ${e.toString().replaceFirst('Exception: ', '')}',
         title: 'Submission Failed',
       );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
       }
-    }
-  }
-
-  MembershipApplication _buildApplication({
-    required String userId,
-    required String userEmail,
-    required PaymentSettings settings,
-    required FeeQuote quote,
-    required String? evidenceUrl,
-  }) {
-    final formData = widget.applicationData;
-
-    final titleStr = (formData['title'] as String?)?.toLowerCase() ?? 'mr';
-    final title = membership_models.Title.values.firstWhere(
-      (t) => t.name == titleStr,
-      orElse: () => membership_models.Title.mr,
-    );
-
-    final dobDateTime = formData['dob'] as DateTime?;
-    final dateOfBirth = dobDateTime?.toIso8601String() ?? DateTime.now().toIso8601String();
-
-    final now = DateTime.now();
-    final hasEvidence = evidenceUrl != null;
-
-    return MembershipApplication(
-      id: const uuid_pkg.Uuid().v4(),
-      userId: userId,
-      title: title,
-      firstName: formData['first_name'] as String? ?? '',
-      lastName: formData['last_name'] as String? ?? '',
-      dateOfBirth: dateOfBirth,
-      gender: _parseGender(formData['gender'] as String?),
-      nationality: formData['nationality'] as String? ?? 'Ghanaian',
-      // Stored normalised, so the uniqueness query matches regardless of how
-      // the applicant typed it.
-      ghanaCardNumber: GhanaCard.normalise(formData['ghana_card_number'] as String?),
-      phoneNumberPrimary: formData['phone'] as String? ?? '',
-      emailAddress: userEmail,
-      residentialAddress: formData['address'] as String? ?? '',
-      regionDistrict: formData['region'] as String? ?? '',
-      currentJobTitle: formData['job_title'] as String? ?? '',
-      employerOrganization: formData['employer'] as String? ?? '',
-      membershipCategory: _category,
-      status: ApplicationStatus.submitted,
-      createdAt: now,
-      submittedAt: now,
-
-      // Payment details, itemised from the schedule.
-      paymentMethod: PaymentMethod.momo.value,
-      paymentStatus: hasEvidence ? PaymentStatus.pendingVerification.value : PaymentStatus.unpaid.value,
-      paymentAmount: quote.total,
-      paymentRegistrationFee: quote.registrationFee,
-      paymentAnnualDues: quote.annualDues,
-      paymentOptionalTotal: quote.optionalTotal,
-      paymentOptionalItems: quote.optionalItems,
-      paymentRegistrationComponents: quote.registrationComponents,
-      paymentCurrency: settings.currency,
-      paymentEvidenceUrl: evidenceUrl,
-      paymentReference: _referenceController.text.trim().isEmpty ? null : _referenceController.text.trim(),
-      paymentMomoNetwork: settings.network.value,
-      paymentMomoNumber: settings.momoNumber,
-      paymentSubmittedAt: hasEvidence ? now : null,
-    );
-  }
-
-  MembershipCategory _parseMembershipCategory(String? categoryStr) {
-    final lower = categoryStr?.toLowerCase().trim() ?? '';
-    if (lower.contains('foreign') || lower == 'full_foreign') {
-      return MembershipCategory.fullForeign;
-    }
-    if (lower.contains('associate')) {
-      return MembershipCategory.associate;
-    }
-    if (lower.contains('corporate')) {
-      return MembershipCategory.corporate;
-    }
-    if (lower.contains('honorary')) {
-      return MembershipCategory.honorary;
-    }
-    return MembershipCategory.full;
-  }
-
-  membership_models.Gender _parseGender(String? genderStr) {
-    switch (genderStr?.toLowerCase()) {
-      case 'female':
-        return membership_models.Gender.female;
-      case 'prefer not to say':
-        return membership_models.Gender.preferNotToSay;
-      default:
-        return membership_models.Gender.male;
     }
   }
 

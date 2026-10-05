@@ -40,6 +40,7 @@ _AppUser _$AppUserFromJson(Map<String, dynamic> json) => _AppUser(
   hasAcceptedTerms: json['has_accepted_terms'] as bool? ?? false,
   isAdmin: json['is_admin'] as bool? ?? false,
   qcCode: json['qc_code'] as String?,
+  mustChangePassword: json['must_change_password'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
@@ -61,6 +62,7 @@ Map<String, dynamic> _$AppUserToJson(_AppUser instance) => <String, dynamic>{
   'has_accepted_terms': instance.hasAcceptedTerms,
   'is_admin': instance.isAdmin,
   'qc_code': instance.qcCode,
+  'must_change_password': instance.mustChangePassword,
 };
 
 const _$AppUserStatusEnumMap = {

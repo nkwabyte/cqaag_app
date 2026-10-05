@@ -79,6 +79,12 @@ class CloudinaryService {
     return _uploadFile(file, folder: 'Payments');
   }
 
+  /// The signed association seal stamped on approved Export certificates.
+  /// Same folder the website uses.
+  Future<String?> uploadApprovalSeal(File file) async {
+    return _uploadFile(file, folder: 'ExportApproval');
+  }
+
   Future<String?> _uploadFile(File file, {required String folder}) async {
     try {
       debugPrint("Attempting to upload file: ${file.path} to folder: $folder");

@@ -326,6 +326,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return 'Completed';
       case InspectionStatus.rejected:
         return 'Rejected';
+      case InspectionStatus.pendingApproval:
+        return 'Awaiting Approval';
+      case InspectionStatus.approvalDeclined:
+        return 'Not Approved';
     }
   }
 
@@ -339,7 +343,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       case InspectionStatus.completed:
         return const Color(0xFF1976D2); // blue
       case InspectionStatus.rejected:
+      case InspectionStatus.approvalDeclined:
         return const Color(0xFFD32F2F); // red
+      case InspectionStatus.pendingApproval:
+        return const Color(0xFFB45309); // amber
     }
   }
 }

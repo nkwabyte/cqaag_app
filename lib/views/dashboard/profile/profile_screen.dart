@@ -434,7 +434,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           );
                         }
 
-                        if (myApp != null && myApp.status == ApplicationStatus.approved && myApp.paymentStatus != 'verified') {
+                        if (myApp != null &&
+                            myApp.status == ApplicationStatus.approved &&
+                            (myApp.isFeeDue || myApp.paymentStatus == 'pending_verification')) {
                           final isPendingVerification = myApp.paymentStatus == 'pending_verification';
 
                           return Container(
@@ -472,7 +474,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                           CustomText(
                                             isPendingVerification
                                                 ? "Your payment evidence has been uploaded and is being verified by the Secretariat. Full membership access will unlock once confirmed."
-                                                : "Your application and Ghana Card verification have been approved! Please proceed with your registration payment to activate your membership.",
+                                                : "Your application has been approved! Pay the membership fee to finish activation — you can add quality cutting kits on the payment screen. A sign-in password is then emailed to your application address.",
                                             variant: TextVariant.bodySmall,
                                             color: AppColors.primaryGreen,
                                           ),
@@ -564,6 +566,61 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       },
                     ),
 
+                    // Approved and paid up, but the sign-in password has not
+                    // been emailed yet (e.g. the earlier attempt failed).
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final myApp = ref.watch(membershipControllerProvider).value?.myApplication;
+                        if (myApp == null || !myApp.mayReceiveCredentials || myApp.credentialsIssuedAt != null) {
+                          return const SizedBox.shrink();
+                        }
+                        return Container(
+                          margin: EdgeInsets.only(bottom: 12.h),
+                          padding: EdgeInsets.all(16.r),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryGreen.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(16.r),
+                            border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const CustomText("Get your sign-in password", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+                              Gap(4.h),
+                              CustomText(
+                                "Your membership is ready. A generated password, linked only to ${myApp.emailAddress}, will be emailed to that address.",
+                                variant: TextVariant.bodySmall,
+                                color: AppColors.primaryGreen,
+                              ),
+                              Gap(12.h),
+                              CustomButton(
+                                text: "Email My Sign-in Password",
+                                height: 44.h,
+                                onPressed: () => requestSignInPassword(context, ref, myApp),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+
+                    if (user?.mustChangePassword == true)
+                      Container(
+                        margin: EdgeInsets.only(bottom: 12.h),
+                        child: ListTile(
+                          tileColor: Colors.amber.withValues(alpha: 0.12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                          leading: Icon(Icons.key_outlined, color: Colors.amber.shade800),
+                          title: const CustomText("Choose your own password", fontWeight: FontWeight.bold),
+                          subtitle: const CustomText(
+                            "You are using the password emailed by the Secretariat.",
+                            variant: TextVariant.bodySmall,
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => context.pushNamed(ChangePasswordScreen.id),
+                        ),
+                      ),
+
                     _buildCard(context, [
                       ProfileTile(
                         icon: Icons.edit_outlined,
@@ -589,6 +646,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             onTap: () => context.pushNamed(MembershipApplicationScreen.id),
                           );
                         },
+                      ),
+                      ProfileTile(
+                        icon: Icons.password_outlined,
+                        title: "Change Password",
+                        subtitle: "Replace the emailed or current password",
+                        onTap: () => context.pushNamed(ChangePasswordScreen.id),
                       ),
                     ]),
 
@@ -707,11 +770,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const MembershipAgreementScreen(
-                              applicationData: {},
-                            ),
+                            builder: (context) => const LegalDocumentReader(type: LegalDocumentType.membershipAgreement),
                           ),
                         ),
+                      ),
+                      ProfileTile(
+                        icon: Icons.article_outlined,
+                        title: "Terms of Service",
+                        subtitle: "Using the CQAAG website and app",
+                        onTap: () => context.pushNamed(TermsAndConditionsScreen.id),
                       ),
                     ]),
 

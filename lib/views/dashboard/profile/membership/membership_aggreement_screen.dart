@@ -3,10 +3,35 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart' as uuid_pkg;
 import 'package:cqaag_app/index.dart';
 import 'package:cqaag_app/models/membership/membership_category.dart' as membership_models;
 
+/// One page of the signing flow. Terms of Service and Privacy Policy are read
+/// and accepted together, as on the website.
+enum _SigningStep {
+  agreement([LegalDocumentType.membershipAgreement]),
+  ethics([LegalDocumentType.codeOfEthics]),
+  terms([LegalDocumentType.termsOfService, LegalDocumentType.privacyPolicy]),
+  declaration([LegalDocumentType.membershipDeclaration]);
+
+  const _SigningStep(this.documents);
+
+  final List<LegalDocumentType> documents;
+
+  bool get isLast => this == _SigningStep.declaration;
+
+  String get title => documents.map((d) => d.title).join(' & ');
+}
+
+/// The applicant reads each governing document and accepts it, by drawing a
+/// signature or ticking a box. Their name, date of birth, place of birth and ID
+/// number are printed on each A4 copy automatically, and the copies are filed
+/// in the association's agreements database when the application is submitted.
+///
+/// The Membership Declaration is the single consent gate: accepting it submits
+/// the application; declining discards it without creating a member record.
 class MembershipAgreementScreen extends ConsumerStatefulWidget {
   static const String id = 'membership_agreement_screen';
   final Map<String, dynamic> applicationData;
@@ -18,336 +43,454 @@ class MembershipAgreementScreen extends ConsumerStatefulWidget {
 }
 
 class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementScreen> {
-  bool _hasAgreed = false;
-  bool _isSubmitting = false;
+  final ScrollController _scrollController = ScrollController();
+  final SignatureController _signature = SignatureController();
+  final AgreementPdfService _pdfService = AgreementPdfService();
+
+  _SigningStep _step = _SigningStep.agreement;
+  AcceptanceMethod _method = AcceptanceMethod.signature;
+  bool _ticked = false;
+  bool _isBusy = false;
+  String? _busyMessage;
+
+  /// Accepted documents so far.
+  final Map<LegalDocumentType, SignedPacket> _packets = {};
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _signature.dispose();
+    super.dispose();
+  }
+
+  Map<String, dynamic> get _data => widget.applicationData;
+
+  String _text(String key) => (_data[key] as String?)?.trim() ?? '';
+
+  String get _fullName => [_text('first_name'), _text('last_name')].where((p) => p.isNotEmpty).join(' ');
+
+  ApplicantIdentity get _identity {
+    final dob = _data['dob'] as DateTime?;
+    final ghanaCard = GhanaCard.normalise(_data['ghana_card_number'] as String?);
+    final nationalId = _text('national_id_number');
+    return ApplicantIdentity(
+      fullName: _fullName,
+      dateOfBirth: dob == null ? '' : DateFormat('yyyy-MM-dd').format(dob),
+      placeOfBirth: _text('place_of_birth'),
+      ghanaCardNumber: ghanaCard,
+      nationalIdNumber: ghanaCard ?? (nationalId.isEmpty ? null : nationalId),
+    );
+  }
+
+  MembershipCategory get _category => _parseMembershipCategory(_data['membership_category'] as String?);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final stepNumber = _step.index + 1;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Column(
-        children: <Widget>[
-          // 1. Curved Focused Header
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.fromLTRB(20.w, 60.h, 20.w, 36.h),
-            decoration: BoxDecoration(
-              color: colorScheme.onSurface,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(44.r),
-                bottomRight: Radius.circular(44.r),
+    return PopScope(
+      canPop: _step == _SigningStep.agreement && !_isBusy,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !_isBusy) _goBack();
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: Column(
+          children: <Widget>[
+            LegalDocumentHeader(
+              title: _step.title,
+              subtitle: 'Step $stepNumber of ${_SigningStep.values.length} • ${_step.isLast ? "Final consent" : "Read, then accept"}',
+              backLabel: _step == _SigningStep.agreement ? 'Back to Application' : 'Previous document',
+              onBack: _isBusy ? () {} : _goBack,
+            ),
+            LinearProgressIndicator(
+              value: stepNumber / _SigningStep.values.length,
+              minHeight: 3,
+              color: AppColors.primaryGreen,
+              backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.1),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                padding: EdgeInsets.all(24.r),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final type in _step.documents) ..._buildDocument(type, colorScheme),
+                    _buildIdentityBlock(colorScheme),
+                    Gap(20.h),
+                    _buildAcceptance(colorScheme),
+                    Gap(32.h),
+                  ],
+                ),
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                InkWell(
-                  onTap: () => Navigator.pop(context),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.arrow_back, color: Colors.white, size: 20.r),
-                      Gap(8.w),
-                      const CustomText("Back to Application", color: Colors.white),
-                    ],
-                  ),
-                ),
-                Gap(20.h),
-                const CustomText(
-                  "Membership Agreement & Code of Conduct",
-                  variant: TextVariant.headlineMedium,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-                Gap(6.h),
-                CustomText(
-                  "Official Statutory Governance • C.Q.A.A.G Constitution",
-                  variant: TextVariant.bodySmall,
-                  color: Colors.white.withValues(alpha: 0.75),
-                ),
-              ],
-            ),
+            _buildFooter(colorScheme),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildDocument(LegalDocumentType type, ColorScheme colorScheme) {
+    final document = LegalDocuments.of(type);
+    return [
+      if (_step.documents.length > 1) ...[
+        CustomText(document.title, variant: TextVariant.displaySmall, color: colorScheme.primary),
+        Gap(4.h),
+      ],
+      CustomText(
+        LegalDocumentBody.effectiveDateLine(document, effectiveDate: DateTime.now()),
+        variant: TextVariant.bodySmall,
+        color: colorScheme.secondary,
+      ),
+      Gap(12.h),
+      LegalDocumentBody(document: document),
+      if (document.declaration != null) ...[
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(16.r),
+          decoration: BoxDecoration(
+            color: AppColors.primaryGreen.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.25)),
           ),
+          child: CustomText(document.declaration!, variant: TextVariant.bodyMedium),
+        ),
+        Gap(16.h),
+      ],
+      if (_step.documents.length > 1) ...[const Divider(), Gap(16.h)],
+    ];
+  }
 
-          // 2. Full Scrollable Agreement & Ethics Content
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(24.r),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+  /// Read-only: it comes from the application, not re-entered here.
+  Widget _buildIdentityBlock(ColorScheme colorScheme) {
+    final identity = _identity;
+
+    Widget row(String label, String value) => Padding(
+      padding: EdgeInsets.symmetric(vertical: 3.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 130.w, child: CustomText(label, variant: TextVariant.bodySmall, color: colorScheme.secondary)),
+          Expanded(child: CustomText(value.isEmpty ? '—' : value, variant: TextVariant.bodySmall, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.r),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.badge_outlined, size: 18.r, color: colorScheme.primary),
+              Gap(8.w),
+              const Expanded(
+                child: CustomText("Applicant identity", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+              ),
+              Icon(Icons.lock_outline, size: 14.r, color: colorScheme.secondary),
+            ],
+          ),
+          Gap(4.h),
+          CustomText(
+            "Filled in from your application and printed on the signed copy.",
+            variant: TextVariant.bodySmall,
+            color: colorScheme.secondary,
+          ),
+          Gap(8.h),
+          row("Full Name", identity.fullName),
+          row("Date of Birth", identity.dateOfBirth),
+          row("Place of Birth", identity.placeOfBirth),
+          row("Ghana Card / National ID", identity.idNumber),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAcceptance(ColorScheme colorScheme) {
+    final verb = _step.isLast ? 'agree to the Membership Declaration' : 'have read and accept the ${_step.title}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const CustomText("How do you accept?", variant: TextVariant.bodyLarge, fontWeight: FontWeight.bold),
+        Gap(10.h),
+        SegmentedButton<AcceptanceMethod>(
+          segments: const [
+            ButtonSegment(value: AcceptanceMethod.signature, icon: Icon(Icons.draw_outlined), label: Text('Digital signature')),
+            ButtonSegment(value: AcceptanceMethod.tick, icon: Icon(Icons.check_box_outlined), label: Text('Tick box')),
+          ],
+          selected: {_method},
+          showSelectedIcon: false,
+          onSelectionChanged: _isBusy ? null : (selection) => setState(() => _method = selection.first),
+        ),
+        Gap(14.h),
+        if (_method == AcceptanceMethod.signature) ...[
+          SignaturePad(controller: _signature),
+          Row(
+            children: [
+              Expanded(
+                child: CustomText(
+                  "Signed in the name of ${_identity.fullName}",
+                  variant: TextVariant.bodySmall,
+                  color: colorScheme.secondary,
+                ),
+              ),
+              TextButton.icon(
+                onPressed: _isBusy ? null : _signature.clear,
+                icon: const Icon(Icons.refresh, size: 16),
+                label: const Text('Clear'),
+              ),
+            ],
+          ),
+        ] else
+          InkWell(
+            onTap: _isBusy ? null : () => setState(() => _ticked = !_ticked),
+            borderRadius: BorderRadius.circular(12.r),
+            child: Container(
+              padding: EdgeInsets.all(12.r),
+              decoration: BoxDecoration(
+                color: _ticked ? AppColors.primaryGreen.withValues(alpha: 0.08) : Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: _ticked ? AppColors.primaryGreen : Colors.grey.shade300, width: 1.5),
+              ),
+              child: Row(
                 children: [
-                  Container(
-                    padding: EdgeInsets.all(16.r),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.2)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CustomText(
-                          "Preamble & Binding Obligation",
-                          variant: TextVariant.headlineSmall,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryGreen,
-                        ),
-                        Gap(8.h),
-                        CustomText(
-                          "This Agreement constitutes a binding legal and professional covenant between the Cashew Quality Analysts' Association, Ghana (C.Q.A.A.G) and you as an applicant or member. Membership in CQAAG requires unreserved commitment to the Association's Constitution, the statutory mandates of the Tree Crops Development Authority (TCDA), and the rigorous ethical code governing the cashew sector in Ghana and West Africa.",
-                          variant: TextVariant.bodyMedium,
-                          textAlign: TextAlign.justify,
-                          color: Colors.grey.shade900,
-                        ),
-                      ],
+                  Checkbox(
+                    value: _ticked,
+                    activeColor: AppColors.primaryGreen,
+                    onChanged: _isBusy ? null : (v) => setState(() => _ticked = v ?? false),
+                  ),
+                  Expanded(
+                    child: CustomText(
+                      "I, ${_identity.fullName}, $verb.",
+                      variant: TextVariant.bodyMedium,
                     ),
                   ),
-                  Gap(24.h),
-
-                  _buildLegalSection(
-                    "Section 1: Membership Categories & Entitlements",
-                    "1.1 Categories: Membership is organized into Full Members, National Associate Members, Foreign Associate Members, Corporate Members, and Honorary Members per Constitution Article 2.\n\n"
-                    "1.2 Voting & Office: Only Full Members in good financial standing hold the constitutional right to vote and stand for executive office.\n\n"
-                    "1.3 Statutory Licensing: Full and Foreign Associate Members in good standing are eligible for formal recommendation to the Tree Crops Development Authority (TCDA) for licensing to practice nationwide.",
-                  ),
-
-                  _buildLegalSection(
-                    "Section 2: Professional Standards & Quality Benchmarking",
-                    "2.1 Scientific Rigor: Every member shall conduct raw cashew nut (RCN) quality analysis strictly adhering to verified testing protocols (Moisture Content determination ≤ 10%, Out-turn Ratio/KOR calculation, Defect Analysis < 85g, and Kernel Count between 160–180 kernels/kg).\n\n"
-                    "2.2 Independent Sampling: Analysts must adhere to random, representative sampling techniques in warehouse and farmgate environments, rejecting cherry-picked samples or falsified lot assessments.",
-                  ),
-
-                  _buildLegalSection(
-                    "Section 3: Comprehensive Code of Ethics (Disciplinary Enforcement)",
-                    "3.1 Article 1 - Integrity & Impartiality:\n"
-                    "• Members shall carry out every analysis with uncompromising honesty and independence.\n"
-                    "• Members shall strictly decline any gift, cash payment, commission, favor, or inducement intended to alter or influence quality results.\n"
-                    "• Any conflict of interest must be disclosed immediately to the Secretariat.\n\n"
-                    "3.2 Article 2 - Anti-Collusion & Trade Ethics:\n"
-                    "• Analysts shall never collude with buyers, traders, aggregators, or sellers to under-grade or over-grade cashew parcels.\n"
-                    "• Falsification of KOR or moisture certificates constitutes immediate grounds for professional disqualification.\n\n"
-                    "3.3 Article 3 - Disciplinary Jurisdiction & Sanctions:\n"
-                    "• All members submit to the investigative authority of the CQAAG Disciplinary Committee.\n"
-                    "• Penalties for ethical breach include formal censure, fines, immediate revocation of Association credentials, withdrawal of TCDA licensing recommendations, and blacklisting from all national buying centers.",
-                  ),
-
-                  _buildLegalSection(
-                    "Section 4: Financial Obligations & Annual Dues",
-                    "4.1 Fee Schedule: Members agree to promptly pay the prescribed one-time registration fee and recurrent annual dues according to the approved schedule of fees set by the General Assembly.\n\n"
-                    "4.2 Arrears & Suspension: Failure to settle annual dues within sixty (60) days of the renewal notice results in automatic suspension of certified analyst status, active listing removal, and loss of member benefits.",
-                  ),
-
-                  _buildLegalSection(
-                    "Section 5: Data Protection & Verification Consent",
-                    "5.1 Identity Validation: The applicant grants explicit consent to CQAAG to verify submitted identity data against national registers (including the National Identification Authority / Ghana Card portal) in accordance with the Data Protection Act, 2012 (Act 843).\n\n"
-                    "5.2 Member Directory: Approved members will be published on the official national registry for buyer and stakeholder verification.",
-                  ),
-
-                  Gap(12.h),
-                  const Divider(),
-                  Gap(16.h),
-
-                  // Mandatory Checkbox Declaration
-                  Container(
-                    padding: EdgeInsets.all(16.r),
-                    decoration: BoxDecoration(
-                      color: _hasAgreed
-                          ? AppColors.primaryGreen.withValues(alpha: 0.08)
-                          : Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(14.r),
-                      border: Border.all(
-                        color: _hasAgreed
-                            ? AppColors.primaryGreen
-                            : Colors.grey.shade300,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Checkbox(
-                          value: _hasAgreed,
-                          activeColor: AppColors.primaryGreen,
-                          onChanged: (val) {
-                            setState(() {
-                              _hasAgreed = val ?? false;
-                            });
-                          },
-                        ),
-                        Gap(8.w),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                _hasAgreed = !_hasAgreed;
-                              });
-                            },
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const CustomText(
-                                  "Solemn Declaration & Confirmation",
-                                  variant: TextVariant.bodyLarge,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                Gap(4.h),
-                                CustomText(
-                                  "I certify that all information submitted in my application is true and complete. I have read, understood, and solemnly agree to abide by the C.Q.A.A.G Constitution, Code of Ethics, and Membership Agreement. I submit to the authority of the Disciplinary Committee in all professional matters.",
-                                  variant: TextVariant.bodySmall,
-                                  color: Colors.grey.shade800,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Gap(40.h),
                 ],
               ),
             ),
           ),
+        Gap(8.h),
+        CustomText(
+          "The date and time are recorded automatically.",
+          variant: TextVariant.bodySmall,
+          color: colorScheme.secondary,
+        ),
+      ],
+    );
+  }
 
-          // 3. Sticky Action Footer
-          Container(
-            padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 24.h),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, -4),
-                ),
-              ],
+  Widget _buildFooter(ColorScheme colorScheme) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 24.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, -4))],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CustomButton(
+              text: _isBusy ? (_busyMessage ?? 'Please wait...') : (_step.isLast ? "Accept & Submit Application" : "Accept & Continue"),
+              isLoading: _isBusy,
+              onPressed: _isBusy ? null : _acceptStep,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CustomButton(
-                  text: _isSubmitting ? "Submitting Application..." : "Accept & Submit Application",
-                  isLoading: _isSubmitting,
-                  onPressed: (_hasAgreed && !_isSubmitting) ? () => _handleAcceptAndSubmit() : null,
+            if (_step.isLast) ...[
+              Gap(10.h),
+              OutlinedButton(
+                onPressed: _isBusy ? null : _handleDecline,
+                style: OutlinedButton.styleFrom(
+                  minimumSize: Size(double.infinity, 48.h),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                  side: BorderSide(color: colorScheme.error.withValues(alpha: 0.6), width: 1.2),
                 ),
-                Gap(10.h),
-                OutlinedButton(
-                  onPressed: _isSubmitting ? null : _handleDecline,
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: Size(double.infinity, 48.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    side: BorderSide(
-                      color: colorScheme.error.withValues(alpha: 0.6),
-                      width: 1.2,
-                    ),
-                  ),
-                  child: CustomText(
-                    "Decline & Exit",
-                    variant: TextVariant.bodyMedium,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.error,
-                  ),
-                ),
-              ],
-            ),
+                child: CustomText("Decline", variant: TextVariant.bodyMedium, fontWeight: FontWeight.w600, color: colorScheme.error),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _goBack() {
+    if (_step == _SigningStep.agreement) {
+      context.pop();
+      return;
+    }
+    _moveTo(_SigningStep.values[_step.index - 1]);
+  }
+
+  void _moveTo(_SigningStep step) {
+    setState(() {
+      _step = step;
+      _ticked = false;
+      _signature.clear();
+    });
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
+  }
+
+  Future<void> _acceptStep() async {
+    if (_identity.fullName.isEmpty) {
+      CustomSnackBar.error(context, message: 'Your first and last name are needed on each agreement. Go back and add them.');
+      return;
+    }
+    if (_method == AcceptanceMethod.signature && !_signature.hasInk) {
+      CustomSnackBar.error(context, message: 'Draw your signature, or choose the tick box.');
+      return;
+    }
+    if (_method == AcceptanceMethod.tick && !_ticked) {
+      CustomSnackBar.error(context, message: 'Tick the box, or draw a signature.');
+      return;
+    }
+
+    setState(() {
+      _isBusy = true;
+      _busyMessage = 'Preparing signed copy...';
+    });
+
+    try {
+      final signaturePng = _method == AcceptanceMethod.signature ? await _signature.toPng() : null;
+      final signedAt = DateTime.now();
+      for (final type in _step.documents) {
+        _packets[type] = await _pdfService.build(
+          type: type,
+          method: _method,
+          identity: _identity,
+          signedAt: signedAt,
+          signaturePng: signaturePng,
+          extraLines: type == LegalDocumentType.membershipDeclaration ? _declarationLines() : const [],
+        );
+      }
+
+      if (_step.isLast) {
+        await _submit();
+      } else {
+        if (!mounted) return;
+        setState(() => _isBusy = false);
+        _moveTo(_SigningStep.values[_step.index + 1]);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isBusy = false);
+      CustomSnackBar.error(context, message: e.toString().replaceFirst('Exception: ', ''), title: 'Not accepted');
+    }
+  }
+
+  List<String> _declarationLines() {
+    final sectors = List<String>.from(_data['industry_sectors'] as List? ?? const []);
+    return [
+      'Directory listing consented to',
+      'Name: $_fullName',
+      'Job title: ${_text('job_title')}',
+      'Employer: ${_text('employer')}',
+      'Industry: ${IndustrySectors.describe(sectors, _text('industry_sector_other'))}',
+      'Years of experience: ${_text('experience')}',
+      'Qualifications: ${_text('professional_qualifications')}',
+      'Education: ${[EducationLevels.describe(_data['education_level'] as String?, _text('education_level_other')), _text('field_of_study'), _text('institution'), _text('year_qualification_obtained')].where((p) => p.isNotEmpty).join(', ')}',
+    ];
+  }
+
+  Future<void> _submit() async {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) {
+      throw Exception('Sign in is required before the agreements can be filed.');
+    }
+
+    // Every document must carry today's identity; if the applicant went back
+    // and changed details, the earlier copies no longer match.
+    final identity = _identity;
+    final complete = LegalDocuments.signingOrder.every((t) => _packets[t]?.identity == identity);
+    if (!complete) {
+      _moveTo(_SigningStep.agreement);
+      throw Exception('Your details changed after you accepted. Accept each document again.');
+    }
+
+    final membership = ref.read(membershipServiceProvider);
+    final existing = await membership.getApplicationByUserId(user.uid);
+    final revising = await membership.findRejectedApplication(user.uid);
+    if (existing != null && existing.status != ApplicationStatus.rejected && revising == null) {
+      throw Exception('You already have a membership application on file. Wait for the Secretariat to finish it before sending another.');
+    }
+
+    setState(() => _busyMessage = 'Filing signed agreements...');
+
+    // The agreements database prints the name on the account, so keep the
+    // account in step with the application.
+    await ref.read(userServiceProvider).updateUserData(user.uid, {
+      'first_name': _text('first_name'),
+      'last_name': _text('last_name'),
+    });
+
+    final settings = ref.read(paymentSettingsProvider).value ?? PaymentSettings.defaults;
+    final application = _buildApplication(
+      id: revising?.id ?? const uuid_pkg.Uuid().v4(),
+      createdAt: revising?.createdAt,
+      userId: user.uid,
+      email: user.email ?? _text('email'),
+      settings: settings,
+      quote: settings.schedule.quote(FeeCategory.fromMembership(_category)),
+    );
+
+    await membership.submitSignedApplication(
+      application: application,
+      packets: LegalDocuments.signingOrder.map((t) => _packets[t]!).toList(),
+      website: ref.read(websiteApiServiceProvider),
+    );
+
+    setState(() => _busyMessage = 'Updating your profile...');
+    await ref.read(userServiceProvider).updateUserData(user.uid, {
+      'membership_status': 'applied',
+      'verification': VerificationData(idCardNumber: identity.idNumber).toJson(),
+      'verification_status': VerificationStatus.pending.value,
+    });
+
+    if (!mounted) return;
+    setState(() => _isBusy = false);
+    _showSubmissionSuccessDialog();
+  }
+
+  void _handleDecline() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Decline application'),
+        content: const Text('Declining discards this application. No membership record will be created.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('Keep reviewing')),
+          TextButton(
+            onPressed: () {
+              Navigator.of(dialogContext).pop();
+              final user = ref.read(authServiceProvider).currentUser;
+              context.goNamed(user == null ? LoginScreen.id : DashboardScreen.id);
+              CustomSnackBar.info(context, message: 'Application declined. No membership record was created.');
+            },
+            child: Text('Decline', style: TextStyle(color: Theme.of(dialogContext).colorScheme.error)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLegalSection(String title, String content) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CustomText(
-          title,
-          variant: TextVariant.headlineMedium,
-          fontWeight: FontWeight.bold,
-          color: AppColors.darkRed,
-        ),
-        Gap(8.h),
-        CustomText(
-          content,
-          variant: TextVariant.bodyMedium,
-          textAlign: TextAlign.left,
-        ),
-        Gap(20.h),
-      ],
-    );
-  }
-
-  void _handleDecline() {
-    final user = ref.read(authServiceProvider).currentUser;
-    // Signed-out applicants go back to the login screen.
-    context.goNamed(user == null ? LoginScreen.id : DashboardScreen.id);
-  }
-
-  Future<void> _handleAcceptAndSubmit() async {
-    if (!_hasAgreed) return;
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      final user = ref.read(authServiceProvider).currentUser;
-      final applicantEmail = widget.applicationData['email'] as String? ?? (user?.email ?? '');
-      final applicantUserId = user?.uid ?? 'guest_${const uuid_pkg.Uuid().v4().substring(0, 8)}';
-      final settings = ref.read(paymentSettingsProvider).value ?? PaymentSettings.defaults;
-      final category = _parseMembershipCategory(widget.applicationData['membership_category'] as String?);
-      final feeCategory = FeeCategory.fromMembership(category);
-      final quote = settings.schedule.quote(feeCategory);
-
-      final application = _buildApplication(
-        userId: applicantUserId,
-        userEmail: applicantEmail,
-        settings: settings,
-        quote: quote,
-        category: category,
-      );
-
-      await ref.read(membershipServiceProvider).submitApplication(application);
-
-      // If registered user, update user profile state
-      if (user != null) {
-        final ghanaCardNumber = application.ghanaCardNumber;
-        await ref.read(userServiceProvider).updateUserData(user.uid, {
-          'membership_status': 'applied',
-          if (ghanaCardNumber != null)
-            'verification': VerificationData(idCardNumber: ghanaCardNumber).toJson(),
-          'verification_status': VerificationStatus.pending.value,
-        });
-      }
-
-      if (!mounted) return;
-
-      _showSubmissionSuccessDialog(isSignedIn: user != null);
-    } catch (e) {
-      if (!mounted) return;
-      CustomSnackBar.error(
-        context,
-        message: 'Failed to submit application: ${e.toString()}',
-        title: 'Submission Failed',
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
-  }
-
-  void _showSubmissionSuccessDialog({required bool isSignedIn}) {
+  void _showSubmissionSuccessDialog() {
     showModalBottomSheet(
       context: context,
       isDismissible: false,
       enableDrag: false,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
       builder: (bottomSheetContext) {
         return Padding(
           padding: EdgeInsets.all(24.r),
@@ -364,7 +507,7 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
               ),
               Gap(8.h),
               CustomText(
-                "Your membership application and verification credentials have been successfully delivered to the C.Q.A.A.G Secretariat.",
+                "Your application and your signed agreements have been filed with the C.Q.A.A.G Secretariat.",
                 variant: TextVariant.bodyMedium,
                 color: Colors.grey.shade700,
                 textAlign: TextAlign.center,
@@ -380,11 +523,13 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.info_outline, color: AppColors.primaryGreen, size: 20.r),
+                    Icon(Icons.mark_email_unread_outlined, color: AppColors.primaryGreen, size: 20.r),
                     Gap(10.w),
                     Expanded(
                       child: CustomText(
-                        "Stage 1 Review: The Secretariat is reviewing your KYC and qualification details. Upon first approval, you will receive an in-app prompt to complete your registration payment.",
+                        "You will receive an email when the Secretariat decides. If approved, you pay the membership fee "
+                        "(and can add quality cutting kits); a sign-in password is then emailed to your application address. "
+                        "If not approved, the email explains how to re-apply.",
                         variant: TextVariant.bodySmall,
                         color: AppColors.primaryGreen,
                       ),
@@ -394,10 +539,10 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
               ),
               Gap(24.h),
               CustomButton(
-                text: isSignedIn ? "Return to Home" : "Return to Login",
+                text: "Return to Home",
                 onPressed: () {
                   Navigator.of(bottomSheetContext).pop();
-                  context.goNamed(isSignedIn ? DashboardScreen.id : LoginScreen.id);
+                  context.goNamed(DashboardScreen.id);
                 },
               ),
             ],
@@ -408,48 +553,54 @@ class _MembershipAgreementScreenState extends ConsumerState<MembershipAgreementS
   }
 
   MembershipApplication _buildApplication({
+    required String id,
+    required DateTime? createdAt,
     required String userId,
-    required String userEmail,
+    required String email,
     required PaymentSettings settings,
     required FeeQuote quote,
-    required MembershipCategory category,
   }) {
-    final formData = widget.applicationData;
-
-    final titleStr = (formData['title'] as String?)?.toLowerCase() ?? 'mr';
+    final titleStr = _text('title').toLowerCase().replaceAll('.', '');
     final title = membership_models.Title.values.firstWhere(
       (t) => t.name == titleStr,
       orElse: () => membership_models.Title.mr,
     );
-
-    final dobDateTime = formData['dob'] as DateTime?;
-    final dateOfBirth = dobDateTime?.toIso8601String() ?? DateTime.now().toIso8601String();
+    final dob = _data['dob'] as DateTime?;
+    final identity = _identity;
     final now = DateTime.now();
 
     return MembershipApplication(
-      id: const uuid_pkg.Uuid().v4(),
+      id: id,
       userId: userId,
       title: title,
-      firstName: formData['first_name'] as String? ?? '',
-      lastName: formData['last_name'] as String? ?? '',
-      dateOfBirth: dateOfBirth,
-      gender: _parseGender(formData['gender'] as String?),
-      nationality: formData['nationality'] as String? ?? 'Ghanaian',
-      ghanaCardNumber: GhanaCard.normalise(formData['ghana_card_number'] as String?),
-      phoneNumberPrimary: formData['phone'] as String? ?? '',
-      emailAddress: userEmail,
-      residentialAddress: formData['address'] as String? ?? '',
-      regionDistrict: formData['region'] as String? ?? '',
-      currentJobTitle: formData['job_title'] as String? ?? '',
-      employerOrganization: formData['employer'] as String? ?? '',
-      employerType: formData['employer_type'] as String?,
-      highestEducationLevel: formData['highest_education_level'] as String?,
-      fieldOfStudy: formData['field_of_study'] as String?,
-      yearQualificationObtained: formData['year_qualification_obtained']?.toString(),
-      membershipCategory: category,
+      firstName: _text('first_name'),
+      lastName: _text('last_name'),
+      dateOfBirth: dob == null ? '' : '${DateFormat('yyyy-MM-dd').format(dob)}T00:00:00.000',
+      gender: _parseGender(_data['gender'] as String?),
+      nationality: _text('nationality').isEmpty ? 'Ghanaian' : _text('nationality'),
+      placeOfBirth: identity.placeOfBirth,
+      ghanaCardNumber: identity.ghanaCardNumber,
+      nationalIdNumber: identity.nationalIdNumber,
+      phoneNumberPrimary: _text('phone'),
+      emailAddress: email.toLowerCase(),
+      residentialAddress: _text('address'),
+      regionDistrict: _text('region'),
+      currentJobTitle: _text('job_title'),
+      employerOrganization: _text('employer'),
+      industrySectors: List<String>.from(_data['industry_sectors'] as List? ?? const []),
+      industrySectorOther: _text('industry_sector_other').isEmpty ? null : _text('industry_sector_other'),
+      yearsOfExperience: int.tryParse(_text('experience')),
+      professionalQualifications: _text('professional_qualifications'),
+      highestEducationLevel: _data['education_level'] as String?,
+      educationLevelOther: _text('education_level_other').isEmpty ? null : _text('education_level_other'),
+      fieldOfStudy: _text('field_of_study'),
+      institution: _text('institution'),
+      yearQualificationObtained: _text('year_qualification_obtained'),
+      membershipCategory: _category,
       status: ApplicationStatus.submitted,
-      createdAt: now,
+      createdAt: createdAt ?? now,
       submittedAt: now,
+      // The fee is paid after approval; this records what will be owed.
       paymentMethod: PaymentMethod.momo.value,
       paymentStatus: PaymentStatus.unpaid.value,
       paymentAmount: quote.total,

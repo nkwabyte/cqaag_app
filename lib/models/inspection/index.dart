@@ -18,3 +18,4 @@
 
 export 'inspection.dart';
 export 'cut_test.dart';
+export 'analysis_types.dart';

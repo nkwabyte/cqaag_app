@@ -21,3 +21,5 @@ export 'custom_button.dart';
 export 'custom_text_field.dart';
 export 'custom_snackbar.dart';
 export 'app_avatar.dart';
+export 'legal_document_view.dart';
+export 'signature_pad.dart';

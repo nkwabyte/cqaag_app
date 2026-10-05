@@ -43,9 +43,10 @@ GoRouter goRouter(Ref ref) {
       final isRegister = state.uri.path == '/${RegisterScreen.id}';
       final isForgotPassword = state.uri.path == '/${ForgotPasswordScreen.id}';
       final isEmailVerification = state.uri.path == '/${EmailVerificationScreen.id}';
-      // Routes reachable without signing in: the membership application flow
-      // (started from the login screen) and the documents it links to.
-      // Everything else requires an account; visitors use the website.
+      // Routes reachable without a verified sign-in: the membership application
+      // flow and the documents it links to, and the cutting-kit shop guests
+      // can buy from. Everything else requires an account; visitors use the
+      // website.
       final openRoutes = [
         '/${AboutScreen.id}',
         '/${ContactUsScreen.id}',
@@ -62,6 +63,7 @@ GoRouter goRouter(Ref ref) {
         '/${MembershipPaymentScreen.id}',
         '/${VerificationUploadScreen.id}',
         '/${PartnersScreen.id}',
+        '/${KitPurchaseScreen.id}',
       ];
       final isOpenRoute = openRoutes.contains(state.uri.path);
 
@@ -284,6 +286,16 @@ GoRouter goRouter(Ref ref) {
           final applicationData = state.extra as Map<String, dynamic>?;
           return VerificationUploadScreen(applicationData: applicationData);
         },
+      ),
+      GoRoute(
+        path: '/${KitPurchaseScreen.id}',
+        name: KitPurchaseScreen.id,
+        builder: (context, state) => const KitPurchaseScreen(),
+      ),
+      GoRoute(
+        path: '/${ChangePasswordScreen.id}',
+        name: ChangePasswordScreen.id,
+        builder: (context, state) => const ChangePasswordScreen(),
       ),
       GoRoute(
         path: '/${EditProfileScreen.id}',

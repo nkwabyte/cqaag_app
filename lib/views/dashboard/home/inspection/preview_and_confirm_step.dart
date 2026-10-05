@@ -4,6 +4,7 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:cqaag_app/index.dart';
+import 'package:cqaag_app/views/dashboard/home/inspection/report_fee_field.dart';
 
 class PreviewAndConfirmStep extends StatelessWidget {
   final GlobalKey<FormBuilderState> formKey;
@@ -20,7 +21,12 @@ class PreviewAndConfirmStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formData = formKey.currentState?.value ?? {};
-    final analysisType = formData['analysis_type'] as String? ?? '';
+    // The live field value, so the fee and approval notes follow a type
+    // changed on the first step without a save in between.
+    final analysisType =
+        (formKey.currentState?.fields['analysis_type']?.value ?? formData['analysis_type']) as String? ?? '';
+    final requiresFee = AnalysisTypes.requiresPayment(analysisType);
+    final requiresApproval = AnalysisTypes.requiresApproval(analysisType);
     final truckLabel = analysisType == 'Export' ? 'Truck/Container Number' : 'Truck Number';
     String farmerLabel = 'Supplier / Farmer Name';
     if (analysisType == 'Dispatch') {
@@ -128,6 +134,35 @@ class PreviewAndConfirmStep extends StatelessWidget {
               ),
             ],
           ),
+          if (requiresFee) ...[
+            Gap(16.h),
+            ReportFeeField(analysisType: analysisType),
+          ],
+          if (requiresApproval) ...[
+            Gap(16.h),
+            Container(
+              padding: EdgeInsets.all(12.r),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: Colors.amber.shade700.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.verified_outlined, color: Colors.amber.shade900, size: 22.r),
+                  Gap(10.w),
+                  Expanded(
+                    child: Text(
+                      'Export certificates are sent to CQAAG for approval. The certificate is not valid until an '
+                      'administrator approves it; it then carries the association seal with the date and time of approval.',
+                      style: TextStyle(fontSize: 12.sp, color: Colors.amber.shade900),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           Gap(24.h),
 
           footer,

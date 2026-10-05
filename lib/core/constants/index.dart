@@ -17,3 +17,4 @@
  */
 
 export 'app_colors.dart';
+export 'legal_documents.dart';
