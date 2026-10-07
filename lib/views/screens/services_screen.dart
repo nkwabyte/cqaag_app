@@ -215,7 +215,7 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
                   Gap(10.w),
                   Expanded(
                     child: CustomText(
-                      "Inspection portfolios are reserved for certified CQAAG members. Guests and buyers may schedule an inspection request with certified field analysts.",
+                      "Inspection portfolios are reserved for certified CQAAG members. Buyers and commercial clients may schedule an inspection request with certified field analysts.",
                       variant: TextVariant.bodySmall,
                       color: Colors.amber.shade900,
                     ),

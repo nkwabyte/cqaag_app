@@ -8,7 +8,7 @@ class AssetImages {
 }
 
 class AssetSvg {
-	static const String logoBlack = 'assets/svg/logo-black.svg';
+	static const String logoGreen = 'assets/svg/logo-green.svg';
 	static const String logoWhite = 'assets/svg/logo-white.svg';
 }
 
@@ -23,7 +23,8 @@ class Assets {
 	static const String imagesCqaagLogo = AssetImages.cqaagLogo;
 	static const String imagesGsaLogo = AssetImages.gsaLogo;
 	static const String imagesTcdaLogo = AssetImages.tcdaLogo;
-	static const String svgLogoBlack = AssetSvg.logoBlack;
+	static const String svgLogoGreen = AssetSvg.logoGreen;
+	static const String svgLogoBlack = AssetSvg.logoGreen; // Alias for backward compatibility
 	static const String svgLogoWhite = AssetSvg.logoWhite;
 	static const String docsWelfareDocument = AssetDocs.welfareDocument;
 }

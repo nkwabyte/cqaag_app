@@ -11,7 +11,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:uuid/uuid.dart' as uuid_pkg;
 import 'package:cqaag_app/index.dart';
 
-/// Buying quality cutting kits, open to guests as well as members.
+/// Buying quality cutting kits for registered members.
 ///
 /// Items and prices come from the Board's fee schedule (the Kits / Optional
 /// rows), priced at the standard Full Membership rate. Items the Board has not
@@ -298,6 +298,11 @@ class _KitPurchaseScreenState extends ConsumerState<KitPurchaseScreen> {
   }
 
   Future<void> _placeOrder(PaymentSettings settings) async {
+    final currentUser = ref.read(authServiceProvider).currentUser;
+    if (currentUser == null) {
+      CustomSnackBar.error(context, message: 'Please sign in to order cutting kits.');
+      return;
+    }
     if (!(_formKey.currentState?.saveAndValidate() ?? false)) return;
     final evidence = _evidence;
     if (evidence == null) {

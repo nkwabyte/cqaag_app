@@ -1,6 +1,7 @@
 import 'package:cqaag_app/index.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 
@@ -21,7 +22,7 @@ class _BoardingScreenState extends State<BoardingScreen> {
     BoardingData(
       title: "Welcome to C.Q.A.A.G",
       description: "Your mobile companion for cashew quality inspection and certification across Ghana.",
-      icon: Icons.shield_outlined,
+      svgAsset: Assets.svgLogoGreen,
     ),
     BoardingData(
       title: "Mobile Inspection",
@@ -100,7 +101,7 @@ class _BoardingScreenState extends State<BoardingScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
-                        // Icon Circle
+                        // Icon Circle or Logo
                         Container(
                           width: 140.r,
                           height: 140.r,
@@ -108,11 +109,20 @@ class _BoardingScreenState extends State<BoardingScreen> {
                             shape: BoxShape.circle,
                             color: colorScheme.secondary.withValues(alpha: 0.15),
                           ),
-                          child: Icon(
-                            data.icon,
-                            size: 60.r,
-                            color: colorScheme.onSurface, // darkRed
-                          ),
+                          alignment: Alignment.center,
+                          child: data.svgAsset != null
+                              ? Padding(
+                                  padding: EdgeInsets.all(22.r),
+                                  child: SvgPicture.asset(
+                                    data.svgAsset!,
+                                    fit: BoxFit.contain,
+                                  ),
+                                )
+                              : Icon(
+                                  data.icon ?? Icons.shield_outlined,
+                                  size: 60.r,
+                                  color: colorScheme.onSurface, // darkRed
+                                ),
                         ),
                         Gap(60.h),
                         CustomText(

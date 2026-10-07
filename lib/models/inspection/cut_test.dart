@@ -50,6 +50,10 @@ abstract class CutTest with _$CutTest {
 
   /// Heading for this cut test's column on the report.
   String get displayLabel {
+    final trimmed = label?.trim();
+    if (trimmed != null && trimmed.isNotEmpty) {
+      return trimmed;
+    }
     return switch (index) {
       1 => '1st Cutting',
       2 => '2nd Cutting',

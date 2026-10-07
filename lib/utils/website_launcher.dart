@@ -22,7 +22,11 @@ class WebsiteLauncher {
   /// Returns `true` if the browser was launched.
   static Future<bool> open([String url = home]) async {
     try {
-      return await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        return await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+      return await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (e) {
       debugPrint('WebsiteLauncher: could not open $url: $e');
       return false;

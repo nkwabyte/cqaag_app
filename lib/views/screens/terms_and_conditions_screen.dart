@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -61,10 +62,42 @@ class TermsAndConditionsScreen extends HookConsumerWidget {
                   ),
                 ],
               ),
-              child: CustomButton(
-                text: "I Accept and Continue to Dashboard",
-                isLoading: isLoading.value,
-                onPressed: handleAcceptance,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        "By continuing, you also acknowledge our ",
+                        style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade700),
+                      ),
+                      InkWell(
+                        onTap: () => context.pushNamed(PrivacyPolicyScreen.id),
+                        child: Text(
+                          "Privacy Policy",
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: AppColors.primaryGreen,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        " in full.",
+                        style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade700),
+                      ),
+                    ],
+                  ),
+                  Gap(12.h),
+                  CustomButton(
+                    text: "I Accept and Continue to Dashboard",
+                    isLoading: isLoading.value,
+                    onPressed: handleAcceptance,
+                  ),
+                ],
               ),
             )
           : null,

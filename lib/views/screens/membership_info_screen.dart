@@ -176,8 +176,8 @@ class MembershipInfoScreen extends StatelessWidget {
                   Gap(12.h),
                   _buildBulletPoint('Personal Info: Full Name, Contact Details, Ghana Card ID.'),
                   _buildBulletPoint('Professional Info: Job Title, Industry Sector, Years of Experience, Educational Qualifications.'),
-                  _buildBulletPoint('Documents: Upload CV, Certificates (PDF).'),
-                  _buildBulletPoint('Declarations:'),
+                  _buildBulletPoint('Credentials: Educational background, institution, and professional qualifications.'),
+                  _buildBulletPoint('Governing Agreements: Digital review and signing of the Membership Agreement, Code of Ethics, Terms, Privacy Policy, and Membership Declaration.'),
                   Padding(
                     padding: EdgeInsets.only(left: 16.w),
                     child: Column(

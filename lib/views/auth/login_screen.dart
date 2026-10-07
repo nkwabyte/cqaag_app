@@ -248,20 +248,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                             Gap(16.h),
 
-                            // Guests can buy quality cutting kits without an account.
+                            // Guest Mode opens the website in the device default browser
                             CustomButton(
-                              text: "Purchase Quality Cutting Kits",
-                              variant: ButtonVariant.outlined,
-                              borderColor: colorScheme.primary,
-                              leadingIcon: Icon(Icons.shopping_bag_outlined, size: 18.r, color: colorScheme.primary),
-                              onPressed: () => context.pushNamed(KitPurchaseScreen.id),
-                            ),
-
-                            Gap(16.h),
-
-                            // Visitors without an account browse the website instead
-                            CustomButton(
-                              text: "Continue as Guest",
+                              text: "Guest Mode",
                               variant: ButtonVariant.outlined,
                               borderColor: colorScheme.secondary,
                               trailingIcon: Icon(Icons.open_in_new, size: 18.r, color: colorScheme.secondary),
@@ -294,41 +283,109 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   void _explainApplying(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24.r))),
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.all(24.r),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.card_membership_outlined, color: Colors.green.shade800, size: 44.r),
-            Gap(12.h),
-            const CustomText("Apply for Membership", variant: TextVariant.headlineMedium, fontWeight: FontWeight.bold),
-            Gap(8.h),
-            CustomText(
-              "1. Create an account with the email you want on your membership, or sign in.\n"
-              "2. Open Profile → Membership Application, fill it in and sign the agreements.\n"
-              "3. You are emailed when the Secretariat decides. Once approved, pay to activate — "
-              "a sign-in password is then emailed to your application address.",
-              variant: TextVariant.bodyMedium,
-              color: Colors.grey.shade700,
-            ),
-            Gap(20.h),
-            CustomButton(
-              text: "Create Account",
-              onPressed: () {
-                Navigator.of(sheetContext).pop();
-                context.pushNamed(RegisterScreen.id);
-              },
-            ),
-            Gap(10.h),
-            CustomButton(
-              text: "I already have an account",
-              variant: ButtonVariant.outlined,
-              onPressed: () => Navigator.of(sheetContext).pop(),
-            ),
-          ],
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(24.w, 12.h, 24.w, 20.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+              Gap(16.h),
+              Icon(Icons.card_membership_outlined, color: Colors.green.shade800, size: 40.r),
+              Gap(8.h),
+              const CustomText(
+                "Apply for Membership",
+                variant: TextVariant.headlineMedium,
+                fontWeight: FontWeight.bold,
+              ),
+              Gap(14.h),
+              _buildStepRow(1, 'Create an account with your email, or sign in.'),
+              Gap(8.h),
+              _buildStepRow(2, 'Open Profile → Membership Application, fill it in and sign the agreements.'),
+              Gap(8.h),
+              _buildStepRow(3, 'Once approved by the Secretariat, pay online to activate — your credentials will be confirmed via email.'),
+              Gap(20.h),
+              CustomButton(
+                text: "Create Account",
+                onPressed: () {
+                  Navigator.of(sheetContext).pop();
+                  context.pushNamed(RegisterScreen.id);
+                },
+              ),
+              Gap(10.h),
+              CustomButton(
+                text: "Apply on Website",
+                variant: ButtonVariant.outlined,
+                trailingIcon: Icon(Icons.open_in_new, size: 16.r),
+                onPressed: () {
+                  Navigator.of(sheetContext).pop();
+                  WebsiteLauncher.open('${WebsiteLauncher.baseUrl}/membership/');
+                },
+              ),
+              Gap(6.h),
+              TextButton(
+                onPressed: () => Navigator.of(sheetContext).pop(),
+                child: CustomText(
+                  "I already have an account",
+                  variant: TextVariant.bodyMedium,
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStepRow(int number, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 22.r,
+          height: 22.r,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.green.shade50,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.green.shade800.withValues(alpha: 0.3)),
+          ),
+          child: Text(
+            '$number',
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.green.shade800,
+            ),
+          ),
+        ),
+        Gap(10.w),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13.sp,
+              color: Colors.grey.shade700,
+              height: 1.35,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

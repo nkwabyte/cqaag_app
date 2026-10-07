@@ -8,15 +8,49 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'package:flutter/foundation.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-  );
-  final savedThemeMode = await AdaptiveTheme.getThemeMode();
+
+  // Forward framework errors to console
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('FLUTTER_FRAMEWORK_ERROR: ${details.exceptionAsString()}');
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('PLATFORM_DISPATCHER_ERROR: $error\n$stack');
+    return true;
+  };
+
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint('.env load warning: $e');
+  }
+
+  try {
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    try {
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      );
+    } catch (e) {
+      debugPrint('Firestore settings warning: $e');
+    }
+  } catch (e, stack) {
+    debugPrint('Firebase.initializeApp warning: $e\n$stack');
+  }
+
+  AdaptiveThemeMode? savedThemeMode;
+  try {
+    savedThemeMode = await AdaptiveTheme.getThemeMode();
+  } catch (e) {
+    debugPrint('AdaptiveTheme mode warning: $e');
+  }
+
   runApp(ProviderScope(child: MyApp(savedThemeMode: savedThemeMode)));
 }
 
