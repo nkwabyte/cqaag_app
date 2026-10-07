@@ -321,6 +321,8 @@ class EducationLevels {
   EducationLevels._();
 
   static const Map<String, String> labels = {
+    'jhs': 'JHS',
+    'shs': 'SHS',
     'diploma': 'Diploma',
     'bachelor': 'Bachelor’s Degree',
     'master': 'Master’s Degree',
