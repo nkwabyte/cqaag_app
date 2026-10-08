@@ -530,41 +530,48 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
     );
   }
 
-  String get _submitLabel {
-    final type = _formKey.currentState?.fields['analysis_type']?.value as String?;
-    if (AnalysisTypes.requiresApproval(type)) return "Send for CQAAG Approval";
-    if (AnalysisTypes.requiresPayment(type)) return "Submit Certificate";
-    return "Submit Inspection";
-  }
-
   Widget _buildBottomAction(ColorScheme colorScheme) {
     final isPreviewStep = _currentStep == 4;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 8.h),
-      child: Row(
-        children: [
-          if (_currentStep > 0) ...[
+      padding: EdgeInsets.fromLTRB(16.w, 8.h, 16.w, 14.h),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            if (_currentStep > 0) ...[
+              Expanded(
+                child: CustomButton(
+                  text: "Back",
+                  height: 50.h,
+                  borderRadius: 14.r,
+                  variant: ButtonVariant.outlined,
+                  borderColor: colorScheme.primary.withValues(alpha: 0.35),
+                  textColor: colorScheme.primary,
+                  leadingIcon: Icon(Icons.arrow_back_rounded, size: 18.r, color: colorScheme.primary),
+                  onPressed: _isSubmitting ? null : _previousStep,
+                ),
+              ),
+              Gap(12.w),
+            ],
             Expanded(
               child: CustomButton(
-                text: "Back",
-                variant: ButtonVariant.outlined,
-                onPressed: _isSubmitting ? () {} : _previousStep,
+                text: isPreviewStep ? "Submit" : "Continue",
+                height: 50.h,
+                borderRadius: 14.r,
+                isLoading: _isSubmitting,
+                leadingIcon: isPreviewStep && !_isSubmitting
+                    ? Icon(Icons.check_circle_rounded, color: Colors.white, size: 19.r)
+                    : null,
+                trailingIcon: !isPreviewStep && !_isSubmitting
+                    ? Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18.r)
+                    : null,
+                onPressed: _isSubmitting ? null : _nextStep,
               ),
             ),
-            Gap(12.w),
           ],
-          Expanded(
-            child: CustomButton(
-              text: _isSubmitting
-                  ? "Submitting..."
-                  : (isPreviewStep ? _submitLabel : "Continue"),
-              leadingIcon: isPreviewStep && !_isSubmitting ? const Icon(Icons.check, color: Colors.white) : null,
-              onPressed: _isSubmitting ? () {} : _nextStep,
-            ),
-          ),
-        ],
-      ).fadeInScale(duration: const Duration(milliseconds: 300)),
+        ),
+      ),
     );
   }
 }

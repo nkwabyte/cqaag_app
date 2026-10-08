@@ -416,7 +416,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   Widget _buildSearchAndToolbar({
     required BuildContext context,
-    required dynamic user,
+    required AppUser? user,
     required List<Inspection> filteredInspections,
     required bool isFiltered,
   }) {

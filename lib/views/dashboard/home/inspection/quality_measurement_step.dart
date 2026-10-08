@@ -227,30 +227,40 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(99.r),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.water_drop, size: 14.r, color: colorScheme.primary),
-                    Gap(4.w),
-                    CustomText(
-                      "MOISTURE CONTROL GATE",
-                      variant: TextVariant.bodySmall,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.primary,
-                    ),
-                  ],
+              Flexible(
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(99.r),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.water_drop, size: 13.r, color: colorScheme.primary),
+                      Gap(4.w),
+                      Flexible(
+                        child: Text(
+                          "MOISTURE GATE",
+                          style: TextStyle(
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.primary,
+                            letterSpacing: 0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const Spacer(),
+              Gap(8.w),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 3.h),
+                padding: EdgeInsets.symmetric(horizontal: 7.w, vertical: 3.h),
                 decoration: BoxDecoration(
                   color: hasValue ? Colors.green.shade50 : Colors.amber.shade50,
                   borderRadius: BorderRadius.circular(6.r),
@@ -258,11 +268,25 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
                     color: hasValue ? Colors.green.shade300 : Colors.amber.shade300,
                   ),
                 ),
-                child: CustomText(
-                  hasValue ? "UNLOCKED" : "REQUIRED FIRST",
-                  variant: TextVariant.bodySmall,
-                  fontWeight: FontWeight.bold,
-                  color: hasValue ? Colors.green.shade800 : Colors.amber.shade900,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      hasValue ? Icons.lock_open_rounded : Icons.lock_outline_rounded,
+                      size: 11.r,
+                      color: hasValue ? Colors.green.shade800 : Colors.amber.shade900,
+                    ),
+                    Gap(3.w),
+                    Text(
+                      hasValue ? "UNLOCKED" : "REQUIRED",
+                      style: TextStyle(
+                        fontSize: 10.sp,
+                        fontWeight: FontWeight.bold,
+                        color: hasValue ? Colors.green.shade800 : Colors.amber.shade900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
