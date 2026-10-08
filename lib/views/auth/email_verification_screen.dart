@@ -14,15 +14,37 @@ class EmailVerificationScreen extends ConsumerStatefulWidget {
   ConsumerState<EmailVerificationScreen> createState() => _EmailVerificationScreenState();
 }
 
-class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScreen> {
+class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScreen> with WidgetsBindingObserver {
   bool _isChecking = false;
   bool _isResending = false;
   int _resendCooldown = 0;
   Timer? _timer;
+  Timer? _autoCheckTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Periodically check verification in the background while user is on this screen
+    _autoCheckTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!_isChecking) {
+        _checkVerificationStatus(silent: true);
+      }
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !_isChecking) {
+      _checkVerificationStatus(silent: true);
+    }
+  }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    _autoCheckTimer?.cancel();
     super.dispose();
   }
 
@@ -42,33 +64,39 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
     });
   }
 
-  Future<void> _checkVerificationStatus() async {
-    setState(() => _isChecking = true);
+  Future<void> _checkVerificationStatus({bool silent = false}) async {
+    if (!silent) {
+      setState(() => _isChecking = true);
+    }
     try {
       final isVerified = await ref.read(authServiceProvider).reloadAndCheckEmailVerified();
       if (!mounted) return;
 
       if (isVerified) {
+        _autoCheckTimer?.cancel();
         CustomSnackBar.success(
           context,
           message: "Email successfully verified! Welcome to CQAAG.",
         );
-        context.go('/${DashboardScreen.id}');
-      } else {
+        ref.invalidate(authStateProvider);
+        if (mounted) {
+          context.go('/${DashboardScreen.id}');
+        }
+      } else if (!silent) {
         CustomSnackBar.info(
           context,
           message: "Your email is not verified yet. Please check your inbox and click the verification link.",
         );
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !silent) {
         CustomSnackBar.error(
           context,
           message: "Failed to check verification status: ${e.toString()}",
         );
       }
     } finally {
-      if (mounted) {
+      if (mounted && !silent) {
         setState(() => _isChecking = false);
       }
     }

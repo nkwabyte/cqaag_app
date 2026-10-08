@@ -36,41 +36,78 @@ class _MembershipManagementTabState extends ConsumerState<MembershipManagementTa
       children: <Widget>[
         // Search & Filter Bar
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+          padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 8.h),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
             children: <Widget>[
               Expanded(
-                child: CustomTextField(
-                  name: 'search_members',
-                  label: 'Search Applications',
-                  hint: "Search applications...",
-                  prefixIcon: Icons.search,
-                  onChanged: (value) {
-                    setState(() {
-                      _searchQuery = value ?? '';
-                    });
-                  },
+                child: Container(
+                  height: 44.h,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value;
+                      });
+                    },
+                    style: TextStyle(fontSize: 13.sp),
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: "Search applications...",
+                      hintStyle: TextStyle(fontSize: 12.sp, color: Colors.black38),
+                      prefixIcon: Icon(Icons.search, size: 20.r, color: colorScheme.primary),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.cancel, size: 18.r, color: Colors.black38),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _searchQuery = '';
+                                });
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                    ),
+                  ),
                 ),
               ),
               Gap(10.w),
               InkWell(
-                child: Container(
-                  padding: EdgeInsets.all(16.0.w),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Icon(
-                    Icons.filter_list,
-                    color: colorScheme.primary,
-                  ),
-                ),
+                borderRadius: BorderRadius.circular(12.r),
                 onTap: () {
                   // Open filter modal
                 },
+                child: Container(
+                  height: 44.h,
+                  width: 44.h,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: colorScheme.primary.withValues(alpha: 0.2)),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.filter_list,
+                      color: colorScheme.primary,
+                      size: 20.r,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

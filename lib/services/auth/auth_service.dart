@@ -26,7 +26,7 @@ class AuthService {
 
   AuthService(this._connectivityService);
 
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  Stream<User?> get authStateChanges => _auth.userChanges();
 
   User? get currentUser => _auth.currentUser;
 

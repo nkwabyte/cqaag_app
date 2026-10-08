@@ -77,21 +77,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       });
     });
 
-    final colorScheme = Theme.of(context).colorScheme;
     final user = ref.watch(currentUserProfileProvider).value;
     final isAuthenticated = user != null;
+
+    final notificationsAsync = ref.watch(userNotificationsStreamProvider);
+    final readIds = ref.watch(readNotificationIdsProvider);
+    final unreadCount = notificationsAsync.asData?.value.where((n) => !readIds.contains(n.id)).length ?? 0;
+
+    final String appTitle = switch (_selectedIndex) {
+      0 => UIHelpers.getGreeting(),
+      1 => user?.isAdmin == true ? "National Certificates" : "My Certificates",
+      2 => _isAdmin ? "Admin Desk" : "Profile",
+      _ => "Profile",
+    };
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: AppColors.darkRed,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         title: Row(
           children: <Widget>[
             CustomText(
-              UIHelpers.getGreeting(),
+              appTitle,
               variant: TextVariant.bodyLarge,
-              color: colorScheme.secondary,
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
           ],
         ),
@@ -101,20 +114,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               onTap: () {
                 context.pushNamed(NotificationsScreen.id);
               },
-              child: Container(
-                padding: EdgeInsets.all(8.r),
-                decoration: BoxDecoration(
-                  color: AppColors.lightOrange,
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Icon(
-                  Icons.notifications,
-                  color: Colors.black,
-                  size: 24.r,
-                ),
+              borderRadius: BorderRadius.circular(20.r),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(8.r),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.notifications_outlined,
+                      color: Colors.white,
+                      size: 22.r,
+                    ),
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      top: 2,
+                      right: 2,
+                      child: Container(
+                        padding: EdgeInsets.all(4.r),
+                        decoration: const BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: BoxConstraints(
+                          minWidth: 8.r,
+                          minHeight: 8.r,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-          if (isAuthenticated) Gap(10.w),
+          if (isAuthenticated) Gap(12.w),
         ],
         iconTheme: const IconThemeData(color: Colors.white),
       ),

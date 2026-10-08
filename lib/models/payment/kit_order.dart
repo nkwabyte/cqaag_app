@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cqaag_app/models/payment/fee_schedule.dart';
 
 /// Lifecycle of a quality cutting kit order.
@@ -75,37 +76,54 @@ class KitOrder {
   final String? handledBy;
 
   /// Short reference for the buyer to quote.
-  String get reference => id.replaceAll('-', '').substring(0, 8).toUpperCase();
+  String get reference {
+    final clean = id.replaceAll('-', '');
+    if (clean.isEmpty) return 'KIT-ORDER';
+    if (clean.length < 8) return clean.toUpperCase();
+    return clean.substring(0, 8).toUpperCase();
+  }
 
   String money(double amount) => '$currency ${amount.toStringAsFixed(2)}';
 
   bool get isGuest => buyerUserId == null;
 
+  static DateTime _parseDate(dynamic val, {DateTime? fallback}) {
+    if (val == null) return fallback ?? DateTime.now();
+    if (val is Timestamp) return val.toDate();
+    if (val is DateTime) return val;
+    if (val is int) return DateTime.fromMillisecondsSinceEpoch(val);
+    final str = val.toString().trim();
+    if (str.isEmpty) return fallback ?? DateTime.now();
+    return DateTime.tryParse(str) ?? (fallback ?? DateTime.now());
+  }
+
   factory KitOrder.fromJson(Map<String, dynamic> json) {
-    final rawItems = json['items'];
-    final total = json['total'];
+    final rawItems = json['items'] ?? json['optional_items'] ?? json['payment_optional_items'];
+    final total = json['total'] ?? json['amount'] ?? json['payment_amount'];
     return KitOrder(
-      id: json['id']?.toString() ?? '',
-      buyerName: json['buyer_name']?.toString() ?? '',
-      phoneNumber: json['phone_number']?.toString() ?? '',
-      emailAddress: json['email_address']?.toString(),
-      organisation: json['organisation']?.toString(),
-      deliveryLocation: json['delivery_location']?.toString(),
-      notes: json['notes']?.toString(),
-      buyerUserId: json['buyer_user_id']?.toString(),
+      id: (json['id'] ?? json['doc_id'] ?? json['order_id'] ?? '').toString(),
+      buyerName: (json['buyer_name'] ?? json['buyerName'] ?? json['full_name'] ?? json['fullName'] ?? json['name'] ?? '').toString(),
+      phoneNumber: (json['phone_number'] ?? json['phoneNumber'] ?? json['phone'] ?? '').toString(),
+      emailAddress: (json['email_address'] ?? json['emailAddress'] ?? json['email'])?.toString(),
+      organisation: (json['organisation'] ?? json['organization'] ?? json['company'])?.toString(),
+      deliveryLocation: (json['delivery_location'] ?? json['deliveryLocation'] ?? json['address'])?.toString(),
+      notes: (json['notes'] ?? json['note'])?.toString(),
+      buyerUserId: (json['buyer_user_id'] ?? json['buyerUserId'] ?? json['user_id'] ?? json['userId'])?.toString(),
       items: rawItems is List
           ? rawItems.whereType<Map>().map((e) => SelectedFeeItem.fromJson(Map<String, dynamic>.from(e))).toList()
           : const [],
       total: total is num ? total.toDouble() : 0,
-      currency: json['currency']?.toString() ?? 'GHS',
-      paymentEvidenceUrl: json['payment_evidence_url']?.toString(),
-      paymentReference: json['payment_reference']?.toString(),
-      paymentMomoNetwork: json['payment_momo_network']?.toString(),
-      paymentMomoNumber: json['payment_momo_number']?.toString(),
-      status: KitOrderStatus.fromValue(json['status']?.toString()),
-      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
-      updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
-      handledBy: json['handled_by']?.toString(),
+      currency: (json['currency'] ?? json['payment_currency'] ?? 'GHS').toString(),
+      paymentEvidenceUrl: (json['payment_evidence_url'] ?? json['paymentEvidenceUrl'] ?? json['receipt_url'])?.toString(),
+      paymentReference: (json['payment_reference'] ?? json['paymentReference'])?.toString(),
+      paymentMomoNetwork: (json['payment_momo_network'] ?? json['paymentMomoNetwork'] ?? json['network'])?.toString(),
+      paymentMomoNumber: (json['payment_momo_number'] ?? json['paymentMomoNumber'])?.toString(),
+      status: KitOrderStatus.fromValue((json['status'] ?? json['order_status'])?.toString()),
+      createdAt: _parseDate(json['created_at'] ?? json['createdAt'] ?? json['timestamp']),
+      updatedAt: json['updated_at'] != null || json['updatedAt'] != null
+          ? _parseDate(json['updated_at'] ?? json['updatedAt'], fallback: null)
+          : null,
+      handledBy: (json['handled_by'] ?? json['handledBy'])?.toString(),
     );
   }
 

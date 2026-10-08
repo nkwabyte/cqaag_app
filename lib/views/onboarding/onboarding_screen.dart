@@ -18,7 +18,7 @@ class _BoardingScreenState extends State<BoardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<BoardingData> _boardingContent = <BoardingData>[
+  List<BoardingData> get _boardingContent => <BoardingData>[
     BoardingData(
       title: "Welcome to C.Q.A.A.G",
       description: "Your mobile companion for cashew quality inspection and certification across Ghana.",
@@ -102,28 +102,36 @@ class _BoardingScreenState extends State<BoardingScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: <Widget>[
                         // Icon Circle or Logo
-                        Container(
-                          width: 140.r,
-                          height: 140.r,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: colorScheme.secondary.withValues(alpha: 0.15),
+                        if (index == 0 || data.svgAsset != null)
+                          SizedBox(
+                            width: 140.r,
+                            height: 140.r,
+                            child: SvgPicture.asset(
+                              data.svgAsset ?? Assets.svgLogoGreen,
+                              fit: BoxFit.contain,
+                              placeholderBuilder: (_) => Image.asset(
+                                Assets.imagesCqaagLogo,
+                                width: 140.r,
+                                height: 140.r,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          )
+                        else
+                          Container(
+                            width: 140.r,
+                            height: 140.r,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: colorScheme.secondary.withValues(alpha: 0.15),
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              data.icon ?? Icons.check_circle_outline,
+                              size: 60.r,
+                              color: colorScheme.onSurface,
+                            ),
                           ),
-                          alignment: Alignment.center,
-                          child: data.svgAsset != null
-                              ? Padding(
-                                  padding: EdgeInsets.all(22.r),
-                                  child: SvgPicture.asset(
-                                    data.svgAsset!,
-                                    fit: BoxFit.contain,
-                                  ),
-                                )
-                              : Icon(
-                                  data.icon ?? Icons.shield_outlined,
-                                  size: 60.r,
-                                  color: colorScheme.onSurface, // darkRed
-                                ),
-                        ),
                         Gap(60.h),
                         CustomText(
                           data.title,

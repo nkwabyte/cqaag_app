@@ -33,9 +33,10 @@ GoRouter goRouter(Ref ref) {
       final authState = authNotifier.value;
       final isLoading = authState.isLoading;
       final hasError = authState.hasError;
-      final currentUser = authState.asData?.value;
+      final currentUser = FirebaseAuth.instance.currentUser ?? authState.asData?.value;
       final isLoggedIn = currentUser != null;
-      final isEmailVerified = currentUser?.emailVerified ?? false;
+      final isEmailVerified = (FirebaseAuth.instance.currentUser?.emailVerified ?? false) ||
+          (currentUser?.emailVerified ?? false);
 
       final isSplash = state.uri.path == '/';
       final isBoarding = state.uri.path == '/${BoardingScreen.id}';
