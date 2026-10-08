@@ -154,7 +154,7 @@ class _ReportFilterModalState extends State<ReportFilterModal> {
                     Icon(Icons.tune, color: colorScheme.primary, size: 24.r),
                     Gap(8.w),
                     const CustomText(
-                      'Filter Reports',
+                      'Filter Certificates',
                       variant: TextVariant.headlineMedium,
                       fontWeight: FontWeight.bold,
                     ),
@@ -175,7 +175,7 @@ class _ReportFilterModalState extends State<ReportFilterModal> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 1. Status Filter Chips
-                    _buildSectionHeader('Report Status'),
+                    _buildSectionHeader('Certificate Status'),
                     Gap(6.h),
                     Wrap(
                       spacing: 8.w,

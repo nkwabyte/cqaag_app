@@ -74,7 +74,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             tabs: const <Widget>[
               Tab(text: "Users"),
               Tab(text: "Members"),
-              Tab(text: "Reports"),
+              Tab(text: "Certificates"),
               Tab(child: _ApprovalsTabLabel()),
               Tab(text: "Kit Orders"),
               Tab(text: "Payments"),

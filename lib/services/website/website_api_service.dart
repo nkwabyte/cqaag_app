@@ -147,10 +147,12 @@ class WebsiteApiService {
   Future<WebsiteApiResult> storeAgreements({
     required String memberId,
     required List<Map<String, String>> documents,
+    String? fullName,
   }) {
     return post('cqaag_store_agreements', {
       'member_id': memberId,
       'documents': jsonEncode(documents),
+      if (fullName != null && fullName.trim().isNotEmpty) 'full_name': fullName.trim(),
     });
   }
 

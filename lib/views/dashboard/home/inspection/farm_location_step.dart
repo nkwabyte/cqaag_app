@@ -367,7 +367,7 @@ class _FarmLocationStepState extends ConsumerState<FarmLocationStep> {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         content: const Text(
-          "This app needs location permission to capture GPS coordinates for inspection reports. Please grant location access in app settings.",
+          "This app needs location permission to capture GPS coordinates for quality certificates. Please grant location access in app settings.",
           style: TextStyle(fontSize: 14),
         ),
         actions: [

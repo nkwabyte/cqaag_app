@@ -28,15 +28,30 @@ class PdfService {
 
     pw.MemoryImage? tcdaLogoImage;
     try {
-      final tcdaLogoBytes = await rootBundle.load('assets/images/tcda_logo.jpg');
+      final tcdaLogoBytes = await rootBundle.load('assets/images/tcda.png');
       tcdaLogoImage = pw.MemoryImage(tcdaLogoBytes.buffer.asUint8List());
-    } catch (_) {}
+    } catch (_) {
+      try {
+        final tcdaLogoBytes = await rootBundle.load('assets/images/tcda_logo.jpg');
+        tcdaLogoImage = pw.MemoryImage(tcdaLogoBytes.buffer.asUint8List());
+      } catch (_) {}
+    }
 
     pw.MemoryImage? ccgLogoImage;
     try {
-      final ccgLogoBytes = await rootBundle.load('assets/images/ccg_logo.jpeg');
+      final ccgLogoBytes = await rootBundle.load('assets/images/ccg_logo.png');
       ccgLogoImage = pw.MemoryImage(ccgLogoBytes.buffer.asUint8List());
-    } catch (_) {}
+    } catch (_) {
+      try {
+        final ccgLogoBytes = await rootBundle.load('assets/images/cashew-council-ghana.png');
+        ccgLogoImage = pw.MemoryImage(ccgLogoBytes.buffer.asUint8List());
+      } catch (_) {
+        try {
+          final ccgLogoBytes = await rootBundle.load('assets/images/ccg_logo.jpeg');
+          ccgLogoImage = pw.MemoryImage(ccgLogoBytes.buffer.asUint8List());
+        } catch (_) {}
+      }
+    }
 
     // An approved Export certificate carries the seal copied on at approval:
     // the signed seal admins uploaded, or failing that the association logo.
@@ -76,7 +91,7 @@ class PdfService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              _buildHeader(logoSvg, ccgLogoImage, tcdaLogoImage, data, isExport),
+              _buildHeader(cqaagLogoImage, logoSvg, ccgLogoImage, tcdaLogoImage, data, isExport),
               pw.SizedBox(height: 8),
               if (isExport) ...[
                 _buildExportInfoBlock(data),
@@ -131,6 +146,7 @@ class PdfService {
   }
 
   pw.Widget _buildHeader(
+    pw.MemoryImage? cqaagImage,
     String logoSvg,
     pw.MemoryImage? ccgImage,
     pw.MemoryImage? tcdaImage,
@@ -147,19 +163,21 @@ class PdfService {
     return pw.Row(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
-        // Cashew Council of Ghana first, then the association's own logo.
+        // Left side: CQAAG logo and Cashew Council Ghana logo
         pw.Container(
           width: 46,
           height: 46,
-          child: ccgImage != null
-              ? pw.Image(ccgImage, fit: pw.BoxFit.contain)
-              : pw.Center(child: pw.Text('CCG', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold))),
+          child: cqaagImage != null
+              ? pw.Image(cqaagImage, fit: pw.BoxFit.contain)
+              : pw.SvgImage(svg: logoSvg),
         ),
         pw.SizedBox(width: 4),
         pw.Container(
           width: 46,
           height: 46,
-          child: pw.SvgImage(svg: logoSvg),
+          child: ccgImage != null
+              ? pw.Image(ccgImage, fit: pw.BoxFit.contain)
+              : pw.Center(child: pw.Text('CCG', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold))),
         ),
         pw.SizedBox(width: 6),
         pw.Expanded(
@@ -169,31 +187,40 @@ class PdfService {
               pw.Text(
                 "CASHEW QUALITY ANALYSTS' ASSOCIATION, GHANA (C.Q.A.A.G)",
                 style: pw.TextStyle(
-                  fontSize: 11.5,
+                  fontSize: 11,
                   fontWeight: pw.FontWeight.bold,
                   color: PdfColors.green900,
                 ),
                 textAlign: pw.TextAlign.center,
               ),
-              pw.SizedBox(height: 2),
+              pw.SizedBox(height: 1.5),
               pw.Text(
                 'Motto: "Guardians of Ghana\'s Cashew Quality"',
                 style: pw.TextStyle(
-                  fontSize: 8.5,
+                  fontSize: 8,
                   fontWeight: pw.FontWeight.bold,
                   fontStyle: pw.FontStyle.italic,
                   color: PdfColors.green800,
                 ),
                 textAlign: pw.TextAlign.center,
               ),
-              pw.SizedBox(height: 3),
+              pw.SizedBox(height: 2),
+              pw.Text(
+                'Address: Wenchi, Bono Region-Ghana  Tel: +233553330931  Email: ghcashewqualityanalyst@gmail.com',
+                style: const pw.TextStyle(
+                  fontSize: 6.5,
+                  color: PdfColors.grey700,
+                ),
+                textAlign: pw.TextAlign.center,
+              ),
+              pw.SizedBox(height: 2.5),
               pw.Container(
                 padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 2.5),
                 decoration: const pw.BoxDecoration(color: PdfColors.black),
                 child: pw.Text(
                   certificateTitle,
                   style: pw.TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 10,
                     fontWeight: pw.FontWeight.bold,
                     color: PdfColors.white,
                   ),
@@ -203,6 +230,7 @@ class PdfService {
           ),
         ),
         pw.SizedBox(width: 6),
+        // Right side: TCDA logo
         if (tcdaImage != null)
           pw.Container(
             width: 46,

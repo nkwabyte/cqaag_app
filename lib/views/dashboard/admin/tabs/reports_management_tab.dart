@@ -52,7 +52,7 @@ class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
 
     final inspectionsToExport = _filteredInspections;
     if (inspectionsToExport.isEmpty) {
-      CustomSnackBar.warning(context, message: 'No inspection reports available to export.');
+      CustomSnackBar.warning(context, message: 'No quality certificates available to export.');
       return;
     }
 
@@ -96,7 +96,7 @@ class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
             context.pushNamed(QualityResultScreen.id, extra: inspection);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Report not found')),
+              const SnackBar(content: Text('Certificate not found')),
             );
           }
         }
@@ -128,7 +128,7 @@ class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
                     Expanded(
                       child: CustomTextField(
                         name: 'search_reports',
-                        label: 'Search Reports',
+                        label: 'Search Certificates',
                         hint: "Search by batch, farmer, location...",
                         prefixIcon: Icons.search,
                         onChanged: (value) {
@@ -246,7 +246,7 @@ class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
                         Icon(Icons.assignment_outlined, size: 48.r, color: colorScheme.secondary),
                         Gap(10.h),
                         CustomText(
-                          "No reports found matching criteria",
+                          "No certificates found matching criteria",
                           variant: TextVariant.bodyMedium,
                           color: colorScheme.secondary,
                         ),

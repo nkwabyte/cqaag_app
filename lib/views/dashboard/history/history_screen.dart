@@ -109,8 +109,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           // Header with data stats
           buildHistoryHeader(
             context,
-            user?.isAdmin == true ? "National Inspection Reports" : "My Inspection Reports",
-            "${districts.length} districts (${filteredInspections.length} reports)",
+            user?.isAdmin == true ? "National Quality Certificates" : "My Quality Certificates",
+            "${districts.length} districts (${filteredInspections.length} certificates)",
             colorScheme,
           ),
 
@@ -249,7 +249,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         if (!isApproved) {
                           CustomSnackBar.warning(
                             context,
-                            message: 'Your account is pending admin approval before viewing detailed inspection reports.',
+                            message: 'Your account is pending admin approval before viewing detailed quality certificates.',
                           );
                           return;
                         }

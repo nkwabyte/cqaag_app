@@ -41,7 +41,15 @@ class ReportFeeField extends ConsumerWidget {
     return FormBuilderField<ReportFeeInput>(
       name: fieldName,
       initialValue: const ReportFeeInput(),
-      validator: (value) => value?.evidence == null ? 'Upload evidence of the $fee certificate fee' : null,
+      validator: (value) {
+        if (value?.evidence == null) {
+          return 'Upload evidence of the $fee certificate fee';
+        }
+        if ((value?.reference.trim() ?? '').isEmpty) {
+          return 'Enter the Mobile Money transaction reference ID';
+        }
+        return null;
+      },
       builder: (field) {
         final value = field.value ?? const ReportFeeInput();
         final evidence = value.evidence;
@@ -135,7 +143,8 @@ class ReportFeeField extends ConsumerWidget {
                 initialValue: value.reference,
                 onChanged: (text) => field.didChange(value.copyWith(reference: text.trim())),
                 decoration: InputDecoration(
-                  labelText: "Transaction ID (optional)",
+                  labelText: "Transaction ID / Mobile Money Reference *",
+                  hintText: "e.g. MP260105.1234.B56789",
                   isDense: true,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.r)),
                 ),

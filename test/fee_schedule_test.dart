@@ -26,20 +26,20 @@ void main() {
     });
 
     test('Grand Totals reproduce the schedule spreadsheet', () {
-      expect(schedule.grandTotalFor(FeeCategory.full), 520);
-      expect(schedule.grandTotalFor(FeeCategory.nationalAssociate), 420);
-      expect(schedule.grandTotalFor(FeeCategory.foreignAssociate), 1320);
+      expect(schedule.grandTotalFor(FeeCategory.full), 1120);
+      expect(schedule.grandTotalFor(FeeCategory.nationalAssociate), 1020);
+      expect(schedule.grandTotalFor(FeeCategory.foreignAssociate), 1920);
       expect(schedule.grandTotalFor(FeeCategory.corporate), 350);
       expect(schedule.grandTotalFor(FeeCategory.honorary), 0);
     });
 
     test('only priced optional items are offered', () {
-      // Gloves are the one kit item the Board has priced so far.
+      // Quality Cutting Kit and Gloves are priced optional items from the schedule.
       expect(
         schedule.optionalItemsFor(FeeCategory.full).map((e) => e.key),
-        ['gloves'],
+        ['quality_cutting_kit', 'gloves'],
       );
-      // Corporate members are priced at zero for gloves, so nothing is offered.
+      // Corporate members are priced at zero for kit items, so nothing is offered.
       expect(schedule.optionalItemsFor(FeeCategory.corporate), isEmpty);
       expect(schedule.optionalItemsFor(FeeCategory.honorary), isEmpty);
 
@@ -58,7 +58,7 @@ void main() {
     });
 
     test('taking an optional item adds exactly its price', () {
-      final gloves = schedule.optionalItemsFor(FeeCategory.full).single;
+      final gloves = schedule.optionalItemsFor(FeeCategory.full).firstWhere((e) => e.key == 'gloves');
       final quote = schedule.quote(
         FeeCategory.full,
         selectedOptionalItems: [
@@ -67,6 +67,18 @@ void main() {
       );
       expect(quote.optionalTotal, 70);
       expect(quote.total, 520);
+    });
+
+    test('taking quality cutting kit adds 600', () {
+      final kit = schedule.optionalItemsFor(FeeCategory.full).firstWhere((e) => e.key == 'quality_cutting_kit');
+      final quote = schedule.quote(
+        FeeCategory.full,
+        selectedOptionalItems: [
+          SelectedFeeItem(key: kit.key, label: kit.label, amount: kit.amountFor(FeeCategory.full)!),
+        ],
+      );
+      expect(quote.optionalTotal, 600);
+      expect(quote.total, 1050);
     });
 
     test('Honorary Members are never charged, even for a chosen item', () {
@@ -105,7 +117,7 @@ void main() {
 
       expect(restored.annualDuesFor(FeeCategory.full), 275);
       expect(restored.registrationFeeFor(FeeCategory.full), 250);
-      expect(restored.grandTotalFor(FeeCategory.full), 595);
+      expect(restored.grandTotalFor(FeeCategory.full), 1195);
     });
 
     test('an unpriced item stays unpriced rather than becoming free', () {
@@ -119,7 +131,7 @@ void main() {
 
     test('a partial document falls back to the Board defaults', () {
       final restored = FeeSchedule.fromJson({});
-      expect(restored.grandTotalFor(FeeCategory.full), 520);
+      expect(restored.grandTotalFor(FeeCategory.full), 1120);
     });
   });
 

@@ -124,6 +124,9 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         if (evidence == null) {
           throw Exception('Upload evidence of the certificate fee on the Preview step before submitting.');
         }
+        if ((feeInput?.reference.trim() ?? '').isEmpty) {
+          throw Exception('Enter the Mobile Money transaction reference on the Preview step before submitting.');
+        }
         feeEvidenceUrl = await cloudinary.uploadPaymentEvidence(evidence) ??
             (throw Exception('Could not upload the certificate fee evidence. Please try again.'));
       }
@@ -294,6 +297,7 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
 
         imageUrls: uploadedImageUrls,
         cuttingImageUrls: uploadedImageUrls,
+        reportPhotos: uploadedImageUrls,
         notes: formData['notes'] as String?,
         inspectorName: inspectorName,
         inspectorEmail: user.email,

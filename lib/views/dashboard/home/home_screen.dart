@@ -179,7 +179,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 child: Text(
                                   (memberApp?.status == ApplicationStatus.approved && memberApp?.paymentStatus != 'verified')
                                       ? 'Your KYC application is approved! Please complete your registration payment in Profile to activate inspection tools.'
-                                      : 'Your account is undergoing KYC verification. Creating inspections and accessing report exports will be unlocked upon approval and payment confirmation.',
+                                      : 'Your account is undergoing KYC verification. Creating inspections and accessing certificate exports will be unlocked upon approval and payment confirmation.',
                                   style: TextStyle(
                                     fontSize: 12.sp,
                                     color: AppColors.primaryGreen,

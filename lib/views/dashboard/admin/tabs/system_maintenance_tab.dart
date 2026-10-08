@@ -139,7 +139,7 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
         ),
         Gap(4.h),
         CustomText(
-          "Inspect and delete individual users, members, or quality reports.",
+          "Inspect and delete individual users, members, or quality certificates.",
           variant: TextVariant.bodySmall,
           color: colorScheme.secondary,
         ),
@@ -179,7 +179,7 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
           ),
           Gap(8.w),
           ChoiceChip(
-            label: const Text("Reports"),
+            label: const Text("Certificates"),
             selected: _selectedCategory == MaintenanceCategory.reports,
             onSelected: (val) {
               if (val) setState(() => _selectedCategory = MaintenanceCategory.reports);
@@ -324,7 +324,7 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
     }).toList();
 
     if (filtered.isEmpty) {
-      return _buildEmptyState("No quality reports found");
+      return _buildEmptyState("No quality certificates found");
     }
 
     return ListView.separated(
@@ -342,14 +342,14 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
           borderRadius: BorderRadius.circular(12.r),
           child: ListTile(
             leading: Icon(Icons.analytics_outlined, color: colorScheme.primary, size: 28.r),
-            title: CustomText("Report #$displayId", fontWeight: FontWeight.bold),
+            title: CustomText("Certificate #$displayId", fontWeight: FontWeight.bold),
             subtitle: CustomText("KOR: ${report.kor.toStringAsFixed(1)} lbs/80kg • $displayLoc", variant: TextVariant.bodySmall, color: colorScheme.secondary),
             trailing: IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.red),
               onPressed: () => _confirmDeleteEntity(
-                title: "Delete Inspection Report",
-                message: "Are you sure you want to delete inspection report #$displayId?",
-                successMessage: "Report deleted",
+                title: "Delete Quality Certificate",
+                message: "Are you sure you want to delete quality certificate #$displayId?",
+                successMessage: "Certificate deleted",
                 onConfirm: () => ref.read(systemMaintenanceServiceProvider).deleteReport(report.id),
               ),
             ),
@@ -418,9 +418,9 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
                 style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
               ),
               OutlinedButton.icon(
-                onPressed: () => _handlePurgeCollection('inspections', 'Inspection Reports'),
+                onPressed: () => _handlePurgeCollection('inspections', 'Quality Certificates'),
                 icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                label: const Text("Purge Reports"),
+                label: const Text("Purge Certificates"),
                 style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
               ),
               OutlinedButton.icon(
@@ -661,8 +661,8 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
                           const Divider(height: 1),
                           CheckboxListTile(
                             dense: true,
-                            title: const Text("Quality Inspection Reports", style: TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: const Text("All inspection reports in 'inspections'", style: TextStyle(fontSize: 11)),
+                            title: const Text("Quality Certificates", style: TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: const Text("All quality certificates in 'inspections'", style: TextStyle(fontSize: 11)),
                             value: purgeReports,
                             activeColor: Colors.red,
                             onChanged: (val) => setModalState(() => purgeReports = val ?? false),

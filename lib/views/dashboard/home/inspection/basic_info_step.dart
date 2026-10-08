@@ -115,7 +115,7 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
           ),
           CustomText(
             isExport
-                ? "Enter comprehensive Export RCN Quality Report parameters"
+                ? "Enter comprehensive Export RCN Quality Certificate parameters"
                 : "Enter basic inspection details",
             variant: TextVariant.bodyMedium,
             color: Theme.of(context).colorScheme.secondary,
@@ -170,7 +170,7 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
           ),
           Gap(20.h),
 
-          // IF EXPORT: Render the complete Export RCN Quality Report form fields
+          // IF EXPORT: Render the complete Export RCN Quality Certificate form fields
           if (isExport) ...[
             _buildExportSection(colorScheme, defaultLocation),
           ] else ...[
@@ -366,7 +366,7 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
     );
   }
 
-  /// Full EXPORT RCN QUALITY REPORT Interface
+  /// Full EXPORT RCN QUALITY CERTIFICATE Interface
   Widget _buildExportSection(ColorScheme colorScheme, String defaultLocation) {
     return Container(
       padding: EdgeInsets.all(16.r),

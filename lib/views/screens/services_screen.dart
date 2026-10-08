@@ -190,9 +190,9 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
           ),
           Gap(10.h),
           _buildPortfolioItem("Distant Arrival Inspection", "Assessing parcel condition upon transit arrival at depots."),
-          _buildPortfolioItem("Dispatch Quality Reporting", "Pre-departure verification of moisture, outcount, and KOR."),
+          _buildPortfolioItem("Dispatch Quality Certification", "Pre-departure verification of moisture, outcount, and KOR."),
           _buildPortfolioItem("Export Arrival Inspection", "Harbor and port warehouse verification before containerization."),
-          _buildPortfolioItem("Export Certificate Issuance", "Final statutory inspection report recognized by international buyers."),
+          _buildPortfolioItem("Export Certificate Issuance", "Final statutory inspection certificate recognized by international buyers."),
           Gap(16.h),
           if (isMember) ...[
             CustomButton(

@@ -47,6 +47,7 @@ class MembershipService {
     final filed = await website.storeAgreements(
       memberId: application.id,
       documents: packets.map((p) => p.toFiling()).toList(),
+      fullName: application.fullName,
     );
     if (!filed.success) {
       throw Exception(filed.message ?? 'The agreements could not be filed. The application was not submitted.');

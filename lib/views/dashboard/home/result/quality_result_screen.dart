@@ -371,17 +371,26 @@ class _QualityResultScreenState extends ConsumerState<QualityResultScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.all(10.r),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2D5F2E),
-              borderRadius: BorderRadius.circular(10.r),
-            ),
-            child: const CustomText(
-              "TCDA",
-              variant: TextVariant.bodyMedium,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8.r),
+            child: Image.asset(
+              'assets/images/tcda.png',
+              width: 44.r,
+              height: 44.r,
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) => Container(
+                padding: EdgeInsets.all(10.r),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2D5F2E),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: const CustomText(
+                  "TCDA",
+                  variant: TextVariant.bodyMedium,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
           Gap(12.w),

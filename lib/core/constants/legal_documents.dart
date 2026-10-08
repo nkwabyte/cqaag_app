@@ -336,7 +336,7 @@ class LegalDocuments {
         ]),
       ]),
       LegalSection('5. User Contributions', [
-        LegalBlock.text('If you submit content (e.g., comments, forum posts, event feedback, or quality reports):'),
+        LegalBlock.text('If you submit content (e.g., comments, forum posts, event feedback, or quality certificates):'),
         LegalBlock.bullets([
           'You grant CQAAG a perpetual, royalty-free license to use, modify, and display it for Association purposes',
           'You represent that your contributions are lawful, accurate, and do not infringe third-party rights',
@@ -386,7 +386,7 @@ class LegalDocuments {
           'Sign up for events, training, or newsletters',
           'Submit a contact form or inquiry',
           'Apply for certification or resources',
-          'Submit quality reports through the Member Portal (Full and Corporate Members)',
+          'Submit quality certificates through the Member Portal (Full and Corporate Members)',
         ]),
         LegalBlock.text('b. Automatically Collected Information: IP address, browser/device type, operating system, referral pages, and usage data such as pages visited and time spent on the Platform (via cookies or similar technologies).'),
         LegalBlock.text('c. Information from Third Parties: We may receive information from partners (e.g., event co-organizers) or public sources related to the cashew industry.'),
