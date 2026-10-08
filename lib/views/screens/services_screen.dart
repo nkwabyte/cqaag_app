@@ -190,9 +190,9 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
           ),
           Gap(10.h),
           _buildPortfolioItem("Distant Arrival Inspection", "Assessing parcel condition upon transit arrival at depots."),
-          _buildPortfolioItem("Dispatch Quality Reporting", "Pre-departure verification of moisture, outcount, and KOR."),
+          _buildPortfolioItem("Dispatch Quality Certification", "Pre-departure verification of moisture, outcount, and KOR."),
           _buildPortfolioItem("Export Arrival Inspection", "Harbor and port warehouse verification before containerization."),
-          _buildPortfolioItem("Export Certificate Issuance", "Final statutory inspection report recognized by international buyers."),
+          _buildPortfolioItem("Export Certificate Issuance", "Final statutory inspection certificate recognized by international buyers."),
           Gap(16.h),
           if (isMember) ...[
             CustomButton(
@@ -215,7 +215,7 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
                   Gap(10.w),
                   Expanded(
                     child: CustomText(
-                      "Inspection portfolios are reserved for certified CQAAG members. Guests and buyers may schedule an inspection request with certified field analysts.",
+                      "Inspection portfolios are reserved for certified CQAAG members. Buyers and commercial clients may schedule an inspection request with certified field analysts.",
                       variant: TextVariant.bodySmall,
                       color: Colors.amber.shade900,
                     ),

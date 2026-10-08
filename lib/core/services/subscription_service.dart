@@ -11,7 +11,7 @@ class SubscriptionService {
 
   /// Subscribe a new email to the newsletter
   /// Returns true if successful, throws exception on error
-  Future<bool> subscribe(String email, {String source = 'guest_events_screen'}) async {
+  Future<bool> subscribe(String email, {String source = 'app'}) async {
     try {
       // Check if email already exists
       final existingSubscription = await _subscriptionsCollection.where('email', isEqualTo: email.toLowerCase().trim()).limit(1).get();

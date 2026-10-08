@@ -22,7 +22,7 @@ enum TicketCategory {
       case TicketCategory.systemMalfunction:
         return 'System Malfunction';
       case TicketCategory.reportError:
-        return 'Inspection Report Issue';
+        return 'Quality Certificate Issue';
       case TicketCategory.billing:
         return 'Billing / Payment Issue';
       case TicketCategory.other:

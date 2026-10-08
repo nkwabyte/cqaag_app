@@ -44,7 +44,7 @@ The app also provides a full portal for association members to manage their prof
 
 ### 👤 Member & Portal Services
 - **Firebase Authentication**: Secure sign-in and registration with email verification and password recovery.
-- **Guest Explorer Mode**: Unauthenticated access to association background, quality standards, events, and public resources.
+- **Guest Access via Website**: In-app guest exploration is removed; guests and public visitors are seamlessly routed to the official CQAAG website in their device default browser.
 - **Membership Application**: Multi-step registration including ID verification document upload, digital signature agreement, and Mobile Money / bank payment proof submission.
 - **Digital Member Profile & ID**: Member credential display, profile editing, and role badge tracking.
 
@@ -70,7 +70,7 @@ The app also provides a full portal for association members to manage their prof
 | :--- | :--- | :--- |
 | **Framework** | Flutter (Dart ^3.10.1) | Cross-platform iOS, Android, and Web application |
 | **State Management** | Hooks Riverpod (`flutter_riverpod`, `flutter_hooks`, `riverpod_annotation`) | Reactive, testable state management and dependency injection |
-| **Navigation** | `go_router` | Declarative routing with dynamic authentication & guest guards |
+| **Navigation** | `go_router` | Declarative routing with strict authentication guards and website external redirection |
 | **Backend & DB** | Firebase Core, Auth, Cloud Firestore | User authentication and real-time database with offline support |
 | **Media Storage** | Cloudinary (`cloudinary_api`, `cloudinary_url_gen`) | Cloud storage for inspection photo proof and identity documents |
 | **Forms & Input** | `flutter_form_builder`, `form_builder_validators` | Complex multi-step form state management and input validation |

@@ -192,7 +192,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                         builder: (ctx) => AlertDialog(
                                           title: const Text("Membership Approval Required"),
                                           content: const Text(
-                                            "Account creation is available only to verified guests whose membership application and payment have been approved by CQAAG administration.\n\nPlease apply for membership and submit your payment first.",
+                                            "Account creation is available only to verified applicants whose membership application and payment have been approved by CQAAG administration.\n\nPlease apply for membership and submit your payment first.",
                                           ),
                                           actions: [
                                             TextButton(

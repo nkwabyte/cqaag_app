@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cqaag_app/core/constants/legal_documents.dart';
 import 'package:cqaag_app/core/services/agreement_pdf_service.dart';
 import 'package:cqaag_app/models/membership/membership_application.dart';
@@ -47,6 +48,7 @@ class MembershipService {
     final filed = await website.storeAgreements(
       memberId: application.id,
       documents: packets.map((p) => p.toFiling()).toList(),
+      fullName: application.fullName,
     );
     if (!filed.success) {
       throw Exception(filed.message ?? 'The agreements could not be filed. The application was not submitted.');
@@ -264,9 +266,15 @@ class MembershipService {
   /// Stream all applications (for admin use)
   Stream<List<MembershipApplication>> streamAllApplications() {
     return _applicationsCollection.snapshots().map((snapshot) {
-      return snapshot.docs
-          .map((doc) => MembershipApplication.fromJson(doc.data()))
-          .toList();
+      final list = <MembershipApplication>[];
+      for (final doc in snapshot.docs) {
+        try {
+          list.add(MembershipApplication.fromJson(doc.data()));
+        } catch (e, stack) {
+          debugPrint('Error parsing membership application ${doc.id}: $e\n$stack');
+        }
+      }
+      return list;
     });
   }
 

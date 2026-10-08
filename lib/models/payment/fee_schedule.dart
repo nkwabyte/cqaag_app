@@ -199,6 +199,7 @@ class FeeSchedule {
       'honorary': 0,
     },
     optionalItems: [
+      _uniform('quality_cutting_kit', 'Quality Cutting Kit', 600, corporate: 0),
       const FeeLineItem(key: 'safety_boot', label: 'Safety boot', requiresSize: true),
       const FeeLineItem(key: 'safety_helmet', label: 'Safety helmet'),
       const FeeLineItem(key: 'moisture_machine', label: 'Moisture Machine'),

@@ -58,7 +58,7 @@ class MembershipInfoScreen extends StatelessWidget {
                   ),
                   Gap(16.h),
                   const CustomText(
-                    'The Cashew Quality Analysts\' Association, Ghana (C.Q.A.A.G) Membership Portal is the central hub for our professional community. This secure platform handles registration, authentication, member management, and restricted features like quality report submissions. It ensures compliance with the Association\'s non-profit ethos, ethical standards, and Ghanaian data protection laws.',
+                    'The Cashew Quality Analysts\' Association, Ghana (C.Q.A.A.G) Membership Portal is the central hub for our professional community. This secure platform handles registration, authentication, member management, and restricted features like quality certificate submissions. It ensures compliance with the Association\'s non-profit ethos, ethical standards, and Ghanaian data protection laws.',
                     variant: TextVariant.bodyMedium,
                     textAlign: TextAlign.justify,
                   ),
@@ -176,8 +176,8 @@ class MembershipInfoScreen extends StatelessWidget {
                   Gap(12.h),
                   _buildBulletPoint('Personal Info: Full Name, Contact Details, Ghana Card ID.'),
                   _buildBulletPoint('Professional Info: Job Title, Industry Sector, Years of Experience, Educational Qualifications.'),
-                  _buildBulletPoint('Documents: Upload CV, Certificates (PDF).'),
-                  _buildBulletPoint('Declarations:'),
+                  _buildBulletPoint('Credentials: Educational background, institution, and professional qualifications.'),
+                  _buildBulletPoint('Governing Agreements: Digital review and signing of the Membership Agreement, Code of Ethics, Terms, Privacy Policy, and Membership Declaration.'),
                   Padding(
                     padding: EdgeInsets.only(left: 16.w),
                     child: Column(
@@ -258,7 +258,7 @@ class MembershipInfoScreen extends StatelessWidget {
                   Gap(12.h),
                   _buildBulletPoint('Status View: Membership standing, card validity, and uniform status.', boldPrefix: true),
                   _buildBulletPoint('Dues Management: Secure online payment via Mobile Money or Card.', boldPrefix: true),
-                  _buildBulletPoint('Quality Reports (Full/Corporate Only): Submission forms for Arrival, Dispatch, and Export metrics.', boldPrefix: true),
+                  _buildBulletPoint('Quality Certificates (Full/Corporate Only): Submission forms for Arrival, Dispatch, and Export metrics.', boldPrefix: true),
                   _buildBulletPoint('Resources: Exclusive access to directories, forums, and technical publications.', boldPrefix: true),
                   _buildBulletPoint('Profile Management: Update contact info and professional details.', boldPrefix: true),
 
@@ -277,7 +277,7 @@ class MembershipInfoScreen extends StatelessWidget {
                   _buildSubHeader('Commitment to Minimal Data Storage', color: AppColors.darkBrown),
                   Gap(8.h),
                   const CustomText(
-                    'The Cashew Quality Analysts\' Association, Ghana (C.Q.A.A.G) adheres strictly to the Data Protection Act, 2012 (Act 843). We collect only the minimum data necessary for membership administration, licensing support, and quality reporting.',
+                    'The Cashew Quality Analysts\' Association, Ghana (C.Q.A.A.G) adheres strictly to the Data Protection Act, 2012 (Act 843). We collect only the minimum data necessary for membership administration, licensing support, and quality certification.',
                     variant: TextVariant.bodySmall,
                   ),
                   Gap(16.h),

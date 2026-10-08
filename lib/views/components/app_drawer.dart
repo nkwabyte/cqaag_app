@@ -171,6 +171,16 @@ class AppDrawer extends ConsumerWidget {
                       _buildDrawerItem(
                         context: context,
                         colorScheme: colorScheme,
+                        icon: Icons.assignment_outlined,
+                        title: 'Membership Agreement',
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.pushNamed(MembershipAgreementDocScreen.id);
+                        },
+                      ),
+                      _buildDrawerItem(
+                        context: context,
+                        colorScheme: colorScheme,
                         icon: Icons.description_outlined,
                         title: 'Terms & Conditions',
                         onTap: () {

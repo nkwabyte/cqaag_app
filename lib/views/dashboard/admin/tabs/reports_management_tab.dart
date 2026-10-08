@@ -16,6 +16,13 @@ class ReportsManagementTab extends ConsumerStatefulWidget {
 
 class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
   ReportFilterCriteria _filterCriteria = const ReportFilterCriteria();
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   List<Inspection> get _filteredInspections {
     final inspectionState = ref.watch(inspectionControllerProvider).value;
@@ -52,7 +59,7 @@ class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
 
     final inspectionsToExport = _filteredInspections;
     if (inspectionsToExport.isEmpty) {
-      CustomSnackBar.warning(context, message: 'No inspection reports available to export.');
+      CustomSnackBar.warning(context, message: 'No quality certificates available to export.');
       return;
     }
 
@@ -96,7 +103,7 @@ class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
             context.pushNamed(QualityResultScreen.id, extra: inspection);
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Report not found')),
+              const SnackBar(content: Text('Certificate not found')),
             );
           }
         }
@@ -118,92 +125,136 @@ class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
     return Scaffold(
       body: Column(
         children: [
-          // Search, Filter & Excel Export Bar
+          // Centered Search, Filter & Excel Export Bar
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+            padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 10.h),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                // 1. Center-aligned Search Bar
+                Container(
+                  height: 44.h,
+                  constraints: BoxConstraints(maxWidth: 520.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        _filterCriteria = _filterCriteria.copyWith(searchQuery: value);
+                      });
+                    },
+                    style: TextStyle(fontSize: 13.sp),
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: "Search by batch, farmer, location...",
+                      hintStyle: TextStyle(fontSize: 12.sp, color: Colors.black38),
+                      prefixIcon: Icon(Icons.search, size: 20.r, color: AppColors.primaryGreen),
+                      suffixIcon: (_filterCriteria.searchQuery?.isNotEmpty == true)
+                          ? IconButton(
+                              icon: Icon(Icons.cancel, size: 18.r, color: Colors.black38),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _filterCriteria = _filterCriteria.copyWith(searchQuery: '');
+                                });
+                              },
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+                    ),
+                  ),
+                ),
+                Gap(10.h),
+
+                // 2. Center-aligned Action Buttons Row
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: CustomTextField(
-                        name: 'search_reports',
-                        label: 'Search Reports',
-                        hint: "Search by batch, farmer, location...",
-                        prefixIcon: Icons.search,
-                        onChanged: (value) {
+                    // Filter Modal Button
+                    OutlinedButton.icon(
+                      onPressed: _showFilterDialog,
+                      icon: Icon(
+                        Icons.tune_rounded,
+                        size: 16.r,
+                        color: _filterCriteria.isNotEmpty ? AppColors.primaryGreen : Colors.black87,
+                      ),
+                      label: Text(
+                        _filterCriteria.isNotEmpty
+                            ? 'Filter (${_filterCriteria.activeFilterCount})'
+                            : 'Filter Options',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w600,
+                          color: _filterCriteria.isNotEmpty ? AppColors.primaryGreen : Colors.black87,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: _filterCriteria.isNotEmpty
+                            ? AppColors.mintLight.withValues(alpha: 0.7)
+                            : Colors.white,
+                        side: BorderSide(
+                          color: _filterCriteria.isNotEmpty
+                              ? AppColors.tcdaAccentGreen
+                              : Colors.black.withValues(alpha: 0.15),
+                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                      ),
+                    ),
+                    Gap(10.w),
+
+                    // Export to Excel Button
+                    ElevatedButton.icon(
+                      onPressed: filteredInspections.isEmpty ? null : _exportToExcel,
+                      icon: Icon(Icons.table_chart_outlined, size: 16.r),
+                      label: Text(
+                        currentUser?.isAdmin == true ? 'Export (All)' : 'Export Excel',
+                        style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryGreen,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey.shade200,
+                        disabledForegroundColor: Colors.black38,
+                        elevation: 0,
+                        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                      ),
+                    ),
+
+                    if (_filterCriteria.isNotEmpty) ...[
+                      Gap(8.w),
+                      TextButton.icon(
+                        onPressed: () {
+                          _searchController.clear();
                           setState(() {
-                            _filterCriteria = _filterCriteria.copyWith(searchQuery: value ?? '');
+                            _filterCriteria = const ReportFilterCriteria();
                           });
                         },
-                      ),
-                    ),
-                    Gap(8.w),
-                    // Filter Modal Button
-                    Stack(
-                      children: [
-                        InkWell(
-                          onTap: _showFilterDialog,
-                          borderRadius: BorderRadius.circular(12.r),
-                          child: Container(
-                            padding: EdgeInsets.all(14.r),
-                            decoration: BoxDecoration(
-                              color: _filterCriteria.isNotEmpty
-                                  ? colorScheme.primary
-                                  : colorScheme.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            child: Icon(
-                              Icons.filter_list,
-                              color: _filterCriteria.isNotEmpty ? Colors.white : colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                        if (_filterCriteria.activeFilterCount > 0)
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: Container(
-                              padding: EdgeInsets.all(4.r),
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: BoxConstraints(minWidth: 16.w, minHeight: 16.h),
-                              child: Text(
-                                '${_filterCriteria.activeFilterCount}',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10.sp,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    Gap(8.w),
-                    // Export to Excel Button
-                    InkWell(
-                      onTap: _exportToExcel,
-                      borderRadius: BorderRadius.circular(12.r),
-                      child: Container(
-                        padding: EdgeInsets.all(14.r),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
-                        ),
-                        child: Tooltip(
-                          message: currentUser?.isAdmin == true ? 'Export All Data to Excel' : 'Export My Data to Excel',
-                          child: Icon(
-                            Icons.explicit_outlined,
-                            color: Colors.green[800],
+                        icon: Icon(Icons.close, size: 14.r, color: Colors.red.shade700),
+                        label: Text(
+                          'Clear',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: Colors.red.shade700,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
 
@@ -212,16 +263,21 @@ class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CustomText(
-                          'Active Filters (${_filterCriteria.activeFilterCount}):',
-                          variant: TextVariant.bodySmall,
-                          color: colorScheme.secondary,
+                        Text(
+                          'Active Filters (${_filterCriteria.activeFilterCount})',
+                          style: TextStyle(
+                            fontSize: 11.sp,
+                            color: AppColors.primaryGreen,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         Gap(8.w),
                         InputChip(
                           label: const Text('Clear All'),
                           onPressed: () {
+                            _searchController.clear();
                             setState(() {
                               _filterCriteria = const ReportFilterCriteria();
                             });
@@ -240,17 +296,69 @@ class _ReportsManagementTabState extends ConsumerState<ReportsManagementTab> {
           Expanded(
             child: filteredInspections.isEmpty
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.assignment_outlined, size: 48.r, color: colorScheme.secondary),
-                        Gap(10.h),
-                        CustomText(
-                          "No reports found matching criteria",
-                          variant: TextVariant.bodyMedium,
-                          color: colorScheme.secondary,
-                        ),
-                      ],
+                    child: Padding(
+                      padding: EdgeInsets.all(24.r),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 76.r,
+                            height: 76.r,
+                            decoration: BoxDecoration(
+                              color: AppColors.mintLight,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.tcdaAccentGreen.withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                _filterCriteria.isNotEmpty
+                                    ? Icons.search_off_rounded
+                                    : Icons.assignment_outlined,
+                                size: 38.r,
+                                color: AppColors.primaryGreen,
+                              ),
+                            ),
+                          ),
+                          Gap(16.h),
+                          CustomText(
+                            _filterCriteria.isNotEmpty
+                                ? "No certificates match your search"
+                                : "No certificates found",
+                            variant: TextVariant.bodyLarge,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.darkRed,
+                          ),
+                          Gap(6.h),
+                          Text(
+                            _filterCriteria.isNotEmpty
+                                ? "Try adjusting keywords or clearing active filters."
+                                : "Completed inspection certificates will appear here.",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 12.sp, color: Colors.black54),
+                          ),
+                          if (_filterCriteria.isNotEmpty) ...[
+                            Gap(14.h),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _filterCriteria = const ReportFilterCriteria();
+                                });
+                              },
+                              icon: const Icon(Icons.refresh, size: 16),
+                              label: const Text('Reset Search & Filters'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primaryGreen,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   )
                 : ListView.separated(

@@ -8,12 +8,13 @@ import 'package:uuid/uuid.dart' as uuid_pkg;
 import 'package:cqaag_app/index.dart';
 import 'package:cqaag_app/models/membership/membership_category.dart' as membership_models;
 
-/// One page of the signing flow. Terms of Service and Privacy Policy are read
-/// and accepted together, as on the website.
+/// The sequential steps of the signing flow: Membership Agreement, Code of Ethics,
+/// Terms of Service, Privacy Policy, and Membership Declaration.
 enum _SigningStep {
   agreement([LegalDocumentType.membershipAgreement]),
   ethics([LegalDocumentType.codeOfEthics]),
-  terms([LegalDocumentType.termsOfService, LegalDocumentType.privacyPolicy]),
+  terms([LegalDocumentType.termsOfService]),
+  privacy([LegalDocumentType.privacyPolicy]),
   declaration([LegalDocumentType.membershipDeclaration]);
 
   const _SigningStep(this.documents);

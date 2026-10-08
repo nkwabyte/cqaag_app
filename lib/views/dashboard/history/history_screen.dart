@@ -8,7 +8,7 @@ import 'package:cqaag_app/models/inspection/report_filter.dart';
 import 'package:cqaag_app/views/components/report_filter_modal.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
-  static final String id = 'history_screen';
+  static const String id = 'history_screen';
   const HistoryScreen({super.key});
 
   @override
@@ -17,11 +17,21 @@ class HistoryScreen extends ConsumerStatefulWidget {
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   ReportFilterCriteria _filterCriteria = const ReportFilterCriteria();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   Map<String, List<Inspection>> _groupByDistrict(List<Inspection> inspections) {
     final grouped = <String, List<Inspection>>{};
     for (final inspection in inspections) {
-      final district = inspection.location ?? 'Unknown District';
+      final district = inspection.location?.trim().isNotEmpty == true
+          ? inspection.location!.trim()
+          : (inspection.chapter?.trim().isNotEmpty == true ? inspection.chapter!.trim() : 'Unspecified District');
       grouped.putIfAbsent(district, () => []).add(inspection);
     }
     return grouped;
@@ -43,6 +53,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         _filterCriteria = newCriteria;
       });
     }
+  }
+
+  void _clearAllFilters() {
+    setState(() {
+      _filterCriteria = const ReportFilterCriteria();
+      _searchController.clear();
+      _searchQuery = '';
+    });
   }
 
   Future<void> _exportToExcel(List<Inspection> inspections) async {
@@ -80,9 +98,39 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     }
   }
 
+  List<Inspection> _applySearch(List<Inspection> list) {
+    if (_searchQuery.trim().isEmpty) return list;
+    final query = _searchQuery.trim().toLowerCase();
+
+    return list.where((i) {
+      final district = (i.location ?? '').toLowerCase();
+      final town = (i.town ?? '').toLowerCase();
+      final farmer = (i.farmerName ?? '').toLowerCase();
+      final batch = (i.batchId ?? '').toLowerCase();
+      final insId = (i.inspectionId ?? '').toLowerCase();
+      final truck = (i.truckNumber ?? '').toLowerCase();
+      final buyer = (i.buyerName ?? '').toLowerCase();
+
+      return district.contains(query) ||
+          town.contains(query) ||
+          farmer.contains(query) ||
+          batch.contains(query) ||
+          insId.contains(query) ||
+          truck.contains(query) ||
+          buyer.contains(query);
+    }).toList();
+  }
+
+  String _formatTotalWeight(double kg) {
+    if (kg >= 1000) {
+      final mt = kg / 1000;
+      return '${mt.toStringAsFixed(1)} MT';
+    }
+    return '${kg.toStringAsFixed(0)} KG';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     final user = ref.watch(currentUserProfileProvider).value;
     final inspectionState = ref.watch(inspectionControllerProvider).value;
 
@@ -92,181 +140,562 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         ? allReports
         : allReports.where((i) => i.inspectorId == user?.id).toList();
 
-    final filteredInspections = _filterCriteria.apply(rawInspections);
+    final filteredByCriteria = _filterCriteria.apply(rawInspections);
+    final filteredInspections = _applySearch(filteredByCriteria);
 
     final grouped = _groupByDistrict(filteredInspections);
     final districts = grouped.entries.toList();
-
     final isApproved = user?.isApproved ?? false;
+
+    // KPI Metrics
+    final totalCertificates = filteredInspections.length;
+    final totalDistricts = districts.length;
+    final totalKg = filteredInspections.fold<double>(
+      0.0,
+      (sum, inspection) => sum + inspection.quantity,
+    );
+    final totalWeightFormatted = _formatTotalWeight(totalKg);
+
+    final isFiltered = _filterCriteria.isNotEmpty || _searchQuery.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Header with data stats
-          buildHistoryHeader(
-            context,
-            user?.isAdmin == true ? "National Inspection Reports" : "My Inspection Reports",
-            "${districts.length} districts (${filteredInspections.length} reports)",
-            colorScheme,
-          ),
-
-          // Unapproved User Warning Banner
-          if (user != null && !isApproved)
-            Container(
-              width: double.infinity,
-              color: Colors.amber.shade100,
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.amber.shade900),
-                  Gap(10.w),
-                  Expanded(
-                    child: Text(
-                      'Account Pending Approval. Access to full inspection operations is restricted until verified by an Admin.',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.amber.shade900,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(inspectionControllerProvider);
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // 1. Sleek Compact Header with Slim Metrics Strip (scrolls with content)
+            SliverToBoxAdapter(
+              child: _buildCompactHeader(
+                context: context,
+                totalCertificates: totalCertificates,
+                totalDistricts: totalDistricts,
+                totalWeight: totalWeightFormatted,
               ),
             ),
 
-          // Action Toolbar: Filter, Ticket & Export to Excel Buttons
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-            child: Wrap(
-              spacing: 8.w,
-              runSpacing: 8.h,
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: _showFilterDialog,
-                  icon: Icon(
-                    Icons.filter_list,
-                    size: 16,
-                    color: _filterCriteria.isNotEmpty ? colorScheme.primary : colorScheme.onSurface,
-                  ),
-                  label: Text(
-                    _filterCriteria.isNotEmpty
-                        ? 'Filtered (${_filterCriteria.activeFilterCount})'
-                        : 'Filter',
-                    style: TextStyle(fontSize: 12.sp),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _filterCriteria.isNotEmpty ? colorScheme.primary : null,
-                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+            // 2. Unapproved User Warning Banner (if any)
+            if (user != null && !isApproved)
+              SliverToBoxAdapter(
+                child: _buildApprovalWarningBanner(),
+              ),
+
+            // 3. Search and Action Toolbar
+            SliverToBoxAdapter(
+              child: _buildSearchAndToolbar(
+                context: context,
+                user: user,
+                filteredInspections: filteredInspections,
+                isFiltered: isFiltered,
+              ),
+            ),
+
+            // 4. Active Filters Chips Row
+            if (isFiltered)
+              SliverToBoxAdapter(
+                child: _buildActiveFiltersBar(),
+              ),
+
+            // 5. Body Area: Empty State or Districts List
+            if (filteredInspections.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _buildEmptyState(
+                  context: context,
+                  isFiltered: isFiltered,
+                  isAdmin: user?.isAdmin == true,
+                  isApproved: isApproved,
+                ),
+              )
+            else
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 24.h),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final entry = districts[index];
+                      final district = entry.key;
+                      final districtInspections = entry.value;
+
+                      final totalKg = districtInspections.fold<double>(
+                        0.0,
+                        (sum, inspection) => sum + inspection.quantity,
+                      );
+
+                      final communities = districtInspections
+                          .map((i) => i.town?.trim().isNotEmpty == true ? i.town!.trim() : (i.farmerName ?? 'Unknown'))
+                          .toSet()
+                          .length;
+
+                      return HistoryCard(
+                        title: district,
+                        inspectionsCount: "${districtInspections.length}",
+                        communitiesCount: "$communities",
+                        totalKg: totalKg.toStringAsFixed(1),
+                        onTap: () {
+                          if (!isApproved) {
+                            CustomSnackBar.warning(
+                              context,
+                              message: 'Your account is pending admin approval before viewing detailed quality certificates.',
+                            );
+                            return;
+                          }
+                          context.pushNamed(
+                            DistrictDetailScreen.id,
+                            extra: {
+                              'district': district,
+                              'inspections': districtInspections,
+                            },
+                          );
+                        },
+                      );
+                    },
+                    childCount: districts.length,
                   ),
                 ),
-                if (_filterCriteria.isNotEmpty)
-                  TextButton(
-                    onPressed: () => setState(() => _filterCriteria = const ReportFilterCriteria()),
-                    child: Text('Clear', style: TextStyle(fontSize: 12.sp)),
-                  ),
-                OutlinedButton.icon(
-                  onPressed: () => RaiseTicketModal.show(context),
-                  icon: const Icon(Icons.support_agent_outlined, size: 16, color: Colors.red),
-                  label: Text('Report Issue / Mistake', style: TextStyle(fontSize: 12.sp, color: Colors.red)),
-                  style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                    side: const BorderSide(color: Colors.red),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: filteredInspections.isEmpty ? null : () => _exportToExcel(filteredInspections),
-                  icon: const Icon(Icons.download, size: 16),
-                  label: Text(
-                    user?.isAdmin == true ? 'Excel Export (All)' : 'Excel Export (My Data)',
-                    style: TextStyle(fontSize: 12.sp),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-                  ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Compact header that seamlessly connects to the AppBar with a slim, space-efficient metrics strip.
+  /// Drastically reduces vertical footprint and scrolls away naturally with list content.
+  Widget _buildCompactHeader({
+    required BuildContext context,
+    required int totalCertificates,
+    required int totalDistricts,
+    required String totalWeight,
+  }) {
+    final topPadding = MediaQuery.of(context).padding.top + 54.h;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(16.w, topPadding + 4.h, 16.w, 12.h),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.darkRed,
+            Color(0xFF063312),
+          ],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(20.r),
+          bottomRight: Radius.circular(20.r),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 7.h),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.16),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildCompactMetric(
+                icon: Icons.workspace_premium_outlined,
+                value: "$totalCertificates",
+                label: "Certificates",
+              ),
+            ),
+            Container(
+              width: 1,
+              height: 22.h,
+              color: Colors.white.withValues(alpha: 0.2),
+            ),
+            Expanded(
+              child: _buildCompactMetric(
+                icon: Icons.location_on_outlined,
+                value: "$totalDistricts",
+                label: "Districts",
+              ),
+            ),
+            Container(
+              width: 1,
+              height: 22.h,
+              color: Colors.white.withValues(alpha: 0.2),
+            ),
+            Expanded(
+              child: _buildCompactMetric(
+                icon: Icons.scale_outlined,
+                value: totalWeight,
+                label: "Volume",
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompactMetric({
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: 15.r, color: AppColors.mintLight),
+        Gap(6.w),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 9.sp,
+                color: AppColors.mintLight.withValues(alpha: 0.85),
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildApprovalWarningBanner() {
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.amber.shade300),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.shield_outlined, color: Colors.amber.shade900, size: 20.r),
+          Gap(10.w),
+          Expanded(
+            child: Text(
+              'Account Pending Approval. Access to full inspection operations is restricted until verified by an Admin.',
+              style: TextStyle(
+                fontSize: 11.sp,
+                color: Colors.amber.shade900,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchAndToolbar({
+    required BuildContext context,
+    required AppUser? user,
+    required List<Inspection> filteredInspections,
+    required bool isFiltered,
+  }) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 6.h),
+      child: Column(
+        children: [
+          // Search input box
+          Container(
+            height: 44.h,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12.r),
+              border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (val) => setState(() => _searchQuery = val),
+              style: TextStyle(fontSize: 13.sp),
+              decoration: InputDecoration(
+                hintText: "Search district, town, farmer, batch...",
+                hintStyle: TextStyle(fontSize: 12.sp, color: Colors.black38),
+                prefixIcon: Icon(Icons.search, size: 20.r, color: AppColors.primaryGreen),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.cancel, size: 18.r, color: Colors.black38),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 10.h),
+              ),
+            ),
           ),
+          Gap(10.h),
 
-          if (filteredInspections.isEmpty)
-            Expanded(
-              child: SafeArea(
-                bottom: false,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Icon(
-                        Icons.history_outlined,
-                        size: 64.r,
-                        color: colorScheme.secondary.withValues(alpha: 0.3),
-                      ),
-                      SizedBox(height: 16.h),
-                      CustomText(
-                        "No completed inspections found",
-                        variant: TextVariant.headlineMedium,
-                        color: colorScheme.secondary,
-                      ),
-                    ],
-                  ).bounceIn(),
+          // Action Toolbar: Filter, Report, Export
+          Row(
+            children: [
+              // Filter Button
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _showFilterDialog,
+                  icon: Icon(
+                    Icons.tune_rounded,
+                    size: 16.r,
+                    color: _filterCriteria.isNotEmpty ? AppColors.primaryGreen : Colors.black87,
+                  ),
+                  label: Text(
+                    _filterCriteria.isNotEmpty
+                        ? 'Filter (${_filterCriteria.activeFilterCount})'
+                        : 'Filter',
+                    style: TextStyle(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: _filterCriteria.isNotEmpty ? AppColors.primaryGreen : Colors.black87,
+                    ),
+                    maxLines: 1,
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    backgroundColor: _filterCriteria.isNotEmpty
+                        ? AppColors.mintLight.withValues(alpha: 0.6)
+                        : Colors.white,
+                    side: BorderSide(
+                      color: _filterCriteria.isNotEmpty
+                          ? AppColors.tcdaAccentGreen
+                          : Colors.black.withValues(alpha: 0.12),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                  ),
                 ),
               ),
-            ),
+              Gap(8.w),
 
-          if (filteredInspections.isNotEmpty)
-            Expanded(
-              child: SafeArea(
-                top: false,
-                child: ListView.builder(
-                  padding: EdgeInsets.all(24.r),
-                  itemCount: districts.length,
-                  itemBuilder: (context, index) {
-                    final entry = districts[index];
-                    final district = entry.key;
-                    final districtInspections = entry.value;
-
-                    final totalKg = districtInspections.fold<double>(
-                      0.0,
-                      (sum, inspection) => sum + inspection.quantity,
-                    );
-
-                    final communities = districtInspections.map((i) => i.farmerName ?? 'Unknown').toSet().length;
-
-                    return HistoryCard(
-                      title: district,
-                      inspectionsCount: "${districtInspections.length}",
-                      communitiesCount: "$communities",
-                      totalKg: totalKg.toStringAsFixed(1),
-                      onTap: () {
-                        if (!isApproved) {
-                          CustomSnackBar.warning(
-                            context,
-                            message: 'Your account is pending admin approval before viewing detailed inspection reports.',
-                          );
-                          return;
-                        }
-                        context.pushNamed(
-                          DistrictDetailScreen.id,
-                          extra: {
-                            'district': district,
-                            'inspections': districtInspections,
-                          },
-                        );
-                      },
-                    ).staggeredListItem(index);
-                  },
+              // Export Excel Button
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: filteredInspections.isEmpty ? null : () => _exportToExcel(filteredInspections),
+                  icon: Icon(Icons.table_chart_outlined, size: 16.r),
+                  label: Text(
+                    user?.isAdmin == true ? 'Export (All)' : 'Export Excel',
+                    style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.grey.shade200,
+                    disabledForegroundColor: Colors.black38,
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                  ),
                 ),
               ),
-            ),
+              Gap(8.w),
+
+              // Report Issue / Ticket Modal
+              OutlinedButton(
+                onPressed: () => RaiseTicketModal.show(context),
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  side: BorderSide(color: Colors.black.withValues(alpha: 0.12)),
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 8.h),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.support_agent_outlined, size: 16.r, color: Colors.orange.shade800),
+                    Gap(4.w),
+                    Text(
+                      "Report",
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActiveFiltersBar() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 6.h),
+      child: Row(
+        children: [
+          Icon(Icons.filter_alt_outlined, size: 14.r, color: AppColors.primaryGreen),
+          Gap(4.w),
+          Text(
+            "Filters Active",
+            style: TextStyle(
+              fontSize: 11.sp,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primaryGreen,
+            ),
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: _clearAllFilters,
+            child: Text(
+              "Clear All",
+              style: TextStyle(
+                fontSize: 11.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.red.shade700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Modern, illustrated empty state with contextual action buttons.
+  Widget _buildEmptyState({
+    required BuildContext context,
+    required bool isFiltered,
+    required bool isAdmin,
+    required bool isApproved,
+  }) {
+    return Padding(
+      padding: EdgeInsets.all(24.r),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Gap(20.h),
+            // Layered badge icon
+            Container(
+              width: 88.r,
+              height: 88.r,
+              decoration: BoxDecoration(
+                color: AppColors.mintLight,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.tcdaAccentGreen.withValues(alpha: 0.25),
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.tcdaAccentGreen.withValues(alpha: 0.08),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Icon(
+                  isFiltered ? Icons.search_off_rounded : Icons.verified_outlined,
+                  size: 42.r,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+            ),
+            Gap(18.h),
+            Text(
+              isFiltered ? "No Matching Certificates" : "No Quality Certificates Yet",
+              style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: AppColors.darkRed,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Gap(8.h),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 300.w),
+              child: Text(
+                isFiltered
+                    ? "We couldn't find any inspection records matching your filters or search keywords. Try clearing or adjusting them."
+                    : (isAdmin
+                        ? "Completed inspections and certified export lots will appear here organized by cashew growing district."
+                        : "Official certificates for batches you inspect will be archived here once completed and certified."),
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  color: Colors.black54,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            Gap(22.h),
+
+            // Call to Action Buttons
+            if (isFiltered)
+              ElevatedButton.icon(
+                onPressed: _clearAllFilters,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text("Reset Search & Filters"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                ),
+              )
+            else if (!isAdmin && isApproved)
+              ElevatedButton.icon(
+                onPressed: () => context.pushNamed(QualityInspectionWizard.id),
+                icon: const Icon(Icons.add_task_rounded, size: 18),
+                label: const Text("Start New Inspection"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+                ),
+              ),
+
+            Gap(12.h),
+            TextButton.icon(
+              onPressed: () => RaiseTicketModal.show(context),
+              icon: Icon(Icons.help_outline, size: 16.r, color: Colors.black54),
+              label: Text(
+                "Need assistance? Report an issue",
+                style: TextStyle(fontSize: 12.sp, color: Colors.black54),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

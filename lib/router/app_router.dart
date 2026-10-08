@@ -33,9 +33,10 @@ GoRouter goRouter(Ref ref) {
       final authState = authNotifier.value;
       final isLoading = authState.isLoading;
       final hasError = authState.hasError;
-      final currentUser = authState.asData?.value;
+      final currentUser = FirebaseAuth.instance.currentUser ?? authState.asData?.value;
       final isLoggedIn = currentUser != null;
-      final isEmailVerified = currentUser?.emailVerified ?? false;
+      final isEmailVerified = (FirebaseAuth.instance.currentUser?.emailVerified ?? false) ||
+          (currentUser?.emailVerified ?? false);
 
       final isSplash = state.uri.path == '/';
       final isBoarding = state.uri.path == '/${BoardingScreen.id}';
@@ -43,27 +44,21 @@ GoRouter goRouter(Ref ref) {
       final isRegister = state.uri.path == '/${RegisterScreen.id}';
       final isForgotPassword = state.uri.path == '/${ForgotPasswordScreen.id}';
       final isEmailVerification = state.uri.path == '/${EmailVerificationScreen.id}';
-      // Routes reachable without a verified sign-in: the membership application
-      // flow and the documents it links to, and the cutting-kit shop guests
-      // can buy from. Everything else requires an account; visitors use the
-      // website.
+      // Routes reachable without a verified sign-in: strictly the membership
+      // application flow and legal documents required for registration agreements.
+      // All guest exploration and public association browsing is directed to the
+      // official website in the default browser.
       final openRoutes = [
-        '/${AboutScreen.id}',
-        '/${ContactUsScreen.id}',
-        '/${QualityStandardsScreen.id}',
         '/${CodeOfEthicsScreen.id}',
         '/${ConstitutionScreen.id}',
         '/${TermsAndConditionsScreen.id}',
         '/${PrivacyPolicyScreen.id}',
-        '/${ServicesScreen.id}',
-        '/${ChaptersScreen.id}',
+        '/${MembershipAgreementDocScreen.id}',
         '/${MembershipInfoScreen.id}',
         '/${MembershipApplicationScreen.id}',
         '/${MembershipAgreementScreen.id}',
         '/${MembershipPaymentScreen.id}',
         '/${VerificationUploadScreen.id}',
-        '/${PartnersScreen.id}',
-        '/${KitPurchaseScreen.id}',
       ];
       final isOpenRoute = openRoutes.contains(state.uri.path);
 
@@ -239,6 +234,11 @@ GoRouter goRouter(Ref ref) {
         path: '/${PrivacyPolicyScreen.id}',
         name: PrivacyPolicyScreen.id,
         builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
+        path: '/${MembershipAgreementDocScreen.id}',
+        name: MembershipAgreementDocScreen.id,
+        builder: (context, state) => const MembershipAgreementDocScreen(),
       ),
       GoRoute(
         path: '/${NotificationsScreen.id}',

@@ -48,7 +48,7 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
     if (!(_formKey.currentState?.saveAndValidate() ?? false)) {
       CustomSnackBar.error(
         context,
-        message: 'Please complete all required fields (Category, Date of Birth, Industry Sector, Qualifications, etc.) before proceeding.',
+        message: 'Please complete all required fields (Category, Date of Birth, Ghana Card, Qualifications, etc.) before proceeding.',
       );
       return;
     }
@@ -60,31 +60,15 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
       return;
     }
 
-    // Foreign Associate applicants identify with a national ID or passport,
-    // which needs no Ghana Card check.
+    // Foreign Associate applicants identify with a national ID or passport.
     if (_selectedCategory == MembershipCategory.fullForeign) {
       formData['national_id_number'] = (formData['national_id_number'] as String?)?.trim();
-      context.pushNamed(MembershipAgreementScreen.id, extra: formData);
-      return;
-    }
-
-    final user = ref.read(currentUserProfileProvider).value;
-    final isAlreadyVerifiedOrPending = user?.verificationStatus == VerificationStatus.verified ||
-        user?.verificationStatus == VerificationStatus.pending ||
-        user?.verification != null;
-
-    // A member who already has a valid Ghana Card number on file is not asked
-    // for it again; anything else — including a number stored before the
-    // format was enforced — goes back through verification.
-    final existingNumber = user?.verification?.idCardNumber;
-    final hasUsableNumber = isAlreadyVerifiedOrPending && GhanaCard.isValid(existingNumber);
-
-    if (hasUsableNumber) {
-      formData['ghana_card_number'] = GhanaCard.normalise(existingNumber);
-      context.pushNamed(MembershipAgreementScreen.id, extra: formData);
     } else {
-      context.pushNamed(VerificationUploadScreen.id, extra: formData);
+      formData['ghana_card_number'] = GhanaCard.normalise(formData['ghana_card_number'] as String?);
     }
+
+    // Direct continuation to Agreements step matching the website flow
+    context.pushNamed(MembershipAgreementScreen.id, extra: formData);
   }
 
   /// Checks the website applies too, beyond what each field validates alone.
@@ -116,8 +100,13 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
     if (_selectedCategory == MembershipCategory.fullForeign && ghanaian) {
       return 'Foreign Associate Membership is for analysts who are not Ghanaian nationals.';
     }
-    if (_selectedCategory == MembershipCategory.fullForeign && ((formData['national_id_number'] as String?)?.trim().length ?? 0) < 4) {
-      return 'Enter the national ID or passport number for this application.';
+    if (_selectedCategory == MembershipCategory.fullForeign) {
+      if (((formData['national_id_number'] as String?)?.trim().length ?? 0) < 4) {
+        return 'Enter the national ID or passport number for this application.';
+      }
+    } else {
+      final cardErr = GhanaCard.validationError(formData['ghana_card_number'] as String?, required: true);
+      if (cardErr != null) return cardErr;
     }
     return null;
   }
@@ -177,13 +166,17 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
     final colorScheme = theme.colorScheme;
     final user = ref.watch(currentUserProfileProvider).value;
 
-    final hasUsableNumber = (user?.verificationStatus == VerificationStatus.verified ||
-            user?.verificationStatus == VerificationStatus.pending) &&
-        GhanaCard.isValid(user?.verification?.idCardNumber);
-
     // A rejected applicant revises their previous application.
     final previous = ref.watch(membershipControllerProvider).value?.myApplication;
     final revising = previous != null && previous.status == ApplicationStatus.rejected ? previous : null;
+
+    final revisingCard = revising?.ghanaCardNumber;
+    final userCard = user?.verification?.idCardNumber;
+    final initialGhanaCard = (revisingCard != null && GhanaCard.isValid(revisingCard))
+        ? GhanaCard.normalise(revisingCard)
+        : ((userCard != null && GhanaCard.isValid(userCard))
+            ? GhanaCard.normalise(userCard)
+            : 'GHA-');
 
     final initialValues = <String, dynamic>{
       if (revising != null) ...{
@@ -201,16 +194,20 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
         'institution': revising.institution,
         'year_qualification_obtained': revising.yearQualificationObtained,
         'national_id_number': revising.nationalIdNumber,
+        'ghana_card_number': initialGhanaCard,
       },
-      'membership_category': MembershipCategory.full.value,
-      'title': 'Mr',
-      'first_name': user?.firstName ?? '',
-      'last_name': user?.lastName ?? '',
-      'nationality': 'Ghanaian',
-      'gender': 'Male',
-      'phone': user?.phoneNumber ?? '',
-      'email': user?.email ?? '',
-      'job_title': user?.role?.toString().split('.').last.capitalize() ?? '',
+      'membership_category': revising?.membershipCategory.value ?? MembershipCategory.full.value,
+      'title': revising?.title.name ?? 'mr',
+      'first_name': user?.firstName ?? revising?.firstName ?? '',
+      'last_name': user?.lastName ?? revising?.lastName ?? '',
+      'nationality': revising?.nationality ?? 'Ghanaian',
+      'gender': revising?.gender == Gender.female
+          ? 'female'
+          : (revising?.gender == Gender.preferNotToSay ? 'prefer_not_to_say' : 'male'),
+      'phone': user?.phoneNumber ?? revising?.phoneNumberPrimary ?? '',
+      'email': user?.email ?? revising?.emailAddress ?? '',
+      'job_title': revising?.currentJobTitle ?? (user?.role?.toString().split('.').last.capitalize() ?? ''),
+      if (revising == null) 'ghana_card_number': initialGhanaCard,
     };
 
     return Scaffold(
@@ -247,32 +244,53 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     Gap(30.h),
                     // Section 2: Personal
                     _buildSectionTitle("2. Personal Information"),
-                    const CustomTextField(
-                      name: 'title',
-                      label: "Title",
-                      hint: "e.g. Mr, Mrs, Dr",
-                      prefixIcon: Icons.badge_outlined,
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: _buildTitleDropdown(colorScheme),
+                        ),
+                        Gap(16.w),
+                        Expanded(
+                          flex: 1,
+                          child: _buildGenderDropdown(colorScheme),
+                        ),
+                      ],
                     ),
                     Gap(16.h),
-                    const CustomTextField(
-                      name: 'first_name',
-                      label: "First Name",
-                      hint: "Enter first name",
-                      prefixIcon: Icons.person_outline,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: const CustomTextField(
+                            name: 'first_name',
+                            label: "First Name *",
+                            hint: "Enter first name",
+                            prefixIcon: Icons.person_outline,
+                          ),
+                        ),
+                        Gap(16.w),
+                        Expanded(
+                          child: const CustomTextField(
+                            name: 'last_name',
+                            label: "Last Name *",
+                            hint: "Enter last name",
+                            prefixIcon: Icons.person_outline,
+                          ),
+                        ),
+                      ],
                     ),
                     Gap(16.h),
-                    const CustomTextField(
-                      name: 'last_name',
-                      label: "Last Name",
-                      hint: "Enter last name",
-                      prefixIcon: Icons.person_outline,
+                    _buildDatePicker("Date of Birth *", "dob", colorScheme),
+                    Gap(4.h),
+                    CustomText(
+                      "Applicants must be at least 18.",
+                      variant: TextVariant.bodySmall,
+                      color: colorScheme.secondary,
                     ),
-                    Gap(16.h),
-                    _buildDatePicker("Date of Birth", "dob", colorScheme),
                     Gap(16.h),
                     CustomTextField(
                       name: 'place_of_birth',
-                      label: "Place of Birth",
+                      label: "Place of Birth *",
                       hint: "e.g. Wenchi, Bono Region",
                       prefixIcon: Icons.place_outlined,
                       validator: FormBuilderValidators.required(errorText: 'Enter your place of birth'),
@@ -280,7 +298,7 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     Gap(16.h),
                     const CustomTextField(
                       name: 'nationality',
-                      label: "Nationality",
+                      label: "Nationality *",
                       hint: "e.g. Ghanaian, Ivorian, Indian, etc.",
                       prefixIcon: Icons.flag_outlined,
                     ),
@@ -294,17 +312,34 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                       Gap(16.h),
                       const CustomTextField(
                         name: 'national_id_number',
-                        label: "National ID / Passport Number",
+                        label: "National ID / Passport Number *",
                         hint: "Passport or national ID number",
                         prefixIcon: Icons.badge_outlined,
                       ),
+                    ] else ...[
+                      Gap(16.h),
+                      CustomTextField(
+                        name: 'ghana_card_number',
+                        label: "Ghana Card Number *",
+                        hint: "GHA-000000000-0",
+                        prefixIcon: Icons.credit_card_outlined,
+                        keyboardType: TextInputType.text,
+                        inputFormatters: [GhanaCardFormatter()],
+                        validator: (value) => GhanaCard.validationError(value, required: true),
+                      ),
+                      Gap(4.h),
+                      CustomText(
+                        "Format: GHA-000000000-0 — nine digits followed by a single check digit.",
+                        variant: TextVariant.bodySmall,
+                        color: colorScheme.secondary,
+                      ),
+                      Gap(12.h),
+                      _buildGhanaCardNotice(colorScheme),
                     ],
-                    Gap(16.h),
-                    _buildGenderDropdown(colorScheme),
                     Gap(16.h),
                     const CustomTextField(
                       name: 'phone',
-                      label: "Primary Phone Number",
+                      label: "Primary Phone Number *",
                       hint: "e.g. +233 XXX XXX XXX",
                       keyboardType: TextInputType.phone,
                       prefixIcon: Icons.phone_outlined,
@@ -314,18 +349,20 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     // generated sign-in password are sent only to it.
                     _buildAccountEmail(colorScheme, user?.email),
                     Gap(16.h),
-                    const CustomTextField(
-                      name: 'address',
-                      label: "Residential Address",
-                      hint: "Enter your residential address",
-                      prefixIcon: Icons.home_outlined,
-                    ),
-                    Gap(16.h),
-                    const CustomTextField(
+                    CustomTextField(
                       name: 'region',
-                      label: "Region/District",
+                      label: "Region / District Zone *",
                       hint: "e.g. Bono / Wenchi",
                       prefixIcon: Icons.location_on_outlined,
+                      validator: FormBuilderValidators.required(errorText: 'Enter your region / district zone'),
+                    ),
+                    Gap(16.h),
+                    CustomTextField(
+                      name: 'address',
+                      label: "Residential Address *",
+                      hint: "e.g. KKG/NE/O13",
+                      prefixIcon: Icons.home_outlined,
+                      validator: FormBuilderValidators.required(errorText: 'Enter your residential address'),
                     ),
 
                     Gap(30.h),
@@ -333,14 +370,14 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     _buildSectionTitle("3. Professional & Employment Details"),
                     const CustomTextField(
                       name: 'job_title',
-                      label: "Current Job Title",
+                      label: "Current Job Title *",
                       hint: "e.g. Quality Analyst / QC Manager",
                       prefixIcon: Icons.work_outline,
                     ),
                     Gap(16.h),
                     const CustomTextField(
                       name: 'employer',
-                      label: "Employer / Organization",
+                      label: "Employer / Organization *",
                       hint: "e.g. Olam Ghana, Mim Cashew, etc.",
                       prefixIcon: Icons.business_outlined,
                     ),
@@ -352,7 +389,7 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     _buildSectionTitle("4. Experience & Qualifications"),
                     CustomTextField(
                       name: 'experience',
-                      label: "Years of Experience in Cashew Quality Analysis / Related Field",
+                      label: "Years of Experience in Cashew Quality Analysis / Related Field *",
                       hint: "e.g. 5",
                       keyboardType: TextInputType.number,
                       prefixIcon: Icons.timeline_outlined,
@@ -366,7 +403,7 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     Gap(16.h),
                     CustomTextField(
                       name: 'professional_qualifications',
-                      label: "Professional Qualifications / Certifications",
+                      label: "Professional Qualifications / Certifications *",
                       hint: "e.g. TCDA training, lab technician certificate",
                       prefixIcon: Icons.workspace_premium_outlined,
                       maxLines: 3,
@@ -377,7 +414,7 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     Gap(16.h),
                     CustomTextField(
                       name: 'field_of_study',
-                      label: "Field of Study",
+                      label: "Field of Study *",
                       hint: "e.g. Agricultural Science, Food Technology, Agronomy",
                       prefixIcon: Icons.school_outlined,
                       validator: FormBuilderValidators.required(errorText: 'Enter your field of study'),
@@ -385,7 +422,7 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     Gap(16.h),
                     CustomTextField(
                       name: 'institution',
-                      label: "Institution",
+                      label: "Institution *",
                       hint: "e.g. University of Ghana",
                       prefixIcon: Icons.account_balance_outlined,
                       validator: FormBuilderValidators.required(errorText: 'Enter the institution'),
@@ -393,7 +430,7 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     Gap(16.h),
                     CustomTextField(
                       name: 'year_qualification_obtained',
-                      label: "Year Obtained",
+                      label: "Year Obtained *",
                       hint: "e.g. 2021",
                       keyboardType: TextInputType.number,
                       prefixIcon: Icons.calendar_today_outlined,
@@ -406,12 +443,18 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                     Gap(40.h),
                     // Action Button to proceed to Agreement
                     CustomButton(
-                      text: hasUsableNumber || _selectedCategory == MembershipCategory.fullForeign
-                          ? "Review & Sign Agreements"
-                          : "Continue to Ghana Card Verification",
+                      text: "Continue to Membership Agreement",
                       onPressed: _navigateToNextStep,
                     ),
-                    Gap(40.h),
+                    Gap(8.h),
+                    Center(
+                      child: CustomText(
+                        "Accepting the agreements files your application for Secretariat review.",
+                        variant: TextVariant.bodySmall,
+                        color: colorScheme.secondary,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -569,7 +612,7 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
           ),
           Gap(6.h),
           CustomText(
-            "Optional kit items can be added at the payment step.",
+            "Optional quality cutting kits (such as the Quality Cutting Kit) can be added at the payment step.",
             variant: TextVariant.bodySmall,
             color: colorScheme.secondary,
           ),
@@ -857,13 +900,38 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
     );
   }
 
+  Widget _buildTitleDropdown(ColorScheme colorScheme) {
+    return FormBuilderDropdown<String>(
+      name: 'title',
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
+        labelText: "Title *",
+        prefixIcon: Icon(Icons.badge_outlined, color: colorScheme.secondary),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.r),
+          borderSide: BorderSide(color: colorScheme.secondary.withValues(alpha: 0.3)),
+        ),
+      ),
+      hint: const CustomText("Title", variant: TextVariant.bodyMedium),
+      items: const [
+        DropdownMenuItem(value: 'mr', child: CustomText('Mr.')),
+        DropdownMenuItem(value: 'ms', child: CustomText('Ms.')),
+        DropdownMenuItem(value: 'mrs', child: CustomText('Mrs.')),
+        DropdownMenuItem(value: 'dr', child: CustomText('Dr.')),
+      ],
+      validator: FormBuilderValidators.required(errorText: 'Select title'),
+    );
+  }
+
   Widget _buildGenderDropdown(ColorScheme colorScheme) {
     return FormBuilderDropdown<String>(
       name: 'gender',
       decoration: InputDecoration(
         filled: true,
         fillColor: Colors.white,
-        labelText: "Gender",
+        labelText: "Gender *",
         prefixIcon: Icon(Icons.person_outline, color: colorScheme.secondary),
         contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
         enabledBorder: OutlineInputBorder(
@@ -872,12 +940,50 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
         ),
       ),
       hint: const CustomText("Select gender", variant: TextVariant.bodyMedium),
-      items: [
-        'Male',
-        'Female',
-        'Prefer not to say',
-      ].map((gender) => DropdownMenuItem(value: gender, child: CustomText(gender))).toList(),
-      validator: FormBuilderValidators.required(),
+      items: const [
+        DropdownMenuItem(value: 'male', child: CustomText('Male')),
+        DropdownMenuItem(value: 'female', child: CustomText('Female')),
+        DropdownMenuItem(value: 'prefer_not_to_say', child: CustomText('Prefer not to say')),
+      ],
+      validator: FormBuilderValidators.required(errorText: 'Select gender'),
+    );
+  }
+
+  Widget _buildGhanaCardNotice(ColorScheme colorScheme) {
+    return Container(
+      padding: EdgeInsets.all(12.r),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(10.r),
+        border: Border.all(color: const Color(0xFFBBF7D0)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.lock_outline, color: const Color(0xFF166534), size: 20.r),
+          Gap(10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const CustomText(
+                  "We no longer collect card images",
+                  variant: TextVariant.bodySmall,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF166534),
+                ),
+                Gap(2.h),
+                CustomText(
+                  "CQAAG records your Ghana Card number, or your national ID number if you are applying as a Foreign Associate Member. "
+                  "No photograph of your card and no selfie is captured or stored. Do not send images of your card to anyone claiming to act for the Association.",
+                  variant: TextVariant.bodySmall,
+                  color: Colors.grey.shade800,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

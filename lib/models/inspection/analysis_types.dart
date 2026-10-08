@@ -30,7 +30,14 @@ class AnalysisTypes {
 
   static bool isExport(String? type) => (type ?? '').toLowerCase().contains('export');
 
-  static bool requiresPayment(String? type) => paid.contains(type);
+  static bool requiresPayment(String? type) {
+    if (type == null) return false;
+    final normalized = type.trim().toLowerCase();
+    return normalized.contains('moisture') ||
+        normalized.contains('dispatch') ||
+        normalized.contains('arbitrat') ||
+        normalized.contains('export');
+  }
 
   /// Only Export certificates go to the CQAAG approval desk.
   static bool requiresApproval(String? type) => isExport(type);

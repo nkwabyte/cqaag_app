@@ -256,77 +256,62 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Gap(24.h),
                     const ProfileSectionHeader(title: "Account"),
 
-                    // Verification Banner - Conditional based on status
+                    // Registry & KYC Status Card
                     Consumer(
                       builder: (context, ref, child) {
                         final user = ref.watch(currentUserProfileProvider).value;
-                        final verificationStatus = user?.verificationStatus ?? VerificationStatus.unverified;
+                        final membershipState = ref.watch(membershipControllerProvider).value;
+                        final myApp = membershipState?.myApplication;
+                        final isApprovedMember = user?.isApproved == true || myApp?.status == ApplicationStatus.approved;
 
-                        // Show upload banner only for unverified users
-                        if (verificationStatus == VerificationStatus.unverified) {
+                        if (myApp == null && !isApprovedMember) {
                           return InkWell(
-                            onTap: () => context.pushNamed(VerificationUploadScreen.id),
+                            onTap: () => context.pushNamed(MembershipApplicationScreen.id),
                             child: Container(
                               padding: EdgeInsets.all(16.r),
                               decoration: BoxDecoration(
-                                color: Colors.blue.withValues(alpha: 0.05),
+                                color: AppColors.primaryGreen.withValues(alpha: 0.06),
                                 borderRadius: BorderRadius.circular(16.r),
-                                border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
+                                border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.2)),
                               ),
                               child: Row(
                                 children: <Widget>[
-                                  Icon(Icons.verified_user, color: Colors.blue, size: 40.r),
+                                  Icon(Icons.card_membership_outlined, color: AppColors.primaryGreen, size: 36.r),
                                   Gap(16.w),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: <Widget>[
                                         const CustomText(
-                                          "Ghana Card Verification",
+                                          "Apply for Member ID",
                                           variant: TextVariant.bodyLarge,
                                           fontWeight: FontWeight.bold,
                                         ),
                                         CustomText(
-                                          "Enter your Ghana Card number",
+                                          "Submit your application and complete KYC onboarding",
                                           variant: TextVariant.bodySmall,
-                                          color: Colors.blue,
+                                          color: AppColors.primaryGreen,
                                         ),
                                       ],
                                     ),
                                   ),
-                                  Icon(Icons.arrow_forward_ios, size: 16.r, color: Colors.blue.withValues(alpha: 0.5)),
+                                  Icon(Icons.arrow_forward_ios, size: 16.r, color: AppColors.primaryGreen.withValues(alpha: 0.5)),
                                 ],
                               ),
                             ),
                           );
                         }
 
-                        // Show status badge for verified or pending users
-                        Color statusColor;
-                        String statusText;
-                        IconData statusIcon;
-
-                        switch (verificationStatus) {
-                          case VerificationStatus.verified:
-                            statusColor = Colors.green;
-                            statusText = "Verified";
-                            statusIcon = Icons.verified;
-                            break;
-                          case VerificationStatus.pending:
-                            statusColor = Colors.orange;
-                            statusText = "Pending Verification";
-                            statusIcon = Icons.pending;
-                            break;
-                          case VerificationStatus.rejected:
-                            statusColor = Colors.red;
-                            statusText = "Verification Rejected";
-                            statusIcon = Icons.cancel;
-                            break;
-                          default:
-                            statusColor = Colors.grey;
-                            statusText = "Not Verified";
-                            statusIcon = Icons.info;
-                        }
+                        // Status badge for existing member or verified applicant
+                        final statusColor = (user?.verificationStatus == VerificationStatus.verified || isApprovedMember)
+                            ? Colors.green
+                            : Colors.orange;
+                        final statusText = (user?.verificationStatus == VerificationStatus.verified || isApprovedMember)
+                            ? "Verified Member"
+                            : "Pending Secretariat Verification";
+                        final statusIcon = (user?.verificationStatus == VerificationStatus.verified || isApprovedMember)
+                            ? Icons.verified
+                            : Icons.pending_actions_outlined;
 
                         return Container(
                           padding: EdgeInsets.all(16.r),
@@ -337,14 +322,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ),
                           child: Row(
                             children: <Widget>[
-                              Icon(statusIcon, color: statusColor, size: 40.r),
+                              Icon(statusIcon, color: statusColor, size: 36.r),
                               Gap(16.w),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: <Widget>[
                                     const CustomText(
-                                      "Verification Status",
+                                      "Registry Status",
                                       variant: TextVariant.bodyLarge,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -401,7 +386,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                             fontWeight: FontWeight.bold,
                                           ),
                                           CustomText(
-                                            "Your membership application and Ghana Card number are under review by the Secretariat. Once approved, you will be prompted to make your registration payment.",
+                                            "Your membership application is under review by the Secretariat. Once approved, you will be prompted to make your registration payment.",
                                             variant: TextVariant.bodySmall,
                                             color: AppColors.primaryGreen,
                                           ),
@@ -767,12 +752,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         icon: Icons.assignment,
                         title: "Membership Agreement",
                         subtitle: "Terms and obligations",
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LegalDocumentReader(type: LegalDocumentType.membershipAgreement),
-                          ),
-                        ),
+                        onTap: () => context.pushNamed(MembershipAgreementDocScreen.id),
                       ),
                       ProfileTile(
                         icon: Icons.article_outlined,
