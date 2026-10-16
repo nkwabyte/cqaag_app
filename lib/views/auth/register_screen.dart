@@ -173,47 +173,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             }
 
                             if (email != null && password != null && firstName != null && lastName != null && phone != null) {
-                              AppDialogs.showLoadingDialog(context, message: "Verifying membership approval...");
+                              AppDialogs.showLoadingDialog(context, message: "Creating your account...");
                               try {
-                                final membershipService = ref.read(membershipServiceProvider);
-                                final application = await membershipService.getApplicationByEmailOrPhone(email);
-
-                                // If non-admin registration, verify that they applied and are approved/verified
-                                if (!_isRegisteringAsAdmin) {
-                                  final isApprovedApplicant = application != null &&
-                                      (application.status == ApplicationStatus.approved ||
-                                          application.isPaymentVerified);
-
-                                  if (!isApprovedApplicant) {
-                                    if (context.mounted) {
-                                      Navigator.of(context, rootNavigator: true).pop();
-                                      showDialog(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          title: const Text("Membership Approval Required"),
-                                          content: const Text(
-                                            "Account creation is available only to verified applicants whose membership application and payment have been approved by CQAAG administration.\n\nPlease apply for membership and submit your payment first.",
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(ctx),
-                                              child: const Text("Cancel"),
-                                            ),
-                                            ElevatedButton(
-                                              onPressed: () {
-                                                Navigator.pop(ctx);
-                                                context.pushNamed(MembershipApplicationScreen.id);
-                                              },
-                                              child: const Text("Apply for Membership"),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    }
-                                    return;
-                                  }
-                                }
-
                                 final authService = ref.read(authServiceProvider);
                                 await authService.signUpWithEmailAndPassword(
                                   email: email,
@@ -226,6 +187,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                   region: region,
                                   isAdmin: _isRegisteringAsAdmin,
                                 );
+
+                                ref.invalidate(currentUserProfileProvider);
+                                ref.invalidate(authStateProvider);
 
                                 if (context.mounted) {
                                   Navigator.of(context, rootNavigator: true).pop();
@@ -255,7 +219,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         },
                       ),
                       Gap(20.h),
-                      // Apply for Membership Option
+                      // Membership Process Info Banner
                       Container(
                         width: double.infinity,
                         padding: EdgeInsets.all(16.r),
@@ -267,27 +231,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         child: Column(
                           children: [
                             CustomText(
-                              "Not an approved member yet?",
+                              "Membership Process",
                               variant: TextVariant.bodyMedium,
                               fontWeight: FontWeight.bold,
                               color: Colors.green.shade900,
                             ),
                             Gap(4.h),
                             CustomText(
-                              "Apply for CQAAG membership, submit your verification & payment details to get approved.",
+                              "Create your account first, then submit your membership application and sign the association agreements from your profile.",
                               variant: TextVariant.bodySmall,
                               textAlign: TextAlign.center,
                               color: Colors.green.shade800,
-                            ),
-                            Gap(12.h),
-                            OutlinedButton.icon(
-                              onPressed: () => context.pushNamed(MembershipApplicationScreen.id),
-                              icon: const Icon(Icons.assignment_outlined, size: 18),
-                              label: const Text("Apply for Membership"),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.green.shade900,
-                                side: BorderSide(color: Colors.green.shade800),
-                              ),
                             ),
                           ],
                         ),

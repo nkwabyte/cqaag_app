@@ -61,17 +61,55 @@ class AuthService {
     final credential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
     if (credential.user == null) return;
 
+    final cleanEmail = email.trim().toLowerCase();
+
+    // Check if there is an existing membership application filed with this email or phone
+    MembershipStatus initialMembershipStatus = MembershipStatus.notAMember;
+    VerificationStatus initialVerificationStatus = VerificationStatus.unverified;
+
+    try {
+      final membersRef = _firestore.collection('members');
+      final emailQuery = await membersRef.where('email_address', isEqualTo: cleanEmail).limit(1).get();
+      QueryDocumentSnapshot<Map<String, dynamic>>? matchedDoc;
+
+      if (emailQuery.docs.isNotEmpty) {
+        matchedDoc = emailQuery.docs.first;
+      } else {
+        final phoneQuery = await membersRef.where('phone_number_primary', isEqualTo: phoneNumber.trim()).limit(1).get();
+        if (phoneQuery.docs.isNotEmpty) {
+          matchedDoc = phoneQuery.docs.first;
+        }
+      }
+
+      if (matchedDoc != null) {
+        final appData = matchedDoc.data();
+        final statusStr = appData['status'] as String?;
+        if (statusStr == 'approved' || (appData['is_payment_verified'] == true)) {
+          initialMembershipStatus = MembershipStatus.verified;
+          initialVerificationStatus = VerificationStatus.verified;
+        } else if (statusStr == 'submitted' || statusStr == 'underReview' || statusStr == 'pendingReview') {
+          initialMembershipStatus = MembershipStatus.applied;
+          initialVerificationStatus = VerificationStatus.pending;
+        }
+        // Link the membership record to the newly created user ID
+        await matchedDoc.reference.update({'user_id': credential.user!.uid});
+      }
+    } catch (_) {
+      // Continue even if linking encounters a non-critical error
+    }
+
     final newUser = AppUser(
       id: credential.user!.uid,
       firstName: firstName,
       lastName: lastName,
-      email: email,
+      email: cleanEmail,
       phoneNumber: phoneNumber,
       address: address,
       district: district,
       region: region,
       isAdmin: isAdmin,
-      verificationStatus: VerificationStatus.unverified,
+      membershipStatus: initialMembershipStatus,
+      verificationStatus: initialVerificationStatus,
     );
 
     await _firestore.collection('users').doc(newUser.id).set(newUser.toJson());

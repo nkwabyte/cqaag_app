@@ -226,6 +226,85 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (ref.watch(authServiceProvider).currentUser == null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(14.r),
+                        margin: EdgeInsets.only(bottom: 20.h),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: Colors.amber.shade300),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.amber.shade900, size: 20.r),
+                            Gap(10.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  CustomText(
+                                    "Account Required to Submit",
+                                    variant: TextVariant.bodyMedium,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.amber.shade900,
+                                  ),
+                                  Gap(4.h),
+                                  CustomText(
+                                    "An account is required to sign agreements and file your application. Please sign in or create an account first.",
+                                    variant: TextVariant.bodySmall,
+                                    color: Colors.amber.shade900,
+                                  ),
+                                  Gap(8.h),
+                                  Row(
+                                    children: [
+                                      TextButton(
+                                        onPressed: () => context.pushNamed(RegisterScreen.id),
+                                        style: TextButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                        child: Text(
+                                          "Create Account",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primaryGreen,
+                                            fontSize: 13.sp,
+                                          ),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 8.w),
+                                        child: Text("•", style: TextStyle(color: Colors.amber.shade900)),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => context.pushNamed(LoginScreen.id),
+                                        style: TextButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                        child: Text(
+                                          "Sign In",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primaryGreen,
+                                            fontSize: 13.sp,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     // Section 1: Category
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
