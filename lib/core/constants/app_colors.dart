@@ -9,6 +9,7 @@ class AppColors {
   static const Color tcdaVibrantGreen = Color(0xFF03B025);
   static const Color tcdaAccentGreen = Color(0xFF038A20);
   static const Color cashewGold = Color(0xFF03B025);
+  static const Color gold = Color(0xFFD97706);
   static const Color mintLight = Color(0xFFDCFCE7);
 
   // Backward compatibility tokens mapped to TCDA green system

@@ -179,17 +179,67 @@ class FeeSchedule {
   /// Kit items an applicant may choose to take, or decline.
   final List<FeeLineItem> optionalItems;
 
+  /// Standard Registration Fee decided by the Board
+  static const double standardRegistrationFee = 320.0;
+
+  /// Existing Full Members on the register who paid the earlier GH₵60
+  /// pay a discounted activation registration fee of GH₵200.
+  static const double existingMemberRegistrationFee = 200.0;
+
+  /// Full Member Annual Dues
+  static const double fullMemberAnnualDues = 200.0;
+
+  /// Foreign Associate special Annual Dues
+  static const double foreignAssociateAnnualDues = 1000.0;
+
+  /// Half-rate factor for National Associate and Corporate Annual Dues (0.5 * 200 = 100)
+  static const double halfRateFactor = 0.5;
+
+  /// Total at activation for Full Members: GH₵320 Reg + GH₵200 Dues = GH₵520
+  static const double fullMemberTotalAtActivation = 520.0;
+
+  /// Total at activation for Existing Full Members: GH₵200 Reg + GH₵200 Dues = GH₵400
+  static const double existingMemberTotalAtActivation = 400.0;
+
+  /// Constitutional revenue sharing (Constitution Art. 2):
+  /// Annual Dues are shared 60% to Chapter and 40% to National Association.
+  /// Registration Fee belongs 100% to National Association.
+  static const double chapterDuesSharePercentage = 0.60;
+  static const double nationalDuesSharePercentage = 0.40;
+  static const double registrationFeeNationalSharePercentage = 1.00;
+
+  /// Monthly recurring consumable: Gloves at GH₵70 per box (GH₵840 per year)
+  static const double glovesMonthlyPrice = 70.0;
+  static const double glovesAnnualPrice = 840.0;
+
+  /// One-time kit subtotal (8 items from Kits sheet excluding monthly consumables: GH₵4,009)
+  static const double kitSubtotalOneTime = 4009.0;
+
+  /// Register counts from the official spreadsheet import:
+  /// 63 existing members (marked Paid) + 35 other members = 98 Full Members
+  static const int legacyExistingPaidCount = 63;
+  static const int legacyOtherCount = 35;
+  static const int legacyTotalCount = 98;
+
+  /// Revenue projection from the 98-member register:
+  /// Existing: 63 × GH₵400 = GH₵25,200 (GH₵12,600 Reg + GH₵12,600 Dues)
+  /// Other: 35 × GH₵520 = GH₵18,200 (GH₵11,200 Reg + GH₵7,000 Dues)
+  /// Total: GH₵43,400 (GH₵23,800 Reg + GH₵19,600 Dues)
+  static const double legacyExistingProjectedRevenue = 25200.0;
+  static const double legacyOtherProjectedRevenue = 18200.0;
+  static const double legacyTotalProjectedRevenue = 43400.0;
+
   /// The schedule as confirmed by the Board, used until an admin edits it.
   ///
-  /// Source: CQAAG — Membership Categories, Fees & Dues Schedule
-  /// (all Constitution categories, Art. 2 as amended). Items the Board has not
-  /// yet priced are left null rather than guessed at.
+  /// Source: CQAAG_Membership_Fee_Schedule_New.xlsx
+  /// (all Constitution categories, Art. 2 as amended).
   static final FeeSchedule defaults = FeeSchedule(
     registrationComponents: [
-      _uniform('lacoste', 'Lacoste', 65),
+      _uniform('lacoste', 'Lacoste shirt', 65),
       _uniform('reflectors', 'Reflectors', 65),
       _uniform('membership_card', 'Membership Card', 50),
       _uniform('miscellaneous', 'Miscellaneous', 70),
+      _uniform('association_margin', "Margin for the Association's activities", 70),
     ],
     annualDues: const {
       'full': 200,
@@ -199,15 +249,14 @@ class FeeSchedule {
       'honorary': 0,
     },
     optionalItems: [
-      _uniform('quality_cutting_kit', 'Quality Cutting Kit', 600, corporate: 0),
-      const FeeLineItem(key: 'safety_boot', label: 'Safety boot', requiresSize: true),
-      const FeeLineItem(key: 'safety_helmet', label: 'Safety helmet'),
-      const FeeLineItem(key: 'moisture_machine', label: 'Moisture Machine'),
-      const FeeLineItem(key: 'cutter', label: 'Cutter'),
-      const FeeLineItem(key: 'kitchen_scale', label: 'Kitchen Scale'),
-      const FeeLineItem(key: 'scooper', label: '5 Scooper'),
-      _uniform('gloves', '1 box of gloves', 70, corporate: 0),
-      const FeeLineItem(key: 'kit_bag', label: '1 CQAAG Kit Bag'),
+      _uniform('safety_boot', 'Safety boot', 200, corporate: 0, requiresSize: true),
+      _uniform('safety_helmet', 'Safety helmet', 40, corporate: 0),
+      _uniform('moisture_machine', 'Moisture Machine (Innovative Instruments DMM B18)', 2500, corporate: 0),
+      _uniform('cutter', 'Cutter', 700, corporate: 0),
+      _uniform('kitchen_scale', 'Kitchen scale (balance)', 302, corporate: 0),
+      _uniform('scooper', '5 Scoopers', 25, corporate: 0),
+      _uniform('gloves', 'Gloves (monthly consumable)', 70, corporate: 0),
+      _uniform('kit_bag', '1 CQAAG Kit Bag', 242, corporate: 0),
     ],
   );
 
@@ -215,7 +264,13 @@ class FeeSchedule {
   ///
   /// Honorary Members are always zero, and Corporate can be overridden because
   /// the schedule prices organizational members differently for kit items.
-  static FeeLineItem _uniform(String key, String label, double amount, {double? corporate}) {
+  static FeeLineItem _uniform(
+    String key,
+    String label,
+    double amount, {
+    double? corporate,
+    bool requiresSize = false,
+  }) {
     return FeeLineItem(
       key: key,
       label: label,
@@ -226,12 +281,17 @@ class FeeSchedule {
         'corporate': corporate ?? amount,
         'honorary': 0,
       },
+      requiresSize: requiresSize,
     );
   }
 
-  /// Registration Fee for [category] — the sum of its components.
-  double registrationFeeFor(FeeCategory category) {
+  /// Registration Fee for [category] — the sum of its components, or the
+  /// discounted rate for existing members who paid the earlier GH₵60.
+  double registrationFeeFor(FeeCategory category, {bool isExistingMember = false}) {
     if (category.isExempt) return 0;
+    if (isExistingMember && category == FeeCategory.full) {
+      return existingMemberRegistrationFee;
+    }
     return registrationComponents.fold<double>(
       0,
       (sum, item) => sum + (item.amountFor(category) ?? 0),
@@ -242,6 +302,39 @@ class FeeSchedule {
   double annualDuesFor(FeeCategory category) {
     if (category.isExempt) return 0;
     return annualDues[category.key] ?? 0;
+  }
+
+  /// 60% Chapter share of Annual Dues (Constitution Art. 2)
+  double chapterDuesShareFor(FeeCategory category) {
+    return annualDuesFor(category) * chapterDuesSharePercentage;
+  }
+
+  /// 40% National Association share of Annual Dues (Constitution Art. 2)
+  double nationalDuesShareFor(FeeCategory category) {
+    return annualDuesFor(category) * nationalDuesSharePercentage;
+  }
+
+  /// Equipment Cost portion of the Registration Fee build-up (Lacoste, Reflectors, Card, Misc: GH₵250)
+  double equipmentCostSubtotalFor(FeeCategory category) {
+    return registrationComponents
+        .where((item) => item.key != 'association_margin')
+        .fold<double>(0, (sum, item) => sum + (item.amountFor(category) ?? 0));
+  }
+
+  /// Margin for Association's activities in the Registration Fee build-up (GH₵70)
+  double associationMarginFor(FeeCategory category) {
+    final item = registrationComponents.firstWhere(
+      (i) => i.key == 'association_margin',
+      orElse: () => const FeeLineItem(key: '', label: ''),
+    );
+    return item.amountFor(category) ?? 0.0;
+  }
+
+  /// One-time kit subtotal (excluding monthly gloves)
+  double oneTimeKitSubtotalFor(FeeCategory category) {
+    return optionalItems
+        .where((item) => item.key != 'gloves' && item.isAvailableTo(category))
+        .fold<double>(0, (sum, item) => sum + (item.amountFor(category) ?? 0));
   }
 
   /// Optional items [category] may actually choose from.
@@ -257,31 +350,46 @@ class FeeSchedule {
   }
 
   /// What [category] owes before any optional items are added.
-  double mandatoryTotalFor(FeeCategory category) {
-    return registrationFeeFor(category) + annualDuesFor(category);
+  double mandatoryTotalFor(FeeCategory category, {bool isExistingMember = false}) {
+    return registrationFeeFor(category, isExistingMember: isExistingMember) + annualDuesFor(category);
   }
 
   /// The schedule's Grand Total — everything, including every priced optional
   /// item. Shown for reference; applicants are only charged what they choose.
-  double grandTotalFor(FeeCategory category) {
+  double grandTotalFor(FeeCategory category, {bool isExistingMember = false}) {
     final optional = optionalItemsFor(category).fold<double>(
       0,
       (sum, item) => sum + (item.amountFor(category) ?? 0),
     );
-    return mandatoryTotalFor(category) + optional;
+    return mandatoryTotalFor(category, isExistingMember: isExistingMember) + optional;
   }
 
   /// Prices a specific applicant's choices.
-  FeeQuote quote(FeeCategory category, {List<SelectedFeeItem> selectedOptionalItems = const []}) {
+  FeeQuote quote(
+    FeeCategory category, {
+    List<SelectedFeeItem> selectedOptionalItems = const [],
+    bool isExistingMember = false,
+  }) {
     final items = category.isExempt ? const <SelectedFeeItem>[] : selectedOptionalItems;
+    final regFee = registrationFeeFor(category, isExistingMember: isExistingMember);
+    final components = (isExistingMember && category == FeeCategory.full)
+        ? [
+            const SelectedFeeItem(
+              key: 'existing_registration',
+              label: 'Registration Fee (Existing Member — earlier GH₵60 credited)',
+              amount: existingMemberRegistrationFee,
+            ),
+          ]
+        : registrationComponents
+            .where((item) => (item.amountFor(category) ?? 0) > 0)
+            .map((item) => SelectedFeeItem(key: item.key, label: item.label, amount: item.amountFor(category)!))
+            .toList();
+
     return FeeQuote(
       category: category,
-      registrationFee: registrationFeeFor(category),
+      registrationFee: regFee,
       annualDues: annualDuesFor(category),
-      registrationComponents: registrationComponents
-          .where((item) => (item.amountFor(category) ?? 0) > 0)
-          .map((item) => SelectedFeeItem(key: item.key, label: item.label, amount: item.amountFor(category)!))
-          .toList(),
+      registrationComponents: components,
       optionalItems: items,
     );
   }

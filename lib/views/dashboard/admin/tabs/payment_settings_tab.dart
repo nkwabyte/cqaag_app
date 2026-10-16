@@ -663,10 +663,22 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
             ),
             Gap(8.h),
             _buildScheduleTotalRow(
-              "Registration Fee total",
+              "Registration Fee total (100% National)",
               settings.money(_schedule.registrationFeeFor(category)),
               colorScheme,
             ),
+            if (category == FeeCategory.full) ...[
+              Gap(4.h),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                child: CustomText(
+                  "• Equipment Subtotal: ${settings.money(_schedule.equipmentCostSubtotalFor(category))} | Association Margin: ${settings.money(_schedule.associationMarginFor(category))}\n"
+                  "• Existing Members on Register: ${settings.money(FeeSchedule.existingMemberRegistrationFee)} (credited earlier GH₵60)",
+                  variant: TextVariant.bodySmall,
+                  color: colorScheme.secondary,
+                ),
+              ),
+            ],
 
             Gap(20.h),
             _buildScheduleSectionHeader("Annual Dues", colorScheme),
@@ -674,6 +686,16 @@ class _PaymentSettingsTabState extends ConsumerState<PaymentSettingsTab> {
               label: "Annual Dues (inclusive of TCDA recommendation letter, where applicable)",
               controller: _amountController('dues', 'annual', _schedule.annualDuesFor(category)),
               colorScheme: colorScheme,
+            ),
+            Gap(4.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4.w),
+              child: CustomText(
+                "Constitutional Sharing (Art. 2): Chapter Share (60%): ${settings.money(_schedule.chapterDuesShareFor(category))} | "
+                "National Share (40%): ${settings.money(_schedule.nationalDuesShareFor(category))}",
+                variant: TextVariant.bodySmall,
+                color: colorScheme.secondary,
+              ),
             ),
 
             Gap(20.h),

@@ -7,6 +7,7 @@ import 'package:cqaag_app/services/website/website_api_service.dart';
 import 'package:cqaag_app/models/membership/membership_category.dart';
 import 'package:cqaag_app/models/payment/fee_schedule.dart';
 import 'package:cqaag_app/models/payment/payment_settings.dart';
+import 'package:cqaag_app/services/membership/legacy_register.dart';
 import 'package:cqaag_app/utils/ghana_card.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -376,6 +377,101 @@ class MembershipService {
       'payment_verified_at': DateTime.now().toIso8601String(),
       'payment_verified_by': verifiedBy,
       'updated_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Seeds all 98 legacy members into the Firestore `members` collection if not already present.
+  Future<int> seedLegacyMembers() async {
+    try {
+      final snapshot = await _applicationsCollection.where('is_legacy', isEqualTo: true).get();
+      final existingIds = snapshot.docs.map((d) => d.id).toSet();
+
+      final batch = _firestore.batch();
+      int count = 0;
+
+      for (final entry in LegacyRegister.allEntries) {
+        if (!existingIds.contains(entry.firestoreDocId)) {
+          final docRef = _applicationsCollection.doc(entry.firestoreDocId);
+          batch.set(docRef, entry.toFirestoreMap());
+          count++;
+        }
+      }
+
+      if (count > 0) {
+        await batch.commit();
+        debugPrint('Seeded $count legacy members into Firestore.');
+      }
+      return count;
+    } catch (e) {
+      debugPrint('Error seeding legacy members: $e');
+      return 0;
+    }
+  }
+
+  /// Claims / links a legacy member record to an authenticated user account.
+  Future<void> claimLegacyMember({
+    required LegacyMemberEntry entry,
+    required String userId,
+    required String email,
+    String? ghanaCardNumber,
+    String? address,
+  }) async {
+    final docRef = _applicationsCollection.doc(entry.firestoreDocId);
+    await docRef.set({
+      ...entry.toFirestoreMap(userId: userId, email: email),
+      'is_claimed': true,
+      'claimed_at': DateTime.now().toIso8601String(),
+      if (ghanaCardNumber != null && ghanaCardNumber.isNotEmpty)
+        'ghana_card_number': GhanaCard.normalise(ghanaCardNumber) ?? ghanaCardNumber,
+      if (address != null && address.isNotEmpty) 'residential_address': address,
+    }, SetOptions(merge: true));
+
+    // Update user profile in users collection
+    await _firestore.collection('users').doc(userId).set({
+      'membership_status': 'verified',
+      'member_id': entry.memberId,
+      'is_legacy_member': true,
+      'legacy_number': entry.number,
+      'company': entry.company,
+      'updated_at': DateTime.now().toIso8601String(),
+    }, SetOptions(merge: true));
+  }
+
+  /// Streams all approved and legacy members for the Members Directory.
+  Stream<List<Map<String, dynamic>>> streamMembersDirectory() {
+    return _applicationsCollection.snapshots().map((snapshot) {
+      final mapByMemberId = <String, Map<String, dynamic>>{};
+
+      // 1. Populate with bundled legacy register (guarantees zero-latency and offline presence)
+      for (final entry in LegacyRegister.allEntries) {
+        mapByMemberId[entry.memberId] = entry.toFirestoreMap();
+      }
+
+      // 2. Overlay live Firestore records (including claimed legacy records and new approved applicants)
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final memberId = data['member_id']?.toString() ??
+            (data['legacy_number'] != null
+                ? 'CQAAG-FM-${data['legacy_number'].toString().padLeft(3, '0')}'
+                : doc.id);
+        mapByMemberId[memberId] = {
+          ...mapByMemberId[memberId] ?? {},
+          ...data,
+          'id': doc.id,
+        };
+      }
+
+      final list = mapByMemberId.values.toList();
+      // Sort by legacy number if available, then by name
+      list.sort((a, b) {
+        final numA = a['legacy_number'] as int? ?? 9999;
+        final numB = b['legacy_number'] as int? ?? 9999;
+        if (numA != numB) return numA.compareTo(numB);
+        final nameA = (a['full_name'] ?? a['first_name'] ?? '').toString();
+        final nameB = (b['full_name'] ?? b['first_name'] ?? '').toString();
+        return nameA.compareTo(nameB);
+      });
+      return list;
     });
   }
 }

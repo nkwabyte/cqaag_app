@@ -574,51 +574,176 @@ class MembershipInfoScreen extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Main categories table
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: DataTable(
                   headingRowColor: WidgetStateProperty.all(AppColors.primaryGreen),
-                  dataRowColor: WidgetStateProperty.all(Colors.grey.shade100),
+                  dataRowColor: WidgetStateProperty.all(Colors.grey.shade50),
                   columns: const [
                     DataColumn(label: Text('Category', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                     DataColumn(label: Text('Registration Fee', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                     DataColumn(label: Text('Annual Dues', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                    DataColumn(label: Text('Payable on joining', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                    DataColumn(label: Text('Payable on Joining', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                   ],
                   rows: FeeCategory.values.map((category) {
                     return DataRow(
                       cells: [
-                        DataCell(Text(category.label)),
+                        DataCell(Text(category.label, style: const TextStyle(fontWeight: FontWeight.w600))),
                         DataCell(Text(cell(schedule.registrationFeeFor(category), category))),
                         DataCell(Text(cell(schedule.annualDuesFor(category), category))),
-                        DataCell(Text(cell(schedule.mandatoryTotalFor(category), category))),
+                        DataCell(Text(
+                          cell(schedule.mandatoryTotalFor(category), category),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: category.isExempt ? Colors.grey : AppColors.primaryGreen),
+                        )),
                       ],
                     );
                   }).toList(),
                 ),
               ),
             ),
-            Gap(12.h),
-            CustomText(
-              'The Registration Fee is made up of ${schedule.registrationComponents.map((e) => e.label).join(', ')}. '
-              'Annual Dues are inclusive of the TCDA recommendation letter, where applicable.',
-              variant: TextVariant.bodySmall,
-              color: Colors.black54,
+            Gap(16.h),
+
+            // Existing Members Callout Box
+            Container(
+              padding: EdgeInsets.all(16.r),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: Colors.amber.shade300),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.workspace_premium, color: Colors.amber.shade900, size: 20.r),
+                      Gap(8.w),
+                      CustomText(
+                        'Existing Members on Earlier Register',
+                        variant: TextVariant.bodyMedium,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber.shade900,
+                      ),
+                    ],
+                  ),
+                  Gap(8.h),
+                  CustomText(
+                    'Full Members who paid the earlier GH₵60 and activate on the app pay a discounted '
+                    'Registration Fee of GH₵200 (credited) plus GH₵200 Annual Dues = GH₵400 total at activation.',
+                    variant: TextVariant.bodySmall,
+                    color: Colors.brown.shade800,
+                  ),
+                ],
+              ),
             ),
-            Gap(8.h),
+            Gap(16.h),
+
+            // Registration Fee Build-Up
+            Container(
+              padding: EdgeInsets.all(16.r),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CustomText(
+                    'Registration Fee Build-up (GH₵ 320)',
+                    variant: TextVariant.bodyMedium,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryGreen,
+                  ),
+                  Gap(8.h),
+                  _buildBuildUpRow('Lacoste Shirt', 'GH₵ 65.00'),
+                  _buildBuildUpRow('Reflectors', 'GH₵ 65.00'),
+                  _buildBuildUpRow('Membership Card', 'GH₵ 50.00'),
+                  _buildBuildUpRow('Miscellaneous', 'GH₵ 70.00'),
+                  const Divider(height: 16),
+                  _buildBuildUpRow('Equipment Subtotal', 'GH₵ 250.00', isBold: true),
+                  _buildBuildUpRow('Margin for Association Activities', 'GH₵ 70.00', isBold: true),
+                  const Divider(height: 16),
+                  _buildBuildUpRow('Total Registration Fee (100% National)', 'GH₵ 320.00', isBold: true, color: AppColors.primaryGreen),
+                ],
+              ),
+            ),
+            Gap(16.h),
+
+            // Constitutional Sharing Rule
+            Container(
+              padding: EdgeInsets.all(14.r),
+              decoration: BoxDecoration(
+                color: AppColors.mintLight.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.pie_chart_outline, color: AppColors.primaryGreen, size: 20.r),
+                  Gap(10.w),
+                  Expanded(
+                    child: CustomText(
+                      'Constitutional Revenue Sharing (Art. 2): Annual Dues are distributed 60% to the Chapter '
+                      'and 40% to the National level. The Registration Fee belongs 100% to the National Association.',
+                      variant: TextVariant.bodySmall,
+                      color: AppColors.primaryGreen,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Gap(16.h),
+
+            // Optional Kits & Consumables Note
             CustomText(
-              'Optional kit items (safety gear, moisture machine, cutter, gloves, kit bag and more) '
-              'are charged separately and only if you choose to take them. You pick these at the payment step.',
+              'Optional Equipment Kits & Consumables:',
+              variant: TextVariant.bodyMedium,
+              fontWeight: FontWeight.bold,
+            ),
+            Gap(4.h),
+            CustomText(
+              '• One-time Kit items (Safety boot GH₵200, Safety helmet GH₵40, Moisture machine GH₵2,500, '
+              'Cutter GH₵700, Kitchen scale GH₵302, 5 Scoopers GH₵25, Kit bag GH₵242 — Subtotal: GH₵4,009).\n'
+              '• Monthly Consumable: Gloves (GH₵70/box, GH₵840/year).\n'
+              'These are optional and only charged if specifically selected at checkout.',
               variant: TextVariant.bodySmall,
-              color: Colors.black54,
+              color: Colors.black87,
             ),
           ],
         );
       },
     );
   }
+
+  Widget _buildBuildUpRow(String label, String amount, {bool isBold = false, Color? color}) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 2.h),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          CustomText(
+            label,
+            variant: TextVariant.bodySmall,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            color: color ?? Colors.black87,
+          ),
+          CustomText(
+            amount,
+            variant: TextVariant.bodySmall,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            color: color ?? Colors.black87,
+          ),
+        ],
+      ),
+    );
+  }
 }
+

@@ -9,6 +9,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:uuid/uuid.dart' as uuid_pkg;
 
 import 'package:cqaag_app/index.dart';
+import 'package:cqaag_app/services/membership/legacy_register.dart';
 
 /// Paying for an approved membership: see the fee broken down, choose which
 /// optional quality cutting kit items to take, then pay.
@@ -89,6 +90,10 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
   /// Builds the applicant's quote from what they have selected.
   FeeQuote _quote(PaymentSettings settings) {
     final feeCategory = FeeCategory.fromMembership(_category);
+    final isExisting = LegacyRegister.isExistingMember(
+      phone: _application?.phoneNumberPrimary,
+      name: '${_application?.firstName} ${_application?.lastName}',
+    );
     final selected = settings.schedule
         .optionalItemsFor(feeCategory)
         .where((item) => _selectedOptionalKeys.contains(item.key))
@@ -102,7 +107,11 @@ class _MembershipPaymentScreenState extends ConsumerState<MembershipPaymentScree
         )
         .toList();
 
-    return settings.schedule.quote(feeCategory, selectedOptionalItems: selected);
+    return settings.schedule.quote(
+      feeCategory,
+      selectedOptionalItems: selected,
+      isExistingMember: isExisting,
+    );
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cqaag_app/models/user/app_user.dart';
 import 'package:cqaag_app/services/connectivity/connectivity_service.dart';
+import 'package:cqaag_app/services/membership/legacy_register.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -92,7 +93,28 @@ class AuthService {
           initialVerificationStatus = VerificationStatus.pending;
         }
         // Link the membership record to the newly created user ID
-        await matchedDoc.reference.update({'user_id': credential.user!.uid});
+        await matchedDoc.reference.update({
+          'user_id': credential.user!.uid,
+          'email_address': cleanEmail,
+          'is_claimed': true,
+          'claimed_at': DateTime.now().toIso8601String(),
+        });
+      } else {
+        // Check legacy register by phone or name
+        final legacyMatch = LegacyRegister.findByPhone(phoneNumber) ??
+            LegacyRegister.findByName('$firstName $lastName') ??
+            LegacyRegister.findByName('$lastName $firstName');
+        if (legacyMatch != null) {
+          initialMembershipStatus = MembershipStatus.verified;
+          initialVerificationStatus = VerificationStatus.verified;
+          // Seed & claim in Firestore members collection
+          await membersRef.doc(legacyMatch.firestoreDocId).set({
+            ...legacyMatch.toFirestoreMap(userId: credential.user!.uid, email: cleanEmail),
+            'is_claimed': true,
+            'claimed_at': DateTime.now().toIso8601String(),
+            if (address != null && address.isNotEmpty) 'residential_address': address,
+          }, SetOptions(merge: true));
+        }
       }
     } catch (_) {
       // Continue even if linking encounters a non-critical error
