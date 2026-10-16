@@ -14,7 +14,9 @@ class TermsAndConditionsScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProfileProvider).value;
-    final isAuthenticated = user != null;
+    final currentAuthUser = ref.watch(authServiceProvider).currentUser;
+    final targetUserId = user?.id ?? currentAuthUser?.uid;
+    final isAuthenticated = targetUserId != null;
 
     final isLoading = useState(false);
 
@@ -22,7 +24,8 @@ class TermsAndConditionsScreen extends HookConsumerWidget {
       if (isAuthenticated) {
         try {
           isLoading.value = true;
-          await ref.read(userServiceProvider).updateUserData(user.id, {'has_accepted_terms': true});
+          await ref.read(userServiceProvider).updateUserData(targetUserId, {'has_accepted_terms': true});
+          ref.invalidate(currentUserProfileProvider);
           if (context.mounted) {
             context.goNamed(DashboardScreen.id);
           }
@@ -44,11 +47,13 @@ class TermsAndConditionsScreen extends HookConsumerWidget {
     final extra = GoRouterState.of(context).extra as Map<String, dynamic>?;
     final fromRegister = extra?['fromRegister'] as bool? ?? false;
 
-    final needsAcceptance = !isAuthenticated || !user.hasAcceptedTerms;
+    final needsAcceptance = !isAuthenticated || (user?.hasAcceptedTerms != true);
 
-    return LegalDocumentReader(
-      type: LegalDocumentType.termsOfService,
-      showBack: !fromRegister,
+    return PopScope(
+      canPop: !fromRegister,
+      child: LegalDocumentReader(
+        type: LegalDocumentType.termsOfService,
+        showBack: !fromRegister,
       footer: needsAcceptance
           ? Container(
               padding: EdgeInsets.all(24.r),
@@ -101,6 +106,7 @@ class TermsAndConditionsScreen extends HookConsumerWidget {
               ),
             )
           : null,
+      ),
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:gap/gap.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:cqaag_app/index.dart';
+import 'package:cqaag_app/services/membership/legacy_register.dart';
 
 class MembershipApplicationScreen extends ConsumerStatefulWidget {
   static const String id = 'membership_application_screen';
@@ -226,6 +227,85 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (ref.watch(authServiceProvider).currentUser == null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(14.r),
+                        margin: EdgeInsets.only(bottom: 20.h),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: Colors.amber.shade300),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.amber.shade900, size: 20.r),
+                            Gap(10.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  CustomText(
+                                    "Account Required to Submit",
+                                    variant: TextVariant.bodyMedium,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.amber.shade900,
+                                  ),
+                                  Gap(4.h),
+                                  CustomText(
+                                    "An account is required to sign agreements and file your application. Please sign in or create an account first.",
+                                    variant: TextVariant.bodySmall,
+                                    color: Colors.amber.shade900,
+                                  ),
+                                  Gap(8.h),
+                                  Row(
+                                    children: [
+                                      TextButton(
+                                        onPressed: () => context.pushNamed(RegisterScreen.id),
+                                        style: TextButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                        child: Text(
+                                          "Create Account",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primaryGreen,
+                                            fontSize: 13.sp,
+                                          ),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: EdgeInsets.symmetric(horizontal: 8.w),
+                                        child: Text("•", style: TextStyle(color: Colors.amber.shade900)),
+                                      ),
+                                      TextButton(
+                                        onPressed: () => context.pushNamed(LoginScreen.id),
+                                        style: TextButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                        child: Text(
+                                          "Sign In",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primaryGreen,
+                                            fontSize: 13.sp,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     // Section 1: Category
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -582,6 +662,11 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
     final settings = ref.watch(paymentSettingsProvider).value ?? PaymentSettings.defaults;
     final feeCategory = FeeCategory.fromMembership(_selectedCategory);
     final schedule = settings.schedule;
+    final currentUser = ref.watch(currentUserProfileProvider).value;
+    final isExisting = LegacyRegister.isExistingMember(
+      phone: currentUser?.phoneNumber,
+      name: currentUser != null ? '${currentUser.firstName} ${currentUser.lastName}' : null,
+    );
 
     if (feeCategory.isExempt) {
       return _buildFeePreviewShell(
@@ -594,12 +679,42 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
       );
     }
 
+    final isExistingFull = isExisting && feeCategory == FeeCategory.full;
+
     return _buildFeePreviewShell(
       colorScheme,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildFeePreviewRow("Registration Fee", settings.money(schedule.registrationFeeFor(feeCategory))),
+          if (isExistingFull) ...[
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+              margin: EdgeInsets.only(bottom: 8.h),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(color: Colors.green.shade300),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.verified_outlined, size: 16.r, color: Colors.green.shade800),
+                  Gap(6.w),
+                  Expanded(
+                    child: CustomText(
+                      "Recognised on the CQAAG Register: earlier GH₵60 credited. Registration fee is GH₵200.",
+                      variant: TextVariant.bodySmall,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green.shade900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          _buildFeePreviewRow(
+            isExistingFull ? "Registration Fee (Existing Member)" : "Registration Fee",
+            settings.money(schedule.registrationFeeFor(feeCategory, isExistingMember: isExistingFull)),
+          ),
           Gap(4.h),
           _buildFeePreviewRow("Annual Dues", settings.money(schedule.annualDuesFor(feeCategory))),
           Gap(6.h),
@@ -607,12 +722,12 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
           Gap(6.h),
           _buildFeePreviewRow(
             "Payable on registration",
-            settings.money(schedule.mandatoryTotalFor(feeCategory)),
+            settings.money(schedule.mandatoryTotalFor(feeCategory, isExistingMember: isExistingFull)),
             isBold: true,
           ),
           Gap(6.h),
           CustomText(
-            "Optional quality cutting kits (such as the Quality Cutting Kit) can be added at the payment step.",
+            "Optional quality cutting kits and safety gear can be added at the payment step.",
             variant: TextVariant.bodySmall,
             color: colorScheme.secondary,
           ),

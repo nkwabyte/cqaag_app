@@ -36,7 +36,9 @@ class ReportFeeField extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final settings = ref.watch(paymentSettingsProvider).value ?? PaymentSettings.defaults;
-    final fee = settings.money(AnalysisTypes.reportFeeCedis);
+    final calculated = AnalysisTypes.feeFor(analysisType);
+    final feeAmount = calculated > 0 ? calculated : AnalysisTypes.reportFeeCedis;
+    final fee = settings.money(feeAmount);
 
     return FormBuilderField<ReportFeeInput>(
       name: fieldName,

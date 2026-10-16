@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:cqaag_app/services/membership/legacy_register.dart';
 import 'package:cqaag_app/index.dart';
 
 part 'app_router.g.dart';
@@ -59,6 +60,7 @@ GoRouter goRouter(Ref ref) {
         '/${MembershipAgreementScreen.id}',
         '/${MembershipPaymentScreen.id}',
         '/${VerificationUploadScreen.id}',
+        '/${MembersDirectoryScreen.id}',
       ];
       final isOpenRoute = openRoutes.contains(state.uri.path);
 
@@ -107,7 +109,11 @@ GoRouter goRouter(Ref ref) {
       GoRoute(
         path: '/${RegisterScreen.id}',
         name: RegisterScreen.id,
-        builder: (context, state) => const RegisterScreen(),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final legacyMember = extra?['legacyMember'] as LegacyMemberEntry?;
+          return RegisterScreen(initialLegacyMember: legacyMember);
+        },
       ),
       GoRoute(
         path: '/${EmailVerificationScreen.id}',
@@ -163,6 +169,11 @@ GoRouter goRouter(Ref ref) {
         path: '/${ServicesScreen.id}',
         name: ServicesScreen.id,
         builder: (context, state) => const ServicesScreen(),
+      ),
+      GoRoute(
+        path: '/${MembersDirectoryScreen.id}',
+        name: MembersDirectoryScreen.id,
+        builder: (context, state) => const MembersDirectoryScreen(),
       ),
       GoRoute(
         path: '/${AdminDashboardScreen.id}',

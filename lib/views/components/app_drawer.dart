@@ -77,6 +77,16 @@ class AppDrawer extends ConsumerWidget {
                               context.goNamed(DashboardScreen.id);
                             },
                       ),
+                      _buildDrawerItem(
+                        context: context,
+                        colorScheme: colorScheme,
+                        icon: Icons.badge_outlined,
+                        title: 'Members Register',
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.pushNamed(MembersDirectoryScreen.id);
+                        },
+                      ),
 
                       _buildDrawerItem(
                         context: context,

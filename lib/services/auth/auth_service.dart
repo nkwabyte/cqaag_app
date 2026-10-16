@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cqaag_app/models/user/app_user.dart';
 import 'package:cqaag_app/services/connectivity/connectivity_service.dart';
+import 'package:cqaag_app/services/membership/legacy_register.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -61,17 +62,76 @@ class AuthService {
     final credential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
     if (credential.user == null) return;
 
+    final cleanEmail = email.trim().toLowerCase();
+
+    // Check if there is an existing membership application filed with this email or phone
+    MembershipStatus initialMembershipStatus = MembershipStatus.notAMember;
+    VerificationStatus initialVerificationStatus = VerificationStatus.unverified;
+
+    try {
+      final membersRef = _firestore.collection('members');
+      final emailQuery = await membersRef.where('email_address', isEqualTo: cleanEmail).limit(1).get();
+      QueryDocumentSnapshot<Map<String, dynamic>>? matchedDoc;
+
+      if (emailQuery.docs.isNotEmpty) {
+        matchedDoc = emailQuery.docs.first;
+      } else {
+        final phoneQuery = await membersRef.where('phone_number_primary', isEqualTo: phoneNumber.trim()).limit(1).get();
+        if (phoneQuery.docs.isNotEmpty) {
+          matchedDoc = phoneQuery.docs.first;
+        }
+      }
+
+      if (matchedDoc != null) {
+        final appData = matchedDoc.data();
+        final statusStr = appData['status'] as String?;
+        if (statusStr == 'approved' || (appData['is_payment_verified'] == true)) {
+          initialMembershipStatus = MembershipStatus.verified;
+          initialVerificationStatus = VerificationStatus.verified;
+        } else if (statusStr == 'submitted' || statusStr == 'underReview' || statusStr == 'pendingReview') {
+          initialMembershipStatus = MembershipStatus.applied;
+          initialVerificationStatus = VerificationStatus.pending;
+        }
+        // Link the membership record to the newly created user ID
+        await matchedDoc.reference.update({
+          'user_id': credential.user!.uid,
+          'email_address': cleanEmail,
+          'is_claimed': true,
+          'claimed_at': DateTime.now().toIso8601String(),
+        });
+      } else {
+        // Check legacy register by phone or name
+        final legacyMatch = LegacyRegister.findByPhone(phoneNumber) ??
+            LegacyRegister.findByName('$firstName $lastName') ??
+            LegacyRegister.findByName('$lastName $firstName');
+        if (legacyMatch != null) {
+          initialMembershipStatus = MembershipStatus.verified;
+          initialVerificationStatus = VerificationStatus.verified;
+          // Seed & claim in Firestore members collection
+          await membersRef.doc(legacyMatch.firestoreDocId).set({
+            ...legacyMatch.toFirestoreMap(userId: credential.user!.uid, email: cleanEmail),
+            'is_claimed': true,
+            'claimed_at': DateTime.now().toIso8601String(),
+            if (address != null && address.isNotEmpty) 'residential_address': address,
+          }, SetOptions(merge: true));
+        }
+      }
+    } catch (_) {
+      // Continue even if linking encounters a non-critical error
+    }
+
     final newUser = AppUser(
       id: credential.user!.uid,
       firstName: firstName,
       lastName: lastName,
-      email: email,
+      email: cleanEmail,
       phoneNumber: phoneNumber,
       address: address,
       district: district,
       region: region,
       isAdmin: isAdmin,
-      verificationStatus: VerificationStatus.unverified,
+      membershipStatus: initialMembershipStatus,
+      verificationStatus: initialVerificationStatus,
     );
 
     await _firestore.collection('users').doc(newUser.id).set(newUser.toJson());

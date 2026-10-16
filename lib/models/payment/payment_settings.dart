@@ -103,12 +103,16 @@ abstract class PaymentSettings with _$PaymentSettings {
     /// Legacy flat registration fee, kept so records and clients written
     /// before the fee schedule existed still read a sensible number.
     /// New quotes come from [schedule] instead.
-    @Default(250.0) double registrationFee,
+    @Default(320.0) double registrationFee,
 
     /// Legacy flat registration fee for foreign applicants. Under the schedule
     /// the Registration Fee is the same for every fee-paying category; only the
     /// Annual Dues differ.
-    @Default(250.0) double foreignRegistrationFee,
+    @Default(320.0) double foreignRegistrationFee,
+
+    /// Discounted registration fee for existing members on the earlier register
+    /// who already paid the earlier GH₵60.
+    @Default(200.0) double existingRegistrationFee,
 
     /// ISO currency code. Ghana Cedis unless changed.
     @Default('GHS') String currency,
@@ -149,33 +153,35 @@ abstract class PaymentSettings with _$PaymentSettings {
   /// Formats an amount in the configured currency, e.g. `GHS 520.00`.
   String money(double amount) => '$currency ${amount.toStringAsFixed(2)}';
 
-  /// Fee formatted for display, e.g. `GHS 250.00`.
+  /// Fee formatted for display, e.g. `GHS 320.00`.
   String get formattedFee => money(registrationFee);
 
   /// Registration Fee for a membership category, per the fee schedule.
-  double feeForCategory(MembershipCategory? category) {
-    return schedule.registrationFeeFor(FeeCategory.fromMembership(category));
+  double feeForCategory(MembershipCategory? category, {bool isExistingMember = false}) {
+    return schedule.registrationFeeFor(FeeCategory.fromMembership(category), isExistingMember: isExistingMember);
   }
 
   /// Formatted Registration Fee for a specific membership category.
-  String formattedFeeFor(MembershipCategory? category) {
-    return money(feeForCategory(category));
+  String formattedFeeFor(MembershipCategory? category, {bool isExistingMember = false}) {
+    return money(feeForCategory(category, isExistingMember: isExistingMember));
   }
 
   /// What a category owes before choosing any optional kit items:
   /// Registration Fee + Annual Dues.
-  double mandatoryTotalFor(MembershipCategory? category) {
-    return schedule.mandatoryTotalFor(FeeCategory.fromMembership(category));
+  double mandatoryTotalFor(MembershipCategory? category, {bool isExistingMember = false}) {
+    return schedule.mandatoryTotalFor(FeeCategory.fromMembership(category), isExistingMember: isExistingMember);
   }
 
   /// Prices one applicant's choices against the schedule in force.
   FeeQuote quoteFor(
     MembershipCategory? category, {
     List<SelectedFeeItem> selectedOptionalItems = const [],
+    bool isExistingMember = false,
   }) {
     return schedule.quote(
       FeeCategory.fromMembership(category),
       selectedOptionalItems: selectedOptionalItems,
+      isExistingMember: isExistingMember,
     );
   }
 }

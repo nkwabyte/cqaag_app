@@ -31,3 +31,4 @@ export 'notifications_screen.dart';
 export 'chapters_screen.dart';
 export 'kit_purchase_screen.dart';
 export 'membership_agreement_doc_screen.dart';
+export 'members_directory_screen.dart';

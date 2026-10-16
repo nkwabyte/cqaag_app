@@ -7,10 +7,10 @@ void main() {
   group('FeeSchedule defaults match the Board fee schedule', () {
     final schedule = FeeSchedule.defaults;
 
-    test('Registration Fee is 250 for every fee-paying category', () {
+    test('Registration Fee is 320 for every fee-paying category', () {
       for (final category in FeeCategory.values) {
         if (category.isExempt) continue;
-        expect(schedule.registrationFeeFor(category), 250, reason: category.label);
+        expect(schedule.registrationFeeFor(category), 320, reason: category.label);
       }
       expect(schedule.registrationFeeFor(FeeCategory.honorary), 0);
     });
@@ -25,26 +25,75 @@ void main() {
       expect(schedule.annualDuesFor(FeeCategory.honorary), 0);
     });
 
-    test('Grand Totals reproduce the schedule spreadsheet', () {
-      expect(schedule.grandTotalFor(FeeCategory.full), 1120);
-      expect(schedule.grandTotalFor(FeeCategory.nationalAssociate), 1020);
-      expect(schedule.grandTotalFor(FeeCategory.foreignAssociate), 1920);
-      expect(schedule.grandTotalFor(FeeCategory.corporate), 350);
+    test('Grand Totals reproduce the new schedule spreadsheet', () {
+      expect(schedule.grandTotalFor(FeeCategory.full), 4599);
+      expect(schedule.grandTotalFor(FeeCategory.nationalAssociate), 4499);
+      expect(schedule.grandTotalFor(FeeCategory.foreignAssociate), 5399);
+      expect(schedule.grandTotalFor(FeeCategory.corporate), 420);
       expect(schedule.grandTotalFor(FeeCategory.honorary), 0);
     });
 
-    test('only priced optional items are offered', () {
-      // Quality Cutting Kit and Gloves are priced optional items from the schedule.
+    test('all 8 priced kit items are offered for full members', () {
       expect(
         schedule.optionalItemsFor(FeeCategory.full).map((e) => e.key),
-        ['quality_cutting_kit', 'gloves'],
+        [
+          'safety_boot',
+          'safety_helmet',
+          'moisture_machine',
+          'cutter',
+          'kitchen_scale',
+          'scooper',
+          'gloves',
+          'kit_bag',
+        ],
       );
       // Corporate members are priced at zero for kit items, so nothing is offered.
       expect(schedule.optionalItemsFor(FeeCategory.corporate), isEmpty);
       expect(schedule.optionalItemsFor(FeeCategory.honorary), isEmpty);
 
-      // The unpriced items are surfaced separately, not silently dropped.
-      expect(schedule.unpricedOptionalItemsFor(FeeCategory.full).length, 7);
+      // All items from Sheet 2 are priced now.
+      expect(schedule.unpricedOptionalItemsFor(FeeCategory.full), isEmpty);
+    });
+
+    test('Registration Fee build-up equals equipment cost (250) + margin (70) = 320', () {
+      expect(schedule.equipmentCostSubtotalFor(FeeCategory.full), 250);
+      expect(schedule.associationMarginFor(FeeCategory.full), 70);
+      expect(schedule.registrationFeeFor(FeeCategory.full), 320);
+    });
+
+    test('Constitutional dues sharing divides 60% Chapter / 40% National', () {
+      expect(schedule.chapterDuesShareFor(FeeCategory.full), 120); // 60% of 200
+      expect(schedule.nationalDuesShareFor(FeeCategory.full), 80);  // 40% of 200
+      expect(schedule.chapterDuesShareFor(FeeCategory.nationalAssociate), 60);
+      expect(schedule.nationalDuesShareFor(FeeCategory.nationalAssociate), 40);
+      expect(schedule.chapterDuesShareFor(FeeCategory.foreignAssociate), 600);
+      expect(schedule.nationalDuesShareFor(FeeCategory.foreignAssociate), 400);
+    });
+
+    test('one-time kit subtotal equals 4,009 and monthly gloves equals 70 (840/yr)', () {
+      expect(schedule.oneTimeKitSubtotalFor(FeeCategory.full), 4009);
+      expect(FeeSchedule.glovesMonthlyPrice, 70);
+      expect(FeeSchedule.glovesAnnualPrice, 840);
+    });
+
+    test('existing members on earlier register pay 200 registration + 200 dues = 400 total', () {
+      expect(schedule.registrationFeeFor(FeeCategory.full, isExistingMember: true), 200);
+      expect(schedule.mandatoryTotalFor(FeeCategory.full, isExistingMember: true), 400);
+
+      final quote = schedule.quote(FeeCategory.full, isExistingMember: true);
+      expect(quote.registrationFee, 200);
+      expect(quote.annualDues, 200);
+      expect(quote.total, 400);
+      expect(quote.registrationComponents.first.label, contains('Existing Member — earlier GH₵60 credited'));
+    });
+
+    test('98-member register projected revenue reproduces the spreadsheet', () {
+      expect(FeeSchedule.legacyExistingPaidCount, 63);
+      expect(FeeSchedule.legacyOtherCount, 35);
+      expect(FeeSchedule.legacyTotalCount, 98);
+      expect(FeeSchedule.legacyExistingProjectedRevenue, 25200);
+      expect(FeeSchedule.legacyOtherProjectedRevenue, 18200);
+      expect(FeeSchedule.legacyTotalProjectedRevenue, 43400);
     });
   });
 
@@ -54,7 +103,7 @@ void main() {
     test('declining every optional item leaves the mandatory total', () {
       final quote = schedule.quote(FeeCategory.full);
       expect(quote.optionalTotal, 0);
-      expect(quote.total, 450); // 250 registration + 200 dues
+      expect(quote.total, 520); // 320 registration + 200 dues
     });
 
     test('taking an optional item adds exactly its price', () {
@@ -66,19 +115,19 @@ void main() {
         ],
       );
       expect(quote.optionalTotal, 70);
-      expect(quote.total, 520);
+      expect(quote.total, 590);
     });
 
-    test('taking quality cutting kit adds 600', () {
-      final kit = schedule.optionalItemsFor(FeeCategory.full).firstWhere((e) => e.key == 'quality_cutting_kit');
+    test('taking cutter adds 700', () {
+      final cutter = schedule.optionalItemsFor(FeeCategory.full).firstWhere((e) => e.key == 'cutter');
       final quote = schedule.quote(
         FeeCategory.full,
         selectedOptionalItems: [
-          SelectedFeeItem(key: kit.key, label: kit.label, amount: kit.amountFor(FeeCategory.full)!),
+          SelectedFeeItem(key: cutter.key, label: cutter.label, amount: cutter.amountFor(FeeCategory.full)!),
         ],
       );
-      expect(quote.optionalTotal, 600);
-      expect(quote.total, 1050);
+      expect(quote.optionalTotal, 700);
+      expect(quote.total, 1220);
     });
 
     test('Honorary Members are never charged, even for a chosen item', () {
@@ -116,22 +165,22 @@ void main() {
       final restored = FeeSchedule.fromJson(edited.toJson());
 
       expect(restored.annualDuesFor(FeeCategory.full), 275);
-      expect(restored.registrationFeeFor(FeeCategory.full), 250);
-      expect(restored.grandTotalFor(FeeCategory.full), 1195);
+      expect(restored.registrationFeeFor(FeeCategory.full), 320);
+      expect(restored.grandTotalFor(FeeCategory.full), 4674);
     });
 
-    test('an unpriced item stays unpriced rather than becoming free', () {
+    test('safety boot preserves size requirement and price', () {
       final restored = FeeSchedule.fromJson(FeeSchedule.defaults.toJson());
       final boot = restored.optionalItems.firstWhere((e) => e.key == 'safety_boot');
 
-      expect(boot.amountFor(FeeCategory.full), isNull);
-      expect(boot.isAvailableTo(FeeCategory.full), isFalse);
+      expect(boot.amountFor(FeeCategory.full), 200);
+      expect(boot.isAvailableTo(FeeCategory.full), isTrue);
       expect(boot.requiresSize, isTrue);
     });
 
     test('a partial document falls back to the Board defaults', () {
       final restored = FeeSchedule.fromJson({});
-      expect(restored.grandTotalFor(FeeCategory.full), 1120);
+      expect(restored.grandTotalFor(FeeCategory.full), 4599);
     });
   });
 

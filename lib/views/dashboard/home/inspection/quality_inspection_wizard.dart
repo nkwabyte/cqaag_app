@@ -240,6 +240,13 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
       final nowIso = DateTime.now().toUtc().toIso8601String();
       final inspectorName = userProfile != null ? '${userProfile.firstName} ${userProfile.lastName}'.trim() : null;
 
+      final calculatedFee = AnalysisTypes.feeFor(
+        analysisType,
+        quantityTons: (formData['quantity'] as num?)?.toDouble() ?? 0,
+        netWeightKg: (formData['net_weight'] as num?)?.toDouble() ?? 0,
+      );
+      final finalReportFee = feeRequired ? (calculatedFee > 0 ? calculatedFee : AnalysisTypes.reportFeeCedis) : 0.0;
+
       final inspection = Inspection(
         id: _docId,
         inspectionId: _customInspectionId,
@@ -303,7 +310,7 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
         inspectorEmail: user.email,
 
         // Certificate fee, checked by the Secretariat.
-        reportFeeAmount: feeRequired ? AnalysisTypes.reportFeeCedis : 0,
+        reportFeeAmount: finalReportFee,
         reportFeeCurrency: settings.currency,
         reportFeeStatus: feeRequired ? PaymentStatus.pendingVerification.value : 'not_required',
         reportFeeEvidenceUrl: feeEvidenceUrl,
@@ -350,7 +357,7 @@ class _QualityInspectionWizardState extends ConsumerState<QualityInspectionWizar
       Navigator.of(context, rootNavigator: true).pop();
 
       final feeNote = feeRequired
-          ? ' The ${settings.money(AnalysisTypes.reportFeeCedis)} certificate fee awaits Secretariat verification.'
+          ? ' The ${settings.money(inspection.reportFeeAmount)} certificate fee awaits Secretariat verification.'
           : '';
       CustomSnackBar.success(
         context,

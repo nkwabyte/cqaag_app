@@ -139,3 +139,10 @@ class MembershipController extends _$MembershipController {
 Stream<List<MembershipApplication>> allMembershipApplications(Ref ref) {
   return ref.watch(membershipControllerProvider.select((value) => Stream.value(value.value?.allApplications ?? [])));
 }
+
+/// Provider for the full Members Directory (public & members)
+@Riverpod(keepAlive: true)
+Stream<List<Map<String, dynamic>>> membersDirectory(Ref ref) {
+  final service = ref.watch(membershipServiceProvider);
+  return service.streamMembersDirectory();
+}
