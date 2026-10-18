@@ -136,6 +136,11 @@ GoRouter goRouter(Ref ref) {
         builder: (context, state) => const MembershipApplicationScreen(),
       ),
       GoRoute(
+        path: '/${MembershipCardScreen.id}',
+        name: MembershipCardScreen.id,
+        builder: (context, state) => const MembershipCardScreen(),
+      ),
+      GoRoute(
         path: '/${DashboardScreen.id}',
         name: DashboardScreen.id,
         builder: (context, state) => const DashboardScreen(),

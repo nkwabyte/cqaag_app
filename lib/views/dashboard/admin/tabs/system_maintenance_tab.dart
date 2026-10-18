@@ -19,7 +19,6 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isClearingCache = false;
-  bool _isPurging = false;
 
   @override
   void dispose() {
@@ -71,8 +70,8 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
           const Divider(),
           Gap(24.h),
 
-          // 3. Danger Zone: Database Purge
-          _buildDangerZoneCard(colorScheme),
+          // 3. Regulatory & Audit Compliance (Rules R9 & R11)
+          _buildAuditComplianceCard(colorScheme),
           Gap(40.h),
         ],
       ),
@@ -133,13 +132,13 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const CustomText(
-          "Delete Specific Records",
+          "Record Correction & Audit",
           variant: TextVariant.headlineMedium,
           fontWeight: FontWeight.bold,
         ),
         Gap(4.h),
         CustomText(
-          "Inspect and delete individual users, members, or quality certificates.",
+          "In accordance with Rule R9, records are append-only. Corrections emit an immutable CANCEL event with mandatory justification.",
           variant: TextVariant.bodySmall,
           color: colorScheme.secondary,
         ),
@@ -249,12 +248,14 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
             title: CustomText("${user.firstName} ${user.lastName}", fontWeight: FontWeight.bold),
             subtitle: CustomText(user.email, variant: TextVariant.bodySmall, color: colorScheme.secondary),
             trailing: IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
-              onPressed: () => _confirmDeleteEntity(
-                title: "Delete User",
-                message: "Are you sure you want to delete user ${user.firstName} ${user.lastName}? This action cannot be undone.",
-                successMessage: "User deleted",
-                onConfirm: () => ref.read(systemMaintenanceServiceProvider).deleteUser(user.id),
+              icon: Icon(Icons.cancel_outlined, color: Colors.amber.shade800),
+              tooltip: "Record CANCEL Event",
+              onPressed: () => _confirmCancelEntity(
+                title: "Cancel User Record",
+                targetType: "User",
+                targetIdentifier: "${user.firstName} ${user.lastName}",
+                collectionPath: 'users',
+                documentId: user.id,
               ),
             ),
           ),
@@ -295,12 +296,14 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
                 title: CustomText("${app.firstName} ${app.lastName}", fontWeight: FontWeight.bold),
                 subtitle: CustomText("${app.membershipCategory.displayName} • ${app.status.value}", variant: TextVariant.bodySmall, color: colorScheme.secondary),
                 trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: () => _confirmDeleteEntity(
-                    title: "Delete Member Application",
-                    message: "Are you sure you want to delete application for ${app.firstName} ${app.lastName}?",
-                    successMessage: "Application deleted",
-                    onConfirm: () => ref.read(systemMaintenanceServiceProvider).deleteMember(app.id),
+                  icon: Icon(Icons.cancel_outlined, color: Colors.amber.shade800),
+                  tooltip: "Record CANCEL Event",
+                  onPressed: () => _confirmCancelEntity(
+                    title: "Cancel Member Application",
+                    targetType: "Member Application",
+                    targetIdentifier: "${app.firstName} ${app.lastName}",
+                    collectionPath: 'members',
+                    documentId: app.id,
                   ),
                 ),
               ),
@@ -345,12 +348,14 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
             title: CustomText("Certificate #$displayId", fontWeight: FontWeight.bold),
             subtitle: CustomText("KOR: ${report.kor.toStringAsFixed(1)} lbs/80kg • $displayLoc", variant: TextVariant.bodySmall, color: colorScheme.secondary),
             trailing: IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
-              onPressed: () => _confirmDeleteEntity(
-                title: "Delete Quality Certificate",
-                message: "Are you sure you want to delete quality certificate #$displayId?",
-                successMessage: "Certificate deleted",
-                onConfirm: () => ref.read(systemMaintenanceServiceProvider).deleteReport(report.id),
+              icon: Icon(Icons.cancel_outlined, color: Colors.amber.shade800),
+              tooltip: "Record CANCEL Event",
+              onPressed: () => _confirmCancelEntity(
+                title: "Cancel Quality Certificate",
+                targetType: "Certificate",
+                targetIdentifier: "#$displayId",
+                collectionPath: 'inspections',
+                documentId: report.id,
               ),
             ),
           ),
@@ -373,75 +378,35 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
     );
   }
 
-  Widget _buildDangerZoneCard(ColorScheme colorScheme) {
+  Widget _buildAuditComplianceCard(ColorScheme colorScheme) {
     return Container(
       padding: EdgeInsets.all(20.r),
       decoration: BoxDecoration(
-        color: Colors.red.withValues(alpha: 0.04),
+        color: const Color(0xFF143D2B).withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        border: Border.all(color: const Color(0xFF143D2B).withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28.r),
+              Icon(Icons.verified_user_outlined, color: const Color(0xFF143D2B), size: 28.r),
               Gap(12.w),
               Expanded(
                 child: const CustomText(
-                  "Danger Zone: Purge Database",
+                  "Regulatory & Audit Compliance (Rules R9 & R11)",
                   variant: TextVariant.headlineMedium,
                   fontWeight: FontWeight.bold,
-                  color: Colors.red,
+                  color: Color(0xFF143D2B),
                 ),
               ),
             ],
           ),
           Gap(12.h),
           const CustomText(
-            "Caution: Purging database collections permanently deletes data from Firestore. "
-            "This operation cannot be reversed.",
+            "Destructive purges are permanently disabled. The CQAAG ledger is strictly append-only. All certificates, lots, inspections, and member histories are statutory evidence for the Tree Crops Development Authority (TCDA), the Ghana Standards Authority (GSA), and the Board, retained for a minimum of 7 years. Any administrative corrections must be issued as traceable event logs (CANCEL) preserving the original record.",
             variant: TextVariant.bodySmall,
-          ),
-          Gap(20.h),
-
-          // Collection specific purges
-          Wrap(
-            spacing: 10.w,
-            runSpacing: 10.h,
-            children: [
-              OutlinedButton.icon(
-                onPressed: () => _handlePurgeCollection('members', 'Members & Applications'),
-                icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                label: const Text("Purge Members"),
-                style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => _handlePurgeCollection('inspections', 'Quality Certificates'),
-                icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                label: const Text("Purge Certificates"),
-                style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => _handlePurgeCollection('notifications', 'Notifications'),
-                icon: const Icon(Icons.delete_sweep, color: Colors.red),
-                label: const Text("Purge Notifications"),
-                style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-              ),
-            ],
-          ),
-          Gap(20.h),
-          const Divider(color: Colors.redAccent),
-          Gap(16.h),
-
-          // Full Database Purge Button
-          CustomButton(
-            text: _isPurging ? "Purging Database..." : "EMERGENCY FULL DATABASE PURGE",
-            backgroundColor: Colors.red,
-            leadingIcon: const Icon(Icons.no_crash, color: Colors.white),
-            isLoading: _isPurging,
-            onPressed: _isPurging ? () {} : _showFullPurgeModal,
           ),
         ],
       ),
@@ -498,281 +463,80 @@ class _SystemMaintenanceTabState extends ConsumerState<SystemMaintenanceTab> {
     }
   }
 
-  void _confirmDeleteEntity({
+  void _confirmCancelEntity({
     required String title,
-    required String message,
-    required String successMessage,
-    required Future<void> Function() onConfirm,
+    required String targetType,
+    required String targetIdentifier,
+    required String collectionPath,
+    required String documentId,
   }) {
+    final reasonController = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
+        title: Row(
+          children: [
+            Icon(Icons.history_edu, color: Colors.amber.shade900),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Rule R9 Compliance: This $targetType ($targetIdentifier) will not be deleted. An immutable CANCEL event will be appended to the statutory audit ledger.",
+              style: const TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Reason for Cancellation (Required):",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: reasonController,
+              maxLines: 2,
+              decoration: const InputDecoration(
+                hintText: "Enter regulatory reason for correction...",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Keep Intact")),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade900),
             onPressed: () async {
+              final reason = reasonController.text.trim();
+              if (reason.isEmpty) {
+                CustomSnackBar.error(context, message: "A justification reason is required per Rule R9.");
+                return;
+              }
               Navigator.pop(ctx);
-              await onConfirm();
-              if (mounted) {
-                CustomSnackBar.success(context, message: successMessage);
+              final currentAdmin = ref.read(authServiceProvider).currentUser;
+              try {
+                await ref.read(systemMaintenanceServiceProvider).cancelRecord(
+                  collectionPath: collectionPath,
+                  documentId: documentId,
+                  reason: reason,
+                  officerId: currentAdmin?.uid,
+                );
+                if (mounted) {
+                  CustomSnackBar.success(context, message: "Cancellation event appended to audit ledger.");
+                }
+              } catch (e) {
+                if (mounted) {
+                  CustomSnackBar.error(context, message: "Failed to record cancellation: $e");
+                }
               }
             },
-            child: const Text("Delete"),
+            child: const Text("Record CANCEL Event", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
-  }
-
-  Future<void> _handlePurgeCollection(String collectionPath, String collectionTitle) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text("Purge $collectionTitle?"),
-        content: Text("Are you sure you want to delete ALL documents in '$collectionPath'? This cannot be undone."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Purge Collection"),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    setState(() => _isPurging = true);
-    try {
-      final count = await ref.read(systemMaintenanceServiceProvider).purgeCollection(collectionPath);
-      if (!mounted) return;
-      CustomSnackBar.success(context, message: "Purged $count items from $collectionTitle.");
-    } catch (e) {
-      if (!mounted) return;
-      CustomSnackBar.error(context, message: "Purge failed: $e");
-    } finally {
-      if (mounted) setState(() => _isPurging = false);
-    }
-  }
-
-  void _showFullPurgeModal() {
-    final confirmationController = TextEditingController();
-    bool canConfirmText = false;
-
-    bool purgeUsers = true;
-    bool purgeMembers = true;
-    bool purgeReports = true;
-    bool purgeNotifications = true;
-    bool purgeSubscriptions = true;
-    bool deleteActiveAdmin = false;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          final hasSelection = purgeUsers || purgeMembers || purgeReports || purgeNotifications || purgeSubscriptions;
-          final isButtonEnabled = canConfirmText && hasSelection;
-
-          return AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.red),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text("Emergency System Data Purge"),
-                ),
-              ],
-            ),
-            content: SizedBox(
-              width: double.maxFinite,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Select the specific data sections you want to purge from Firestore:",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Sections Selection Checklist
-                    Material(
-                      color: Colors.grey.withValues(alpha: 0.05),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.r),
-                        side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
-                      ),
-                      child: Column(
-                        children: [
-                          CheckboxListTile(
-                            dense: true,
-                            title: const Text("User Accounts", style: TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: const Text("All user profile records in 'users'", style: TextStyle(fontSize: 11)),
-                            value: purgeUsers,
-                            activeColor: Colors.red,
-                            onChanged: (val) {
-                              setModalState(() {
-                                purgeUsers = val ?? false;
-                                if (!purgeUsers) deleteActiveAdmin = false;
-                              });
-                            },
-                          ),
-                          if (purgeUsers)
-                            Padding(
-                              padding: EdgeInsets.only(left: 16.w, right: 8.w, bottom: 8.h),
-                              child: Material(
-                                color: Colors.red.withValues(alpha: 0.08),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8.r),
-                                  side: BorderSide(color: Colors.red.withValues(alpha: 0.25)),
-                                ),
-                                child: CheckboxListTile(
-                                  dense: true,
-                                  title: const Text(
-                                    "Delete my active admin account as well",
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.red),
-                                  ),
-                                  subtitle: const Text(
-                                    "If checked, your account will be inactivated & deleted, and you will be signed out immediately.",
-                                    style: TextStyle(fontSize: 10),
-                                  ),
-                                  value: deleteActiveAdmin,
-                                  activeColor: Colors.red,
-                                  onChanged: (val) {
-                                    setModalState(() => deleteActiveAdmin = val ?? false);
-                                  },
-                                ),
-                              ),
-                            ),
-                          const Divider(height: 1),
-                          CheckboxListTile(
-                            dense: true,
-                            title: const Text("Members & Applications", style: TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: const Text("All member records in 'members'", style: TextStyle(fontSize: 11)),
-                            value: purgeMembers,
-                            activeColor: Colors.red,
-                            onChanged: (val) => setModalState(() => purgeMembers = val ?? false),
-                          ),
-                          const Divider(height: 1),
-                          CheckboxListTile(
-                            dense: true,
-                            title: const Text("Quality Certificates", style: TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: const Text("All quality certificates in 'inspections'", style: TextStyle(fontSize: 11)),
-                            value: purgeReports,
-                            activeColor: Colors.red,
-                            onChanged: (val) => setModalState(() => purgeReports = val ?? false),
-                          ),
-                          const Divider(height: 1),
-                          CheckboxListTile(
-                            dense: true,
-                            title: const Text("Notifications & Bulletins", style: TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: const Text("All alerts in 'notifications'", style: TextStyle(fontSize: 11)),
-                            value: purgeNotifications,
-                            activeColor: Colors.red,
-                            onChanged: (val) => setModalState(() => purgeNotifications = val ?? false),
-                          ),
-                          const Divider(height: 1),
-                          CheckboxListTile(
-                            dense: true,
-                            title: const Text("Newsletter Subscriptions", style: TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: const Text("All subscriptions in 'newsletter_subscriptions'", style: TextStyle(fontSize: 11)),
-                            value: purgeSubscriptions,
-                            activeColor: Colors.red,
-                            onChanged: (val) => setModalState(() => purgeSubscriptions = val ?? false),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text("To confirm, type 'PURGE DATABASE' below:"),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: confirmationController,
-                      decoration: const InputDecoration(
-                        hintText: "PURGE DATABASE",
-                        border: OutlineInputBorder(),
-                      ),
-                      onChanged: (val) {
-                        setModalState(() {
-                          canConfirmText = val.trim() == "PURGE DATABASE";
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("Cancel"),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: isButtonEnabled
-                    ? () async {
-                        Navigator.pop(ctx);
-                        _executeFullDatabasePurge(
-                          purgeUsers: purgeUsers,
-                          purgeMembers: purgeMembers,
-                          purgeReports: purgeReports,
-                          purgeNotifications: purgeNotifications,
-                          purgeSubscriptions: purgeSubscriptions,
-                          deleteActiveAdmin: deleteActiveAdmin,
-                        );
-                      }
-                    : null,
-                child: const Text("CONFIRM PURGE"),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _executeFullDatabasePurge({
-    required bool purgeUsers,
-    required bool purgeMembers,
-    required bool purgeReports,
-    required bool purgeNotifications,
-    required bool purgeSubscriptions,
-    required bool deleteActiveAdmin,
-  }) async {
-    setState(() => _isPurging = true);
-    try {
-      final admin = ref.read(authServiceProvider).currentUser;
-      if (admin == null) throw Exception("Not authenticated as admin");
-
-      final results = await ref.read(systemMaintenanceServiceProvider).purgeSelectedDatabase(
-        currentAdminUid: admin.uid,
-        purgeUsers: purgeUsers,
-        purgeMembers: purgeMembers,
-        purgeReports: purgeReports,
-        purgeNotifications: purgeNotifications,
-        purgeSubscriptions: purgeSubscriptions,
-        deleteActiveAdmin: deleteActiveAdmin,
-      );
-
-      if (!mounted) return;
-      final summary = results.entries.map((e) => "${e.key}: ${e.value}").join(", ");
-
-      if (deleteActiveAdmin) {
-        CustomSnackBar.success(context, message: "Selected Purge Complete including Admin Account. Signing out...");
-        await ref.read(authControllerProvider.notifier).signOut();
-      } else {
-        CustomSnackBar.success(context, message: "Purge Complete! ($summary)");
-      }
-    } catch (e) {
-      if (!mounted) return;
-      CustomSnackBar.error(context, message: "Failed to purge database: $e");
-    } finally {
-      if (mounted) setState(() => _isPurging = false);
-    }
   }
 }

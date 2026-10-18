@@ -229,10 +229,10 @@ class _KitOrderCard extends ConsumerWidget {
   final KitOrder order;
 
   Color get _statusColor => switch (order.status) {
-    KitOrderStatus.pendingVerification => Colors.orange.shade800,
-    KitOrderStatus.paid => Colors.blue.shade800,
-    KitOrderStatus.fulfilled => Colors.green.shade800,
-    KitOrderStatus.rejected => Colors.red.shade800,
+    KitOrderStatus.pendingVerification || KitOrderStatus.ordered => Colors.orange.shade800,
+    KitOrderStatus.paid || KitOrderStatus.packed || KitOrderStatus.shipped => Colors.blue.shade800,
+    KitOrderStatus.fulfilled || KitOrderStatus.delivered => Colors.green.shade800,
+    KitOrderStatus.rejected || KitOrderStatus.cancelled || KitOrderStatus.refunded => Colors.red.shade800,
   };
 
   @override

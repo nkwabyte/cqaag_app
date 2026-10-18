@@ -24,6 +24,33 @@ class SystemMaintenanceService {
     }
   }
 
+  /// Records an immutable CANCEL event and updates status to 'cancelled'
+  /// per CQAAG Build Specification (Rule R9 & Section 97)
+  Future<void> cancelRecord({
+    required String collectionPath,
+    required String documentId,
+    required String reason,
+    String? officerId,
+  }) async {
+    final timestamp = FieldValue.serverTimestamp();
+    await _firestore.collection(collectionPath).doc(documentId).update({
+      'status': 'cancelled',
+      'cancellation_reason': reason,
+      'cancelled_at': timestamp,
+      'cancelled_by': officerId ?? 'secretariat',
+    });
+
+    // Write to immutable audit event log
+    await _firestore.collection('audit_events').add({
+      'event_type': 'CANCEL',
+      'collection': collectionPath,
+      'target_id': documentId,
+      'reason': reason,
+      'officer_id': officerId ?? 'secretariat',
+      'created_at': timestamp,
+    });
+  }
+
   /// Deletes a specific document from any Firestore collection.
   Future<void> deleteDocument({
     required String collectionPath,

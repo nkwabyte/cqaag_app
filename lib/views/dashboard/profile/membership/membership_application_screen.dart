@@ -721,7 +721,7 @@ class _MembershipApplicationScreenState extends ConsumerState<MembershipApplicat
           const Divider(height: 1),
           Gap(6.h),
           _buildFeePreviewRow(
-            "Payable on registration",
+            "Due after approval",
             settings.money(schedule.mandatoryTotalFor(feeCategory, isExistingMember: isExistingFull)),
             isBold: true,
           ),

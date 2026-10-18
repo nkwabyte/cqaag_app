@@ -77,10 +77,17 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
 
     final isSmallVolume = volume > 0 && volume <= 10000;
     final isLargeVolume = volume >= 10000;
+    final int effectiveCuttingCount = isSmallVolume
+        ? 1
+        : isLargeVolume
+            ? (_cuttingCount < 2 ? 2 : _cuttingCount)
+            : _cuttingCount;
 
-    // Enforce small volume rule: <= 10,000kg only 1 cutting test
-    final effectiveCuttingCount = isSmallVolume ? 1 : (_cuttingCount < 2 && isLargeVolume ? 2 : _cuttingCount);
-    final isMetricsUnlocked = _moisture != null && _moisture! > 0;
+    // Rule R5 & Spec Section 43: Moisture <= 10.0% unlocks Arrival Cutting. > 10.0% is a Failed Pass and cut-test stays locked.
+    final hasMoisture = _moisture != null && _moisture! > 0;
+    final isMoistureCompliant = hasMoisture && _moisture! <= 10.0;
+    final isMoistureFailed = hasMoisture && _moisture! > 10.0;
+    final isMetricsUnlocked = isMoistureCompliant;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(24.r),
@@ -100,7 +107,9 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
           Gap(24.h),
 
           // 2. GATED CUTTING METRICS SECTION
-          if (!isMetricsUnlocked)
+          if (isMoistureFailed)
+            _buildMoistureFailedBanner(colorScheme)
+          else if (!isMetricsUnlocked)
             _buildLockedMetricsBanner(colorScheme)
           else ...[
             // Protocol Weight Rule Banner
@@ -340,6 +349,186 @@ class _QualityMetricsStepState extends State<QualityMetricsStep> {
                   ),
                 ),
               ],
+            ),
+          ),
+
+          // Print 58mm Thermal POS Slip (Rule R5 & Spec Section 88)
+          if (hasValue) ...[
+            Gap(12.h),
+            OutlinedButton.icon(
+              onPressed: () => _showThermalSlipDialog(context),
+              icon: Icon(Icons.print_outlined, size: 18.r, color: colorScheme.primary),
+              label: CustomText(
+                "Print 58mm Thermal POS Slip",
+                variant: TextVariant.bodySmall,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.primary,
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: Size(double.infinity, 42.h),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.5)),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMoistureFailedBanner(ColorScheme colorScheme) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(20.r),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: const Color(0xFFF87171), width: 1.5),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(10.r),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFEE2E2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.error_outline_rounded, size: 36.r, color: const Color(0xFFDC2626)),
+          ),
+          Gap(12.h),
+          CustomText(
+            "Arrival Cutting Locked — Failed Pass",
+            variant: TextVariant.bodyLarge,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF991B1B),
+          ),
+          Gap(6.h),
+          CustomText(
+            "Rule R5: Moisture content (${_moisture!.toStringAsFixed(1)}%) exceeds the maximum allowable safe limit of 10.0%. A Failed Pass (Specimen B2) has been generated. The 100-nut cutting test is strictly prohibited until lot moisture is brought within safe compliance.",
+            variant: TextVariant.bodySmall,
+            color: const Color(0xFF7F1D1D),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showThermalSlipDialog(BuildContext context) {
+    final form = FormBuilder.of(context);
+    final lotCode = form?.fields['lot_number']?.value ?? 'CQAAG-L-DEMO-0001';
+    final vehiclePlate = form?.fields['vehicle_number']?.value ?? 'AS 4521-24';
+    final sellerTcda = form?.fields['seller_tcda_number']?.value ?? 'TCDA/BR/2026/00142';
+    final buyerTcda = form?.fields['buyer_tcda_number']?.value ?? 'TCDA/ER/2026/00088';
+
+    final now = DateTime.now();
+    final isPassed = _moisture != null && _moisture! <= 10.0;
+    final passNumber = MoistureControlService.formatPassNumber(
+      date: now,
+      sequence: 1,
+      isPassed: isPassed,
+    );
+    final sigHash = MoistureControlService.computeSignatureHash(passNumber, lotCode, _moisture ?? 9.4);
+
+    final pass = MoisturePass(
+      id: 'demo-pass-1',
+      passNumber: passNumber,
+      lotCode: lotCode,
+      moistureContent: _moisture ?? 9.4,
+      maxSafeLimit: 10.0,
+      status: isPassed ? MoisturePassStatus.valid : MoisturePassStatus.failed,
+      sellerTcda: sellerTcda,
+      buyerTcda: buyerTcda,
+      vehiclePlate: vehiclePlate,
+      facilityId: 'CQAAG-W-0042',
+      meterSerialNumber: 'DJ-GAC2500-8812',
+      analystId: 'user-analyst-1',
+      analystTcda: 'TCDA/AN/2026/00012',
+      timestamp: now,
+      paymentConfirmed: true,
+      signatureHash: sigHash,
+    );
+
+    final slipText = ThermalPosService.generateSlipText(pass: pass);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.receipt_long, color: Color(0xFF0A3D18)),
+            Gap(8.w),
+            const Text("58mm Thermal POS Output", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: SizedBox(
+          width: 320.w,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(8.r),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade50,
+                    borderRadius: BorderRadius.circular(6.r),
+                    border: Border.all(color: Colors.amber.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, size: 14.r, color: Colors.amber.shade900),
+                      Gap(6.w),
+                      Expanded(
+                        child: Text(
+                          "Rule R5: Physical output strictly on 58mm thermal paper. A4 print button is prohibited.",
+                          style: TextStyle(fontSize: 10.sp, color: Colors.amber.shade900, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Gap(12.h),
+                Container(
+                  padding: EdgeInsets.all(12.r),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(color: Colors.grey.shade400),
+                  ),
+                  child: Text(
+                    slipText,
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 9.5.sp,
+                      color: Colors.black87,
+                      height: 1.25,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text("Close"),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Sending ESC/POS command stream to Bluetooth 58mm POS printer..."),
+                  backgroundColor: Color(0xFF0A3D18),
+                ),
+              );
+            },
+            icon: const Icon(Icons.print, size: 16),
+            label: const Text("Print POS (ESC/POS)"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0A3D18),
+              foregroundColor: Colors.white,
             ),
           ),
         ],

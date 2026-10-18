@@ -34,6 +34,16 @@ class IdUtils {
     return 'CQAAG-QC-${nextNumber.toString().padLeft(3, '0')}';
   }
 
+  /// Generate official CQAAG Lot Number format: CQAAG-L-yymmdd-nnnn (Rules L1 to L8)
+  static String formatLotNumber({DateTime? date, int sequenceNumber = 1}) {
+    final d = date ?? DateTime.now();
+    final yy = (d.year % 100).toString().padLeft(2, '0');
+    final mm = d.month.toString().padLeft(2, '0');
+    final dd = d.day.toString().padLeft(2, '0');
+    final nnnn = sequenceNumber.toString().padLeft(4, '0');
+    return 'CQAAG-L-$yy$mm$dd-$nnnn';
+  }
+
   /// Generate Batch ID in format: BATCH-GH-{COMPANY_INITIALS}-XXX
   /// where XXX is the inspection count + 1
   static String generateBatchId(String company, int inspectionCount) {

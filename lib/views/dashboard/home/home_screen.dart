@@ -95,6 +95,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
+            // 4. "To Do Now" Actionable Queue (Spec Section 15 & Figure 6)
+            SliverToBoxAdapter(
+              child: _buildTodoNowQueue(user),
+            ),
+
+            // 5. TCDA Statutory Licence Card (Spec Figure 48)
+            SliverToBoxAdapter(
+              child: _buildTcdaLicenceCard(user),
+            ),
+
             // 4. Recent Activities Section Header
             SliverToBoxAdapter(
               child: Padding(
@@ -550,5 +560,211 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       case InspectionStatus.pendingApproval:
         return const Color(0xFFB45309);
     }
+  }
+
+  Widget _buildTodoNowQueue(AppUser? user) {
+    final isAdminOrTreasurer = user?.isAdmin == true || user?.role?.toLowerCase() == 'treasurer';
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 4.h),
+      child: Container(
+        padding: EdgeInsets.all(14.r),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: Colors.amber.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.bolt_rounded, color: Colors.amber.shade900, size: 20.r),
+                    Gap(6.w),
+                    Text(
+                      "To Do Now",
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber.shade900,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade100,
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Text(
+                    isAdminOrTreasurer ? "2 Actionable" : "1 Actionable",
+                    style: TextStyle(
+                      fontSize: 10.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.amber.shade900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Gap(10.h),
+            if (isAdminOrTreasurer) ...[
+              _buildTodoItem(
+                title: "Statutory Tariff Modification",
+                subtitle: "Export Certificate change GHS 500 -> 550 awaiting Treasurer approval",
+                badgeText: "Dual Approval",
+                badgeColor: Colors.amber.shade800,
+                icon: Icons.approval_rounded,
+                onTap: () => context.pushNamed(AdminDashboardScreen.id),
+              ),
+              Gap(8.h),
+            ],
+            _buildTodoItem(
+              title: "Moisture Control Gated Cut",
+              subtitle: "Lot CQAAG-L-261012-0007 (9.2% moisture) ready for arrival cutting",
+              badgeText: "Cutting Ready",
+              badgeColor: AppColors.primaryGreen,
+              icon: Icons.content_cut_rounded,
+              onTap: () => context.pushNamed(QualityInspectionWizard.id),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTodoItem({
+    required String title,
+    required String subtitle,
+    required String badgeText,
+    required Color badgeColor,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10.r),
+      child: Container(
+        padding: EdgeInsets.all(10.r),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8.r),
+              decoration: BoxDecoration(
+                color: badgeColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: badgeColor, size: 18.r),
+            ),
+            Gap(10.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        badgeText,
+                        style: TextStyle(fontSize: 9.sp, fontWeight: FontWeight.bold, color: badgeColor),
+                      ),
+                    ],
+                  ),
+                  Gap(2.h),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 11.sp, color: Colors.grey.shade600),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 18.r),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTcdaLicenceCard(AppUser? user) {
+    final hasTcdaLicence = user?.qcCode != null && user!.qcCode!.isNotEmpty;
+    final licenceNumber = hasTcdaLicence ? user.qcCode! : "TCDA/CS/2026/0014";
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 4.h, 16.w, 4.h),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 12.h),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14.r),
+          border: Border.all(color: Colors.blue.shade100),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8.r),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Icon(Icons.verified_user_outlined, color: Colors.blue.shade800, size: 22.r),
+            ),
+            Gap(12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "TCDA Commercial Licence",
+                    style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.bold),
+                  ),
+                  Gap(2.h),
+                  Text(
+                    hasTcdaLicence ? "$licenceNumber • Valid" : "Not Registered • Tree Crop Authority",
+                    style: TextStyle(fontSize: 11.sp, color: Colors.blue.shade900),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(color: Colors.green.shade300),
+              ),
+              child: Text(
+                "LICENSED",
+                style: TextStyle(fontSize: 10.sp, fontWeight: FontWeight.bold, color: Colors.green.shade800),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

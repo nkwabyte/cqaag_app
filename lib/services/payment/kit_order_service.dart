@@ -61,10 +61,14 @@ class KitOrderService {
       final memberDoc = await memberRef.get();
       if (memberDoc.exists) {
         final paymentStatusStr = switch (status) {
-          KitOrderStatus.paid => 'verified',
-          KitOrderStatus.fulfilled => 'verified',
-          KitOrderStatus.rejected => 'rejected',
-          KitOrderStatus.pendingVerification => 'pending',
+          KitOrderStatus.paid ||
+          KitOrderStatus.packed ||
+          KitOrderStatus.shipped ||
+          KitOrderStatus.fulfilled ||
+          KitOrderStatus.delivered => 'verified',
+          KitOrderStatus.rejected ||
+          KitOrderStatus.cancelled => 'rejected',
+          _ => 'pending',
         };
         await memberRef.update({
           'payment_status': paymentStatusStr,

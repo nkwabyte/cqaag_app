@@ -26,4 +26,10 @@ export 'subscription/index.dart';
 export 'payment/index.dart';
 export 'notification/index.dart';
 export 'ticket/index.dart';
-
+export 'tcda/index.dart';
+export 'facility/index.dart';
+export 'equipment/index.dart';
+export 'moisture/index.dart';
+export 'outbox/index.dart';
+export 'lot/index.dart';
+export 'tariff/index.dart';

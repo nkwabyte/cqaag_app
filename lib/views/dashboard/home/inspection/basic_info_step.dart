@@ -29,8 +29,22 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
   // Controllers for the editable fields
   late TextEditingController _qcIdController;
   late TextEditingController _batchIdController;
+  late TextEditingController _sellerLicenceController;
+  late TextEditingController _buyerLicenceController;
 
   String? _selectedAnalysisType;
+
+  // TCDA party verification states
+  TcdaParty? _sellerTcdaParty;
+  TcdaParty? _buyerTcdaParty;
+  bool _isBuyerForeignConsignee = false;
+
+  // Warehouse selection and proximity states
+  List<Facility> _facilities = [];
+  Facility? _selectedFacility;
+  Facility? get selectedFacility => _selectedFacility;
+  FacilityProximityResult? _facilityProximityResult;
+  bool _isCheckingProximity = false;
 
   static const List<String> analysisTypes = AnalysisTypes.all;
 
@@ -39,9 +53,12 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
     super.initState();
     _qcIdController = TextEditingController();
     _batchIdController = TextEditingController();
+    _sellerLicenceController = TextEditingController();
+    _buyerLicenceController = TextEditingController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initQcAndBatch();
+      _loadFacilities();
     });
   }
 
@@ -49,7 +66,280 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
   void dispose() {
     _qcIdController.dispose();
     _batchIdController.dispose();
+    _sellerLicenceController.dispose();
+    _buyerLicenceController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadFacilities() async {
+    try {
+      final facService = ref.read(facilityServiceProvider);
+      final facilities = await facService.getFacilities();
+      if (mounted) {
+        setState(() {
+          _facilities = facilities;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _checkSellerLicence(String licenceNo) async {
+    if (licenceNo.trim().isEmpty) {
+      setState(() => _sellerTcdaParty = null);
+      return;
+    }
+    final tcdaService = ref.read(tcdaLicenceServiceProvider);
+    final party = await tcdaService.checkLicence(licenceNo);
+    if (!mounted || party == null) return;
+    setState(() => _sellerTcdaParty = party);
+
+    if (party.state == TcdaLicenceState.blocked || party.state == TcdaLicenceState.expired) {
+      _showBlockedPartyDialog(context, party, 'Seller / Supplier');
+    }
+  }
+
+  Future<void> _checkBuyerLicence(String licenceNo) async {
+    if (_isBuyerForeignConsignee || licenceNo.trim().isEmpty) {
+      setState(() => _buyerTcdaParty = null);
+      return;
+    }
+    final tcdaService = ref.read(tcdaLicenceServiceProvider);
+    final party = await tcdaService.checkLicence(licenceNo);
+    if (!mounted || party == null) return;
+    setState(() => _buyerTcdaParty = party);
+
+    if (party.state == TcdaLicenceState.blocked || party.state == TcdaLicenceState.expired) {
+      _showBlockedPartyDialog(context, party, 'Buyer / Off-taker');
+    }
+  }
+
+  Future<void> _onFacilitySelected(Facility? facility) async {
+    setState(() {
+      _selectedFacility = facility;
+      _facilityProximityResult = null;
+      _isCheckingProximity = facility != null;
+    });
+
+    if (facility == null) return;
+
+    try {
+      final locService = ref.read(locationServiceProvider);
+      final pos = await locService.getCurrentPosition();
+      final facService = ref.read(facilityServiceProvider);
+      final result = await facService.checkProximityToFacility(
+        facility.id,
+        pos.latitude,
+        pos.longitude,
+      );
+      if (mounted) {
+        setState(() {
+          _facilityProximityResult = result;
+          _isCheckingProximity = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isCheckingProximity = false);
+      }
+    }
+  }
+
+  void _showBlockedPartyDialog(BuildContext context, TcdaParty party, String roleLabel) {
+    final isBlocked = party.state == TcdaLicenceState.blocked;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        titlePadding: EdgeInsets.all(16.r),
+        title: Container(
+          padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 12.w),
+          decoration: BoxDecoration(
+            color: isBlocked ? Colors.red.shade900 : Colors.orange.shade900,
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.block, color: Colors.white, size: 24),
+              Gap(8.w),
+              Expanded(
+                child: Text(
+                  isBlocked ? "BLOCKED BY TCDA" : "TCDA LICENCE EXPIRED",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Action Required for $roleLabel",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+            Gap(8.h),
+            Text(
+              "Entity: ${party.name}\n"
+              "Licence: ${party.tcdaLicenceNumber}\n"
+              "Status: ${party.state.displayName.toUpperCase()}\n\n"
+              "By TCDA regulations (Rule R4), transactions involving this entity cannot be verified or certified until the status is resolved or the suspension is lifted by the CQAAG Secretariat.",
+              style: TextStyle(color: Colors.grey.shade800, fontSize: 13, height: 1.4),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey.shade900,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text("Acknowledge & Reselect Party"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTcdaBadge(TcdaParty? party, {bool isExempt = false}) {
+    if (isExempt) {
+      return Container(
+        margin: EdgeInsets.only(top: 6.h),
+        padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(6.r),
+          border: Border.all(color: Colors.blue.shade300),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.public, color: Colors.blue.shade800, size: 14),
+            Gap(6.w),
+            Text(
+              "FOREIGN CONSIGNEE (TCDA EXEMPT)",
+              style: TextStyle(color: Colors.blue.shade900, fontSize: 11.sp, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (party == null) return const SizedBox.shrink();
+
+    Color bgColor = Colors.grey.shade100;
+    Color fgColor = Colors.grey.shade800;
+    IconData icon = Icons.help_outline;
+
+    switch (party.state) {
+      case TcdaLicenceState.verified:
+        bgColor = Colors.green.shade50;
+        fgColor = Colors.green.shade800;
+        icon = Icons.check_circle;
+        break;
+      case TcdaLicenceState.expiresSoon:
+        bgColor = Colors.amber.shade50;
+        fgColor = Colors.amber.shade900;
+        icon = Icons.warning_amber;
+        break;
+      case TcdaLicenceState.expired:
+        bgColor = Colors.red.shade50;
+        fgColor = Colors.red.shade800;
+        icon = Icons.error;
+        break;
+      case TcdaLicenceState.blocked:
+        bgColor = Colors.red.shade100;
+        fgColor = Colors.red.shade900;
+        icon = Icons.block;
+        break;
+      case TcdaLicenceState.check:
+        bgColor = Colors.blue.shade50;
+        fgColor = Colors.blue.shade800;
+        icon = Icons.info;
+        break;
+      case TcdaLicenceState.unverified:
+        bgColor = Colors.grey.shade100;
+        fgColor = Colors.grey.shade800;
+        icon = Icons.help_outline;
+        break;
+    }
+
+    return Container(
+      margin: EdgeInsets.only(top: 6.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6.r),
+        border: Border.all(color: fgColor.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: fgColor, size: 14),
+          Gap(6.w),
+          Text(
+            "TCDA: ${party.state.displayName.toUpperCase()} (${party.name})",
+            style: TextStyle(color: fgColor, fontSize: 11.sp, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProximityBadge() {
+    if (_isCheckingProximity) {
+      return Padding(
+        padding: EdgeInsets.only(top: 8.h),
+        child: Row(
+          children: [
+            const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+            Gap(8.w),
+            Text("Verifying GPS perimeter at warehouse gate...", style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade700)),
+          ],
+        ),
+      );
+    }
+
+    if (_facilityProximityResult == null) return const SizedBox.shrink();
+
+    final isWithin = _facilityProximityResult!.isWithin300m;
+    final dist = _facilityProximityResult!.distanceMeters.toStringAsFixed(0);
+
+    return Container(
+      margin: EdgeInsets.only(top: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: isWithin ? Colors.green.shade50 : Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: isWithin ? Colors.green.shade300 : Colors.amber.shade600),
+      ),
+      child: Row(
+        children: [
+          Icon(isWithin ? Icons.check_circle : Icons.warning_amber,
+              color: isWithin ? Colors.green.shade800 : Colors.amber.shade900, size: 16),
+          Gap(8.w),
+          Expanded(
+            child: Text(
+              isWithin
+                  ? "Within Warehouse Perimeter (${dist}m from gate)"
+                  : "GPS distance is > 300m (${dist}m away). Check-in flagged for audit.",
+              style: TextStyle(
+                color: isWithin ? Colors.green.shade900 : Colors.amber.shade900,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _initQcAndBatch() async {
@@ -64,7 +354,7 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
         setState(() {
           _inspectionCount = count;
           _qcId = persistentQcCode;
-          _batchId = IdUtils.generateBatchId('', count);
+          _batchId = IdUtils.formatLotNumber(sequenceNumber: count + 1);
 
           _qcIdController.text = _qcId;
           _batchIdController.text = _batchId;
@@ -74,7 +364,7 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
       if (mounted) {
         setState(() {
           _qcId = persistentQcCode;
-          _batchId = 'BATCH-GH-UNKNOWN-1';
+          _batchId = IdUtils.formatLotNumber(sequenceNumber: 1);
 
           _qcIdController.text = _qcId;
           _batchIdController.text = _batchId;
@@ -221,7 +511,7 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
             name: "batch_id",
             controller: _batchIdController,
             decoration: InputDecoration(
-              hintText: "e.g., BATCH-GH-OLAM-124",
+              hintText: "e.g., CQAAG-L-261010-0001",
               prefixIcon: Icon(
                 Icons.inventory_outlined,
                 color: colorScheme.secondary,
@@ -253,6 +543,48 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Warehouse / Facility Selection (Spec Section 27, Figures 15 & 16)
+        CustomText(
+          "Warehouse / Inspection Facility",
+          variant: TextVariant.bodyLarge,
+          fontWeight: FontWeight.w600,
+          color: colorScheme.onSurface,
+        ),
+        Gap(4.h),
+        FormBuilderDropdown<String>(
+          name: "facility_id",
+          decoration: InputDecoration(
+            hintText: "Select Registered Warehouse / Weighbridge",
+            prefixIcon: Icon(Icons.warehouse_outlined, color: colorScheme.secondary),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 16.w),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+          ),
+          items: [
+            const DropdownMenuItem(
+              value: "unregistered",
+              child: Text("Unregistered Facility / Farmgate"),
+            ),
+            ..._facilities.map(
+              (f) => DropdownMenuItem(
+                value: f.id,
+                child: Text("${f.name} (${f.facilityType.displayName}) - ${f.district}, ${f.region}"),
+              ),
+            ),
+          ],
+          onChanged: (val) {
+            if (val == null || val == "unregistered") {
+              _onFacilitySelected(null);
+            } else {
+              final fac = _facilities.firstWhere((element) => element.id == val, orElse: () => _facilities.first);
+              _onFacilitySelected(fac);
+            }
+          },
+        ),
+        _buildProximityBadge(),
+        Gap(20.h),
+
         // Location Fields
         CustomTextField(
           name: "location",
@@ -291,6 +623,8 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
           prefixIcon: Icons.local_shipping_outlined,
         ),
         Gap(20.h),
+
+        // Supplier / Seller Info with TCDA Licence (Rule R4, Section 23 & 26)
         CustomText(
           "Supplier / Supplying Company",
           variant: TextVariant.bodyLarge,
@@ -309,7 +643,31 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
           ),
           onChanged: _updateBatchId,
         ),
+        Gap(8.h),
+        FormBuilderTextField(
+          name: "seller_tcda_licence",
+          controller: _sellerLicenceController,
+          decoration: InputDecoration(
+            hintText: "Supplier TCDA Licence N° (e.g., TCDA/BUY/2026/089)",
+            prefixIcon: Icon(Icons.verified_outlined, color: Colors.green.shade800),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: "Verify TCDA Licence",
+              onPressed: () => _checkSellerLicence(_sellerLicenceController.text),
+            ),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            contentPadding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 16.w),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+          ),
+          onChanged: (val) {
+            if (val != null && val.length >= 6) _checkSellerLicence(val);
+          },
+        ),
+        _buildTcdaBadge(_sellerTcdaParty),
         Gap(20.h),
+
+        // Buyer Info with TCDA Licence
         CustomTextField(
           name: "buyer_name",
           label: "Buyer / Company Name",
@@ -317,6 +675,28 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
           prefixIcon: Icons.shopping_cart_outlined,
           validator: FormBuilderValidators.required(errorText: "Enter the buyer or company name"),
         ),
+        Gap(8.h),
+        FormBuilderTextField(
+          name: "buyer_tcda_licence",
+          controller: _buyerLicenceController,
+          decoration: InputDecoration(
+            hintText: "Buyer TCDA Licence N° (or check Foreign Consignee)",
+            prefixIcon: Icon(Icons.verified_outlined, color: Colors.green.shade800),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: "Verify TCDA Licence",
+              onPressed: () => _checkBuyerLicence(_buyerLicenceController.text),
+            ),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            contentPadding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 16.w),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+          ),
+          onChanged: (val) {
+            if (val != null && val.length >= 6) _checkBuyerLicence(val);
+          },
+        ),
+        _buildTcdaBadge(_buyerTcdaParty, isExempt: _isBuyerForeignConsignee),
         Gap(20.h),
         CustomTextField(
           name: "waybill_number",
@@ -392,6 +772,48 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
           ),
           Gap(16.h),
 
+          // Export Warehouse / Port Terminal Facility Selection (Figures 15 & 16)
+          CustomText(
+            "Port / Export Warehouse Facility",
+            variant: TextVariant.bodyMedium,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
+          ),
+          Gap(4.h),
+          FormBuilderDropdown<String>(
+            name: "export_facility_id",
+            decoration: InputDecoration(
+              hintText: "Select Port Terminal / Export Warehouse",
+              prefixIcon: Icon(Icons.warehouse_outlined, color: AppColors.darkRed),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 16.w),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+            ),
+            items: [
+              const DropdownMenuItem(
+                value: "unregistered",
+                child: Text("Unregistered Facility / Off-dock"),
+              ),
+              ..._facilities.map(
+                (f) => DropdownMenuItem(
+                  value: f.id,
+                  child: Text("${f.name} (${f.facilityType.displayName}) - ${f.district}, ${f.region}"),
+                ),
+              ),
+            ],
+            onChanged: (val) {
+              if (val == null || val == "unregistered") {
+                _onFacilitySelected(null);
+              } else {
+                final fac = _facilities.firstWhere((element) => element.id == val, orElse: () => _facilities.first);
+                _onFacilitySelected(fac);
+              }
+            },
+          ),
+          _buildProximityBadge(),
+          Gap(16.h),
+
           // B/L No.
           CustomTextField(
             name: "bl_number",
@@ -402,7 +824,7 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
           ),
           Gap(16.h),
 
-          // Shipper Details
+          // Shipper Details & TCDA Exporter Licence
           CustomTextField(
             name: "shipper_details",
             label: "SHIPPER DETAILS :",
@@ -410,9 +832,25 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
             prefixIcon: Icons.business_outlined,
             validator: FormBuilderValidators.required(errorText: "Enter Shipper details"),
           ),
+          Gap(6.h),
+          FormBuilderTextField(
+            name: "shipper_tcda_licence",
+            decoration: InputDecoration(
+              hintText: "Shipper TCDA Exporter Licence N° (e.g., TCDA/EXP/2026/012)",
+              prefixIcon: Icon(Icons.verified_outlined, color: Colors.green.shade800),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 14.w),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12.r)),
+            ),
+            onChanged: (val) {
+              if (val != null && val.length >= 6) _checkSellerLicence(val);
+            },
+          ),
+          _buildTcdaBadge(_sellerTcdaParty),
           Gap(16.h),
 
-          // Consignee Details
+          // Consignee Details & Foreign Exemption
           CustomTextField(
             name: "consignee_details",
             label: "CONSIGNEE DETAILS :",
@@ -420,6 +858,26 @@ class _BasicInfoStepState extends ConsumerState<BasicInfoStep> {
             prefixIcon: Icons.apartment_outlined,
             validator: FormBuilderValidators.required(errorText: "Enter Consignee details"),
           ),
+          Gap(4.h),
+          Row(
+            children: [
+              Checkbox(
+                value: _isBuyerForeignConsignee,
+                onChanged: (val) {
+                  setState(() {
+                    _isBuyerForeignConsignee = val ?? false;
+                  });
+                },
+              ),
+              Expanded(
+                child: Text(
+                  "Foreign Consignee (Exempt from TCDA licence outside Ghana)",
+                  style: TextStyle(fontSize: 12.sp, color: Colors.grey.shade800),
+                ),
+              ),
+            ],
+          ),
+          _buildTcdaBadge(null, isExempt: _isBuyerForeignConsignee),
           Gap(16.h),
 
           // Origin & Destination

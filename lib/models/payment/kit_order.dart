@@ -1,11 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cqaag_app/models/payment/fee_schedule.dart';
 
-/// Lifecycle of a quality cutting kit order.
+/// Lifecycle of a quality cutting kit order (Spec Section 80.5).
 enum KitOrderStatus {
   pendingVerification('pending_verification', 'Awaiting payment check'),
+  ordered('ordered', 'Ordered'),
   paid('paid', 'Paid — preparing'),
+  packed('packed', 'Packed for dispatch'),
+  shipped('shipped', 'Shipped with courier'),
   fulfilled('fulfilled', 'Delivered'),
+  delivered('delivered', 'Delivered'),
+  cancelled('cancelled', 'Cancelled'),
+  refunded('refunded', 'Refunded'),
   rejected('rejected', 'Payment rejected');
 
   const KitOrderStatus(this.value, this.label);
@@ -14,11 +20,44 @@ enum KitOrderStatus {
   final String label;
 
   static KitOrderStatus fromValue(String? value) {
+    if (value == null) return KitOrderStatus.pendingVerification;
+    final clean = value.toLowerCase().trim();
+    if (clean == 'delivered') return KitOrderStatus.delivered;
+    if (clean == 'ordered') return KitOrderStatus.ordered;
     return KitOrderStatus.values.firstWhere(
-      (s) => s.value == value,
+      (s) => s.value == clean,
       orElse: () => KitOrderStatus.pendingVerification,
     );
   }
+}
+
+/// Audit log entry of kit order status transitions (Criterion 80.5: who changed them and when).
+class KitOrderStatusHistoryEntry {
+  const KitOrderStatusHistoryEntry({
+    required this.status,
+    required this.changedBy,
+    required this.timestamp,
+    this.reason,
+  });
+
+  final KitOrderStatus status;
+  final String changedBy;
+  final DateTime timestamp;
+  final String? reason;
+
+  factory KitOrderStatusHistoryEntry.fromJson(Map<String, dynamic> json) => KitOrderStatusHistoryEntry(
+    status: KitOrderStatus.fromValue(json['status']?.toString()),
+    changedBy: json['changed_by']?.toString() ?? '',
+    timestamp: DateTime.tryParse(json['timestamp']?.toString() ?? '') ?? DateTime.now(),
+    reason: json['reason']?.toString(),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'status': status.value,
+    'changed_by': changedBy,
+    'timestamp': timestamp.toIso8601String(),
+    'reason': reason,
+  };
 }
 
 /// A purchase of quality cutting kit items, by a guest or a member.
@@ -37,6 +76,9 @@ class KitOrder {
     this.emailAddress,
     this.organisation,
     this.deliveryLocation,
+    this.shippingZoneId,
+    this.shippingFee = 0.0,
+    this.statusHistory = const [],
     this.notes,
     this.buyerUserId,
     this.paymentEvidenceUrl,
@@ -54,6 +96,9 @@ class KitOrder {
   final String? emailAddress;
   final String? organisation;
   final String? deliveryLocation;
+  final String? shippingZoneId;
+  final double shippingFee;
+  final List<KitOrderStatusHistoryEntry> statusHistory;
   final String? notes;
 
   /// Signed-in buyer, or null for a guest.
@@ -107,6 +152,14 @@ class KitOrder {
       emailAddress: (json['email_address'] ?? json['emailAddress'] ?? json['email'])?.toString(),
       organisation: (json['organisation'] ?? json['organization'] ?? json['company'])?.toString(),
       deliveryLocation: (json['delivery_location'] ?? json['deliveryLocation'] ?? json['address'])?.toString(),
+      shippingZoneId: (json['shipping_zone_id'] ?? json['shippingZoneId'] ?? json['zone_id'])?.toString(),
+      shippingFee: (json['shipping_fee'] ?? json['shippingFee'] ?? 0.0) is num
+          ? (json['shipping_fee'] ?? json['shippingFee'] ?? 0.0).toDouble()
+          : 0.0,
+      statusHistory: (json['status_history'] as List? ?? [])
+          .whereType<Map>()
+          .map((e) => KitOrderStatusHistoryEntry.fromJson(Map<String, dynamic>.from(e)))
+          .toList(),
       notes: (json['notes'] ?? json['note'])?.toString(),
       buyerUserId: (json['buyer_user_id'] ?? json['buyerUserId'] ?? json['user_id'] ?? json['userId'])?.toString(),
       items: rawItems is List
@@ -134,6 +187,9 @@ class KitOrder {
     'email_address': emailAddress,
     'organisation': organisation,
     'delivery_location': deliveryLocation,
+    'shipping_zone_id': shippingZoneId,
+    'shipping_fee': shippingFee,
+    'status_history': statusHistory.map((e) => e.toJson()).toList(),
     'notes': notes,
     'buyer_user_id': buyerUserId,
     'items': items.map((e) => e.toJson()).toList(),

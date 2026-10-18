@@ -617,6 +617,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           }
                         },
                       ),
+                      ProfileTile(
+                        icon: Icons.badge_outlined,
+                        title: "My Digital Membership Card",
+                        subtitle: "View official card, QR code & good standing",
+                        onTap: () => context.pushNamed(MembershipCardScreen.id),
+                      ),
                       Consumer(
                         builder: (context, ref, child) {
                           final membershipState = ref.watch(membershipControllerProvider).value;
@@ -633,6 +639,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         },
                       ),
                       ProfileTile(
+                        icon: Icons.people_outline,
+                        title: "Member Directory",
+                        subtitle: "Public register of certified analysts & companies",
+                        onTap: () => context.pushNamed(MembersDirectoryScreen.id),
+                      ),
+                      ProfileTile(
                         icon: Icons.password_outlined,
                         title: "Change Password",
                         subtitle: "Replace the emailed or current password",
@@ -645,23 +657,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     _buildCard(context, [
                       ProfileTile(
                         icon: Icons.admin_panel_settings_outlined,
-                        title: user?.isAdmin == true ? "Admin Access Granted" : "Admin Access",
-                        subtitle: user?.isAdmin == true ? "You have full administrative privileges" : "Tap to activate Admin privileges for this account",
-                        trailing: user?.isAdmin == true
-                            ? const Icon(Icons.check_circle, color: Colors.green)
-                            : OutlinedButton(
-                                onPressed: () async {
-                                  if (user != null) {
-                                    AppDialogs.showLoadingDialog(context, message: 'Updating admin privileges...');
-                                    await ref.read(userServiceProvider).updateUserData(user.id, {'is_admin': true});
-                                    if (context.mounted) {
-                                      Navigator.of(context, rootNavigator: true).pop();
-                                      CustomSnackBar.success(context, message: 'Admin access granted to your account!');
-                                    }
-                                  }
-                                },
-                                child: const Text('Enable Admin', style: TextStyle(fontSize: 11)),
-                              ),
+                        title: user?.isAdmin == true ? "Admin Privileges" : "Standard Account",
+                        subtitle: user?.isAdmin == true
+                            ? "Full administrative privileges (Assigned by Secretariat)"
+                            : "Standard member privileges (Role assigned by Secretariat)",
+                        trailing: Icon(
+                          user?.isAdmin == true ? Icons.check_circle : Icons.shield_outlined,
+                          color: user?.isAdmin == true ? Colors.green : Colors.grey,
+                        ),
                       ),
                       ProfileTile(
                         icon: Icons.verified_user_outlined,
